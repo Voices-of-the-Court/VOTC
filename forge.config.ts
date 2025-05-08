@@ -4,45 +4,28 @@ import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
-import { WebpackPlugin } from '@electron-forge/plugin-webpack';
+// WebpackPlugin import removed
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
-import { mainConfig } from './webpack.main.config';
-import { rendererConfig } from './webpack.renderer.config';
+// Webpack config imports removed
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    // The 'main' field in package.json will point to Vite's main process output.
+    // Electron Forge will use that. HTML loading will be handled in src/main/main.ts
+    // based on Vite's dev server or production build paths.
   },
   rebuildConfig: {},
   makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
   plugins: [
     new AutoUnpackNativesPlugin({}),
-    new WebpackPlugin({
-      mainConfig,
-      renderer: {
-        config: rendererConfig,
-        entryPoints: [
-          {
-            html: './src/renderer/chatWindow/chat.html', // HTML for the chat window (Updated path)
-            js: './src/renderer/chatWindow/chatRenderer.tsx', // JS entry for the chat window (Updated path)
-            name: 'chat_window', // Renamed from main_window
-            preload: {
-              js: './src/preload.ts',
-            },
-          },
-          {
-            html: './src/renderer/configWindow/config.html', // HTML for the config window
-            js: './src/renderer/configWindow/configRenderer.tsx', // JS entry for the config window
-            name: 'config_window',
-            preload: {
-              js: './src/preload.ts',
-            },
-          },
-        ],
-      },
-    }),
+    // WebpackPlugin configuration removed.
+    // Vite will handle the build process. Electron Forge will package the output.
+    // The main process (src/main/main.ts) will be responsible for loading the
+    // correct HTML files from Vite's output (dist/renderer/chat.html, etc.)
+    // or from the Vite dev server.
     // Fuses are used to enable/disable various Electron functionality
     // at package time, before code signing the application
     new FusesPlugin({

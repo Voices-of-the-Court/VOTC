@@ -3,18 +3,21 @@
     "target": "ES6",
     "allowJs": true,
     "jsx": "react-jsx",
-    "module": "commonjs",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
     "skipLibCheck": true,
+    "experimentalDecorators": true,
     "esModuleInterop": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "sourceMap": true,
     "baseUrl": ".",
     "outDir": "dist",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
     "paths": {
       "*": ["node_modules/*"]
-    }
+    },
+    "types": ["vite/client", "@types/react", "@types/react-dom"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "vite.config.ts"]
 }

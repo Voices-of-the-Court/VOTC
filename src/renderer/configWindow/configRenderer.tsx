@@ -1,8 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import ConfigApp from './ConfigApp';
-// Import any config-specific CSS here if needed later
-// import './config.css';
+import './config.scss'; // Added import for SCSS
 
 const container = document.getElementById('config-root');
 if (container) {

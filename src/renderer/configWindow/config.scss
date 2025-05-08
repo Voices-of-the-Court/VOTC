@@ -1,0 +1,330 @@
+/* Base styles for Config Window */
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f0f0f0; /* Example background, can be themed later */
+  color: #333;
+  height: 100vh;
+  overflow: hidden; /* Prevent body scroll if app container handles it */
+}
+
+.config-app-container {
+  padding: 10px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.config-header {
+  display: flex;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+
+  button {
+    margin-right: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    background-color: #6c757d; // Default button color
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+
+    &.active {
+      background-color: #007bff; // Active tab button color
+    }
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+}
+
+.config-main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #fff; // Content area background
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+/* Styles from previous inline style tag */
+label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 3px;
+  font-weight: bold;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
+  width: calc(100% - 18px); /* Adjust width as needed */
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: #fff;
+  color: #333;
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+}
+
+input[readonly] {
+    background-color: #e9ecef; // Standard readonly background
+    cursor: not-allowed;
+}
+
+
+input[type="checkbox"] {
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+button {
+  padding: 10px 15px;
+  margin-right: 10px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  font-size: 14px;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+
+  &[type="button"] { // More specific selector for non-submit buttons
+    background-color: #6c757d;
+    &:hover {
+      background-color: #545b62;
+    }
+  }
+}
+
+h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+  color: #333;
+}
+
+h4 {
+  margin-top: 15px;
+  margin-bottom: 5px;
+  color: #444;
+}
+
+hr {
+  margin: 20px 0;
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-actions {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.suggestions-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #ccc;
+  border-top: none;
+  max-height: 150px;
+  overflow-y: auto;
+  position: absolute;
+  background-color: white;
+  width: calc(100% - 18px); /* Match input width, adjust if needed */
+  box-sizing: border-box;
+  z-index: 1000;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+  li {
+    padding: 8px;
+    cursor: pointer;
+    &:hover {
+      background-color: #f0f0f0;
+    }
+  }
+}
+
+.model-search-container {
+    position: relative; /* For absolute positioning of suggestions-list */
+}
+
+.test-result {
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    &.success {
+        color: green;
+        background-color: #e6ffed;
+        border: 1px solid #b7ebc9;
+    }
+    &.error {
+        color: red;
+        background-color: #ffe6e6;
+        border: 1px solid #ffb3b3;
+    }
+}
+
+/* Sidebar specific styles */
+.provider-sidebar {
+    width: 220px; /* Fixed width for sidebar */
+    padding-right: 15px;
+    margin-right: 15px;
+    border-right: 1px solid #ddd;
+    height: 100%;
+    overflow-y: auto;
+
+    h4 {
+        margin-top: 10px;
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    .provider-list, .preset-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        li {
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            border: 1px solid transparent; // for consistent spacing
+            &:hover {
+                background-color: #e9ecef;
+            }
+            &.active {
+                background-color: #007bff;
+                color: white;
+                font-weight: bold;
+            }
+        }
+    }
+    .preset-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        .preset-name {
+            flex-grow: 1;
+        }
+        .preset-type {
+            font-size: 0.8em;
+            color: #555;
+            margin-left: 5px;
+        }
+         &.active .preset-type {
+            color: #f0f0f0;
+        }
+        .delete-preset-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 2px 5px;
+            font-size: 1.2em;
+            margin: 0;
+            line-height: 1;
+            &:hover {
+                color: #a71d2a;
+                background-color: transparent;
+            }
+        }
+    }
+     button { // Sidebar buttons for provider types
+        display: block;
+        width: 100%;
+        text-align: left;
+        margin-bottom: 5px;
+        background-color: #f8f9fa;
+        color: #333;
+        border: 1px solid #ddd;
+         &:hover {
+            background-color: #e9ecef;
+        }
+        &.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+    }
+}
+
+.provider-config-panel {
+    flex: 1;
+    padding-left: 15px;
+    overflow-y: auto;
+}
+
+.config-panel-placeholder p {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    min-width: 300px;
+}
+
+/* Style for the API key required message */
+.api-key-required-info {
+    display: flex;
+    width: fit-content;
+    align-items: center;
+    font-size: 0.85em;
+    color: #6c757d; // Muted text color
+    margin-top: -5px; // Adjust spacing relative to the input above
+    margin-bottom: 10px;
+
+    // border: 2px solid transparent; // Base for border-image or background-clip
+    // background: linear-gradient(white, white) padding-box, // Background for content area
+    //             linear-gradient(to bottom, #CBA968, #997642) border-box; // Gradient border
+    // border-radius: 6px; // Slightly larger radius for the border
+    // box-shadow: 0px 2px 4px #2E1E0F; // Apply the shadow
+    // padding: 4px;
+    
+    img {
+        width: 20px; // Adjust icon size as needed
+        height: 20px;
+        margin-right: 5px;
+    }
+}
