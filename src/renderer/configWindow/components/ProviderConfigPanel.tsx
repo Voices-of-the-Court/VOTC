@@ -1,18 +1,105 @@
 import React from 'react';
 import type { LLMProviderConfig, ILLMModel, ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
 
-const DEFAULT_PARAMETERS_PANEL = { temperature: 0.7, max_tokens: 2048 };
+// Import reusable components that will remain separate
+import ModelSelector from './ModelSelector';
+import FormGroupInput from './FormGroupInput'; // Assuming FormGroupInput is used by inlined components
+import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent } from './ConfigFields'
+// --- Start Inlined Component Definitions ---
+
+// Define ChangeHandler type (if not globally available)
+type ChangeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+
+interface CommonFieldProps {
+    config: Partial<LLMProviderConfig>;
+    onInputChange: ChangeHandler;
+}
+
+// PresetNameField (formerly PresetNameField.tsx)
+const PresetNameFieldComponent: React.FC<CommonFieldProps> = ({ config, onInputChange }) => (
+    <FormGroupInput
+        id="customName"
+        label="Preset Name:"
+        type="text"
+        name="customName"
+        value={config.customName || ''}
+        onChange={onInputChange}
+        required
+    />
+);
+
+// DefaultParameterFields (formerly DefaultParameterFields.tsx)
+const DEFAULT_PARAMETERS_COMPONENT = { temperature: 0.7, max_tokens: 2048 };
+const DefaultParameterFieldsComponent: React.FC<CommonFieldProps> = ({ config, onInputChange }) => (
+    <>
+        <h4>Default Parameters</h4>
+        <FormGroupInput
+            id="temperature"
+            label="Temperature:"
+            type="number"
+            name="defaultParameters.temperature"
+            step="0.1"
+            min="0"
+            max="2"
+            value={config.defaultParameters?.temperature ?? DEFAULT_PARAMETERS_COMPONENT.temperature}
+            onChange={onInputChange}
+        />
+        <FormGroupInput
+            id="max_tokens"
+            label="Max Tokens:"
+            type="number"
+            name="defaultParameters.max_tokens"
+            step="1"
+            min="1"
+            value={config.defaultParameters?.max_tokens ?? DEFAULT_PARAMETERS_COMPONENT.max_tokens}
+            onChange={onInputChange}
+        />
+    </>
+);
+
+// ActionButtons (formerly ActionButtons.tsx)
+interface ActionButtonsComponentProps {
+    onTestConnection: () => void;
+    onMakePreset: () => void;
+}
+const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset }) => (
+    <div className="form-actions">
+        <button type="button" onClick={onTestConnection}>Test Connection</button>
+        <button type="button" onClick={onMakePreset}>Make Preset from these Settings</button>
+    </div>
+);
+
+// TestResultDisplay (formerly TestResultDisplay.tsx)
+interface TestResultDisplayComponentProps {
+    testResult: { success: boolean; message?: string; error?: string } | null;
+}
+const TestResultDisplayComponent: React.FC<TestResultDisplayComponentProps> = ({ testResult }) => {
+    if (!testResult) return null;
+    return (
+        <p className={`test-result ${testResult.success ? 'success' : 'error'}`}>
+            {testResult.message || testResult.error}
+        </p>
+    );
+};
+
+// --- End Inlined Component Definitions ---
+
+// Provider Component Map using locally defined components
+const ProviderFieldComponents: Record<ConfigProviderType, React.FC<CommonFieldProps>> = {
+    openrouter: OpenRouterConfigFieldsComponent,
+    'openai-compatible': OpenAICompatibleConfigFieldsComponent,
+    ollama: OllamaConfigFieldsComponent,
+};
 
 interface ProviderConfigPanelProps {
-    config: Partial<LLMProviderConfig>; // The current config being edited (base or preset)
+    config: Partial<LLMProviderConfig>;
     availableModels: ILLMModel[];
     isLoadingModels: boolean;
-    modelSearchText: string; // For OpenRouter suggestions
-    suggestedModels: ILLMModel[]; // For OpenRouter suggestions
+    modelSearchText: string;
+    suggestedModels: ILLMModel[];
     testResult: { success: boolean; message?: string; error?: string } | null;
-    onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+    onInputChange: ChangeHandler;
     onModelSuggestionClick: (modelId: string) => void;
-    onSave: (e: React.FormEvent) => void;
     onTestConnection: () => void;
     onMakePreset: () => void;
 }
@@ -26,7 +113,6 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = ({
     testResult,
     onInputChange,
     onModelSuggestionClick,
-    onSave,
     onTestConnection,
     onMakePreset,
 }) => {
@@ -34,11 +120,15 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = ({
         return <div className="config-panel-placeholder"><p>Select a provider or preset from the sidebar to configure.</p></div>;
     }
 
-    // For base provider types, customName is not directly part of their config from LLMSettings.
-    // It's derived or fixed. For presets, it's a key property.
     const displayName = config.customName || config.providerType!.charAt(0).toUpperCase() + config.providerType!.slice(1);
     const isPreset = !!config.customName && config.instanceId !== config.providerType;
 
+    const SpecificProviderFields = ProviderFieldComponents[config.providerType];
+
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log("Form submitted (auto-save handles actual saving)");
+    };
 
     return (
         <div className="provider-config-panel">
@@ -46,158 +136,44 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = ({
                 {isPreset ? `Preset: ${displayName}` : `${displayName} Configuration`}
                 {isPreset && <small className="preset-type-indicator"> (Type: {config.providerType})</small>}
             </h3>
-            <form onSubmit={onSave}>
-                {isPreset && ( // Allow editing customName only for presets
-                    <div className="form-group">
-                        <label htmlFor="customName">Preset Name:</label>
-                        <input
-                            type="text"
-                            id="customName"
-                            name="customName"
-                            value={config.customName || ''}
-                            onChange={onInputChange}
-                            required
-                        />
-                    </div>
-                )}
-
-                {config.providerType === 'openrouter' && (
-                    <div className="form-group">
-                        <label htmlFor="apiKey">OpenRouter API Key:</label>
-                        <input
-                            type="password"
-                            id="apiKey"
-                            name="apiKey"
-                            value={config.apiKey || ''}
-                            onChange={onInputChange}
-                            placeholder="sk-or-..."
-                        />
-                    </div>
-                )}
-
-                {config.providerType === 'openai-compatible' && (
-                    <>
-                        <div className="form-group">
-                            <label htmlFor="baseUrl">Base URL:</label>
-                            <input
-                                type="text"
-                                id="baseUrl"
-                                name="baseUrl"
-                                value={config.baseUrl || ''}
-                                onChange={onInputChange}
-                                placeholder="e.g., https://api.example.com/v1"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="apiKey">API Key (Optional):</label>
-                            <input
-                                type="password"
-                                id="apiKey"
-                                name="apiKey"
-                                value={config.apiKey || ''}
-                                onChange={onInputChange}
-                            />
-                        </div>
-                    </>
-                )}
-
-                {config.providerType === 'ollama' && (
-                    <div className="form-group">
-                        <label htmlFor="baseUrl">Ollama Base URL:</label>
-                        <input
-                            type="text"
-                            id="baseUrl"
-                            name="baseUrl"
-                            value={config.baseUrl || 'http://localhost:11434'}
-                            onChange={onInputChange}
-                            required
-                        />
-                    </div>
-                )}
-
-                <div className="form-group">
-                    <label htmlFor="defaultModel">Default Model ID:</label>
-                    {config.providerType === 'ollama' ? (
-                        <select
-                            id="defaultModel"
-                            name="defaultModel"
-                            value={config.defaultModel || ''}
-                            onChange={onInputChange}
-                        >
-                            <option value="">{isLoadingModels ? "Loading..." : "Select a model"}</option>
-                            {availableModels.map(model => (
-                                <option key={model.id} value={model.id}>{model.name}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <div className="model-search-container">
-                            <input
-                                type="text"
-                                id="defaultModel"
-                                name="defaultModel" // This name is used by onInputChange
-                                value={modelSearchText} // Display search text
-                                onChange={onInputChange} // Use onInputChange, which handles modelSearchText and suggestedModels
-                                placeholder={config.providerType === 'openrouter' ? "Search OpenRouter models..." : "Enter model ID"}
-                                autoComplete="off"
-                                // disabled={config.providerType === 'openrouter' && !config.apiKey} // Disable if OpenRouter and no API key
-                            />
-                            {config.providerType === 'openrouter' && !config.apiKey && (
-                                <div className="api-key-required-info">
-                                    <img src="../assets/Alert.png" alt="Alert" /> 
-                                    <span>API Key required to search models.</span>
-                                </div>
-                            )}
-                            {config.providerType === 'openrouter' && config.apiKey && suggestedModels.length > 0 && ( // Only show suggestions if key exists
-                                <ul className="suggestions-list">
-                                    {suggestedModels.map(model => (
-                                        <li key={model.id} onClick={() => onModelSuggestionClick(model.id)}>
-                                            {model.name} {model.isFree ? '(Free)' : ''}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                <h4>Default Parameters</h4>
-                <div className="form-group">
-                    <label htmlFor="temperature">Temperature:</label>
-                    <input
-                        type="number"
-                        id="temperature"
-                        name="defaultParameters.temperature"
-                        step="0.1"
-                        min="0"
-                        max="2"
-                        value={config.defaultParameters?.temperature ?? DEFAULT_PARAMETERS_PANEL.temperature}
-                        onChange={onInputChange}
+            <form onSubmit={handleFormSubmit}>
+                {isPreset && (
+                    <PresetNameFieldComponent
+                        config={config}
+                        onInputChange={onInputChange}
                     />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="max_tokens">Max Tokens:</label>
-                    <input
-                        type="number"
-                        id="max_tokens"
-                        name="defaultParameters.max_tokens"
-                        step="1"
-                        min="1"
-                        value={config.defaultParameters?.max_tokens ?? DEFAULT_PARAMETERS_PANEL.max_tokens}
-                        onChange={onInputChange}
-                    />
-                </div>
-                {/* Global stream toggle is in Settings tab, not per-provider */}
-
-                <div className="form-actions">
-                    {/* <button type="submit">Save Settings</button> Removed, will save on change */}
-                    <button type="button" onClick={onTestConnection}>Test Connection</button>
-                    <button type="button" onClick={onMakePreset}>Make Preset from these Settings</button>
-                </div>
-                {testResult && (
-                    <p className={`test-result ${testResult.success ? 'success' : 'error'}`}>
-                        {testResult.message || testResult.error}
-                    </p>
                 )}
+
+                {SpecificProviderFields && (
+                    <SpecificProviderFields
+                        config={config}
+                        onInputChange={onInputChange}
+                    />
+                )}
+
+                <ModelSelector
+                    providerType={config.providerType}
+                    defaultModelValue={config.defaultModel || ''}
+                    modelSearchText={modelSearchText}
+                    suggestedModels={suggestedModels}
+                    apiKey={config.apiKey}
+                    isLoadingModels={isLoadingModels}
+                    availableModels={availableModels}
+                    onInputChange={onInputChange}
+                    onModelSuggestionClick={onModelSuggestionClick}
+                />
+
+                <DefaultParameterFieldsComponent
+                    config={config}
+                    onInputChange={onInputChange}
+                />
+
+                <ActionButtonsComponent
+                    onTestConnection={onTestConnection}
+                    onMakePreset={onMakePreset}
+                />
+
+                <TestResultDisplayComponent testResult={testResult} />
             </form>
         </div>
     );

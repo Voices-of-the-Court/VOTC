@@ -21,7 +21,30 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   testConnection: (config: LLMProviderConfig): Promise<{success: boolean, error?: string, message?: string}> => ipcRenderer.invoke('llm:testConnection', config),
   setCK3Folder: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setCK3Folder', path),
   selectFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:selectFolder'),
-  saveGlobalStreamSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGlobalStreamSetting', enabled), // Added
+  saveGlobalStreamSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGlobalStreamSetting', enabled),
+  sendChat: (requestArgs: {
+    messages: any[], // Should match ILLMCompletionRequest['messages']
+    params?: any, // Should match optional params type
+    forceStream?: boolean,
+    requestId: string 
+  }): Promise<{ streamStarted: boolean, requestId: string, data?: any, error?: string }> => ipcRenderer.invoke('llm:sendChat', requestArgs),
+  
+  // Listeners for chat stream
+  onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => {
+    const handler = (_event: any, args: { requestId: string, chunk: any }) => callback(args);
+    ipcRenderer.on('llm:chatChunk', handler);
+    return () => ipcRenderer.removeListener('llm:chatChunk', handler); // Return a cleanup function
+  },
+  onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any /* ILLMCompletionResponse */ }) => void) => {
+    const handler = (_event: any, args: { requestId: string, finalResponse?: any }) => callback(args);
+    ipcRenderer.on('llm:chatStreamComplete', handler);
+    return () => ipcRenderer.removeListener('llm:chatStreamComplete', handler);
+  },
+  onChatError: (callback: (args: { requestId: string, error: string }) => void) => {
+    const handler = (_event: any, args: { requestId: string, error: string }) => callback(args);
+    ipcRenderer.on('llm:chatError', handler);
+    return () => ipcRenderer.removeListener('llm:chatError', handler);
+  }
 });
 
 
@@ -42,7 +65,22 @@ declare global {
       testConnection: (config: LLMProviderConfig) => Promise<{success: boolean, error?: string, message?: string}>;
       setCK3Folder: (path: string | null) => Promise<void>;
       selectFolder: () => Promise<string | null>;
-      saveGlobalStreamSetting: (enabled: boolean) => Promise<void>; // Added
+      saveGlobalStreamSetting: (enabled: boolean) => Promise<void>;
+      sendChat: (requestArgs: {
+        messages: any[], // Replace 'any' with actual message type from types.ts
+        params?: any, // Replace 'any'
+        forceStream?: boolean,
+        requestId: string
+      }) => Promise<{ streamStarted: boolean, requestId: string, data?: any, error?: string }>; // Replace 'any'
+      
+      // Listener types
+      onChatChunk: (callback: (args: { requestId: string, chunk: any /* ILLMStreamChunk */ }) => void) => () => void;
+      onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any /* ILLMCompletionResponse */ }) => void) => () => void;
+      onChatError: (callback: (args: { requestId: string, error: string }) => void) => () => void;
     };
   }
 }
+// Note: The 'any' types above should be replaced with more specific types imported from './main/llmProviders/types'
+// For example, ILLMCompletionRequest['messages'] for messages, ILLMStreamChunk for chunk, etc.
+// This requires types.ts to be accessible from preload, or duplicating/simplifying types here.
+// For now, using 'any' to get the structure in place.

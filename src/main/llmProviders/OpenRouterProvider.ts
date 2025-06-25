@@ -8,6 +8,7 @@ import {
   OpenRouterConfig,
   LLMProviderConfig
 } from './types';
+import OpenAI from 'openai'; // Import OpenAI SDK
 
 // Helper to identify OpenRouter free models
 const isOpenRouterFreeModel = (modelData: any): boolean => {
@@ -109,8 +110,11 @@ export class OpenRouterProvider implements ILLMProvider {
     };
 
     if (request.stream) {
-      return this._streamChatCompletion(request, headers, body);
+      // Pass config directly to _streamChatCompletion
+      return this._streamChatCompletion(request, config);
     } else {
+      // _nonStreamChatCompletion still uses headers and body from the old pattern.
+      // This could be refactored similarly later if desired, but is not the focus now.
       return this._nonStreamChatCompletion(request, headers, body);
     }
   }
@@ -154,112 +158,109 @@ export class OpenRouterProvider implements ILLMProvider {
 
   private async *_streamChatCompletion(
     request: ILLMCompletionRequest,
-    headers: Record<string, string>,
-    body: any
+    config: OpenRouterConfig // Changed signature to accept config
   ): AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined> {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ ...body, stream: true }),
+    console.log('[OpenRouterProvider] Entering _streamChatCompletion with OpenAI SDK for model:', request.model);
+
+    const openAIClient = new OpenAI({
+      apiKey: this.getAPIKey(config), // Use config passed to this method
+      baseURL: 'https://openrouter.ai/api/v1',
     });
 
-    if (!response.ok || !response.body) {
-      const errorBody = await response.text();
-      console.error(`OpenRouter API stream error (${response.status}) for model ${request.model}: ${errorBody}`);
-      throw new Error(`OpenRouter API stream error: ${response.status} ${response.statusText} - ${errorBody}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let aggregatedResponse: ILLMCompletionResponse = {
-      id: '',
-      content: '',
-      tool_calls: [],
-      finish_reason: null,
-      usage: undefined
+    // Use ChatCompletionCreateParams as suggested by TS error
+    const streamRequestParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
+      model: request.model,
+      messages: request.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+      stream: true, // This ensures the method returns an AsyncIterable
+      temperature: request.temperature,
+      max_tokens: request.max_tokens,
+      top_p: request.top_p,
+      presence_penalty: request.presence_penalty,
+      frequency_penalty: request.frequency_penalty,
     };
-    let firstChunk = true;
+
+    console.log('[OpenRouterProvider] Making stream request with OpenAI SDK params:', JSON.stringify(streamRequestParams, null, 2));
 
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const stream = await openAIClient.chat.completions.create(streamRequestParams);
+      console.log('[OpenRouterProvider] OpenAI SDK stream obtained.');
 
-        buffer += decoder.decode(value, { stream: true });
-        
-        let eolIndex;
-        while ((eolIndex = buffer.indexOf('\\n')) >= 0) {
-          const line = buffer.substring(0, eolIndex).trim();
-          buffer = buffer.substring(eolIndex + 1);
+      let aggregatedResponse: ILLMCompletionResponse = {
+        id: '', // Will be set from the first chunk
+        content: '',
+        tool_calls: [],
+        finish_reason: null,
+        usage: undefined,
+      };
+      let firstChunkProcessed = false;
 
-          if (line.startsWith('data: ')) {
-            const jsonData = line.substring(6);
-            if (jsonData === '[DONE]') {
-              // The stream is done. The last chunk might contain usage stats.
-              // OpenRouter sends usage in a separate final chunk if `usage: {include: true}` is in request.
-              // For now, we'll rely on the accumulated data or a potential final non-SSE message for usage.
-              return aggregatedResponse;
+      for await (const chunk of stream) { // This should now work as stream is AsyncIterable
+        console.log('[OpenRouterProvider] Received chunk from OpenAI SDK:', JSON.stringify(chunk, null, 2));
+        if (!firstChunkProcessed && chunk.id) {
+          aggregatedResponse.id = chunk.id;
+          firstChunkProcessed = true;
+        }
+
+        const choice = chunk.choices[0];
+        if (!choice) {
+          console.warn('[OpenRouterProvider] Chunk has no choices, skipping.');
+          continue;
+        }
+
+        const delta = choice.delta;
+        const finish_reason = choice.finish_reason;
+
+        if ((chunk as any).usage) {
+           aggregatedResponse.usage = (chunk as any).usage;
+           console.log('[OpenRouterProvider] Usage found in SDK chunk:', aggregatedResponse.usage);
+        }
+
+        const streamChunk: ILLMStreamChunk = {
+          id: chunk.id,
+          delta: delta
+            ? {
+                content: delta.content || undefined,
+                // Cast role more narrowly, assuming stream deltas are from assistant
+                role: delta.role as 'assistant' | undefined,
+                tool_calls: delta.tool_calls as any, // Keep as any for now, ensure ILLMToolCall matches
+              }
+            : undefined,
+          finish_reason: finish_reason as ILLMCompletionResponse['finish_reason'],
+        };
+        yield streamChunk;
+
+        if (delta?.content) {
+          aggregatedResponse.content = (aggregatedResponse.content || '') + delta.content;
+        }
+        if (delta?.tool_calls) {
+          if (!aggregatedResponse.tool_calls) aggregatedResponse.tool_calls = [];
+           delta.tool_calls.forEach((tc: any) => {
+            const existingCall = aggregatedResponse.tool_calls!.find(c => c.id === tc.id && tc.index === (c as any).index);
+            if (existingCall && tc.function) {
+              if (tc.function.name) existingCall.function.name = tc.function.name;
+              if (tc.function.arguments) existingCall.function.arguments = (existingCall.function.arguments || '') + tc.function.arguments;
+            } else if (tc.id && tc.function) {
+              aggregatedResponse.tool_calls!.push({
+                id: tc.id,
+                type: 'function',
+                function: { name: tc.function.name || '', arguments: tc.function.arguments || ''}
+              });
             }
-
-            try {
-              const chunkData = JSON.parse(jsonData);
-              if (firstChunk && chunkData.id) {
-                aggregatedResponse.id = chunkData.id;
-                firstChunk = false;
-              }
-
-              const delta = chunkData.choices?.[0]?.delta;
-              const finish_reason = chunkData.choices?.[0]?.finish_reason;
-              
-              const streamChunk: ILLMStreamChunk = {
-                id: chunkData.id, // This is the chunk ID, not the overall completion ID
-                delta: delta ? {
-                  content: delta.content,
-                  role: delta.role,
-                  tool_calls: delta.tool_calls,
-                } : undefined,
-                finish_reason: finish_reason,
-              };
-              yield streamChunk;
-
-              // Aggregate content and tool_calls
-              if (delta?.content) {
-                aggregatedResponse.content = (aggregatedResponse.content || '') + delta.content;
-              }
-              if (delta?.tool_calls) {
-                if (!aggregatedResponse.tool_calls) aggregatedResponse.tool_calls = [];
-                delta.tool_calls.forEach((tc: any) => {
-                  const existingCall = aggregatedResponse.tool_calls!.find(c => c.id === tc.id && tc.index === (c as any).index); // Assuming index for tool_calls in stream
-                  if (existingCall && tc.function) {
-                    if (tc.function.name) existingCall.function.name = tc.function.name;
-                    if (tc.function.arguments) existingCall.function.arguments = (existingCall.function.arguments || '') + tc.function.arguments;
-                  } else if (tc.id && tc.function) {
-                    aggregatedResponse.tool_calls!.push({
-                      id: tc.id,
-                      type: 'function',
-                      function: { name: tc.function.name || '', arguments: tc.function.arguments || ''}
-                    });
-                  }
-                });
-              }
-              if (finish_reason) {
-                aggregatedResponse.finish_reason = finish_reason;
-              }
-              if (chunkData.usage) { // OpenRouter might send usage in the last chunk
-                aggregatedResponse.usage = chunkData.usage;
-              }
-
-            } catch (e) {
-              console.error('Error parsing OpenRouter stream chunk:', e, 'Raw line:', line);
-            }
-          }
+          });
+        }
+        if (finish_reason) {
+          aggregatedResponse.finish_reason = finish_reason as ILLMCompletionResponse['finish_reason'];
         }
       }
-    } finally {
-      reader.releaseLock();
+      console.log('[OpenRouterProvider] Stream finished. Final aggregatedResponse:', JSON.stringify(aggregatedResponse, null, 2));
+      return aggregatedResponse;
+    } catch (error: any) {
+      console.error(`[OpenRouterProvider] OpenAI SDK stream error for model ${request.model}:`, error);
+      if (error instanceof OpenAI.APIError) {
+        throw new Error(`OpenRouter API stream error via SDK: ${error.status} ${error.name} - ${error.message}`);
+      }
+      throw new Error(`OpenRouter API stream error via SDK: ${error.message || 'Unknown error'}`);
     }
-    return aggregatedResponse; // Should be returned when [DONE] is processed
   }
 
   async testConnection(config: OpenRouterConfig): Promise<{success: boolean, error?: string, message?: string}> {

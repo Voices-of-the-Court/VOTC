@@ -33,7 +33,7 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   background-image: url('../assets/background_area_light.png');
-  /* cursor: url('../assets/cursor.png'), auto; */
+  cursor: url('../assets/cursor.png'), auto;
   font-family: Gitan;	
 }
 
@@ -79,7 +79,7 @@ body {
   font-size: 1rem;
   box-sizing: border-box;
   transition: border-color 0.3s;
-  /* cursor: url('../assets/cursor.png'), auto; 	 */
+  cursor: url('../assets/cursor.png'), auto; 	
 }
 
 .chat-input::-webkit-scrollbar{
@@ -97,7 +97,7 @@ body {
   background-image: url('../assets/button.png');
   background-size: cover;
   font-family:  Gitan;
-  /* cursor: url('../assets/cursor.png'), auto;	 */
+  cursor: url('../assets/cursor.png'), auto;	
 }
 
 .leave-button:hover {
@@ -105,6 +105,23 @@ body {
   color: white;
 }
 
+.config-button {
+  background: gray;
+  color:white;
+  border: solid 2px rgb(39, 33, 0);
+  width: 100%;
+  height: 8%;
+  font-size: 1rem;
+  background-image: url('../assets/button.png');
+  background-size: cover;
+  font-family:  Gitan;
+  cursor: url('../assets/cursor.png'), auto;	
+}
+
+.config-button:hover {
+  background-color: rgb(84, 84, 84); 
+  color: white;
+}
 
 em{
   color:#91918f;
@@ -179,7 +196,7 @@ em{
   font-weight: bold;
   line-height: 23px; /* Center text vertically */
   text-align: center;
-  /* cursor: url('../assets/cursor.png'), auto; */
+  cursor: url('../assets/cursor.png'), auto;
   transition: background-color 0.2s;
 }
 

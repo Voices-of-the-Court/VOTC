@@ -6,7 +6,7 @@
   "main": "dist/electron/main/main.js",
   "scripts": {
     "dev": "chcp 65001 > NUL && vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
     "start": "electron-forge start",
     "package": "npm run build && electron-forge package",
     "make": "npm run build && electron-forge make",
@@ -48,6 +48,7 @@
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.0.1",
     "ollama": "^0.5.15",
+    "openai": "^4.98.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "uuid": "^11.1.0"

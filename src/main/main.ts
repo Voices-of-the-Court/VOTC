@@ -1,7 +1,7 @@
-import { app, BrowserWindow, screen, ipcMain, dialog } from 'electron'; // Added dialog
+import { app, BrowserWindow, screen, ipcMain, dialog } from 'electron';
 import path from 'path';
-import { llmManager } from './LLMManager'; // Import LLMManager instance
-import { LLMProviderConfig } from './llmProviders/types'; // Import necessary types
+import { llmManager } from './LLMManager';
+import { LLMProviderConfig, ILLMCompletionRequest, ILLMStreamChunk, ILLMCompletionResponse } from './llmProviders/types'; // Added more types
 
 // Keep a reference to the config window, managed globally
 let configWindowInstance: BrowserWindow | null = null;
@@ -27,7 +27,7 @@ const createWindow = (): void => {
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
     alwaysOnTop: true, // Keep window on top
-    skipTaskbar: true, // Don't show in taskbar
+    // skipTaskbar: true, // Don't show in taskbar
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
       nodeIntegration: false, // Best practice: disable nodeIntegration
@@ -65,26 +65,6 @@ const createWindow = (): void => {
     chatWindow.show();
   });
 
-  // The 'open-config-window' handler will be moved to setupIpcHandlers.
-  // The 'set-ignore-mouse-events' handler below is the one that needs to be updated.
-  // Note: There are two 'set-ignore-mouse-events' handlers in the original file.
-  // The first one (around line 48) is general.
-  // The second one (around line 75, after the 'open-config-window' handler) is specific to the chat window.
-  // We need to be careful to only modify the second one if it's the one causing issues with 'configWindow'.
-  // However, the error messages point to lines 70, 71, 81.
-  // Line 70 & 71 are inside 'open-config-window'.
-  // Line 81 is inside the second 'set-ignore-mouse-events'.
-
-  // This specific 'set-ignore-mouse-events' is inside createWindow, let's update it.
-  // ipcMain.on('set-ignore-mouse-events', (event, ignore: boolean) => {
-  //   const win = BrowserWindow.fromWebContents(event.sender);
-  //   // Ensure we only affect the chat window, not the config window
-  //   if (win && win !== configWindowInstance) { // Use global instance
-  //     win.setIgnoreMouseEvents(ignore, { forward: true });
-  //   }
-  // });
-
-  // The second chatWindow.once('ready-to-show') seems redundant, will be removed by deleting the block.
 };
 
 const createConfigWindow = (): void => {
@@ -184,39 +164,91 @@ const setupIpcHandlers = () => {
     // Consider returning a status
   });
 
-  // Example handler for sending a chat request (might be called from chat window)
-  // ipcMain.handle('llm:sendChat', async (_, messages, params, forceStream) => {
-  //   try {
-  //     const response = await llmManager.sendChatRequest(messages, params, forceStream);
-  //     // Handling both stream and non-stream responses via IPC needs careful design
-  //     // For streams, might need to send chunks back via event.sender.send
-  //     // For non-stream, just return the result
-  //     if (typeof response[Symbol.asyncIterator] === 'function') {
-  //        // Handle stream - complex via single handle call, better to use webContents.send
-  //        return { stream: true, error: 'Streaming response handling not fully implemented via invoke.' };
-  //     } else {
-  //        return { stream: false, data: response };
-  //     }
-  //   } catch (error: any) {
-  //     return { error: error.message || 'Failed to send chat request' };
-  //   }
-  // });
+  ipcMain.handle('llm:sendChat', async (event, requestArgs: {
+    messages: ILLMCompletionRequest['messages'],
+    params?: Partial<Omit<ILLMCompletionRequest, 'messages' | 'model' | 'stream'>>,
+    forceStream?: boolean,
+    requestId: string // For correlating stream chunks
+  }) => {
+    const { messages, params, forceStream, requestId } = requestArgs;
+    try {
+      const response = await llmManager.sendChatRequest(messages, params, forceStream);
+
+      if (typeof response[Symbol.asyncIterator] === 'function') {
+        // Handle stream
+        // The 'handle' itself cannot stream back directly in multiple parts to the original 'invoke' promise.
+        // We must use event.sender.send for each chunk.
+        // The promise returned by this handler will resolve when the stream is complete.
+        (async () => {
+          try {
+            let finalAggregatedResponse: ILLMCompletionResponse | void;
+            for await (const chunk of response as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>) {
+              event.sender.send('llm:chatChunk', { requestId, chunk });
+            }
+
+            const streamProcessing = async () => {
+              let finalResponseData: ILLMCompletionResponse | void;
+              try {
+                // The `for await...of` loop consumes yielded values.
+                // The `response` is the generator.
+                // The return value of the async generator function is what we need.
+                // This is not directly accessible after a `for await...of` loop.
+                // We need to iterate manually or adjust how the generator is called.
+
+                // Simpler: The `_streamChatCompletion` *returns* the aggregated response.
+                // The `llmManager.sendChatRequest` returns the generator.
+                // The `ipcMain.handle` for `llm:sendChat` returns a promise.
+                // The IIFE is already handling the async iteration.
+                // The `aggregatedResponse` is built up *inside* the provider's generator.
+                // The provider's generator *returns* this `aggregatedResponse`.
+                // This return value needs to be passed to `onChatStreamComplete`.
+
+                // The `response` is the generator.
+                // We need to get the value it *returns*.
+                let current = await (response as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>).next();
+                while(!current.done) {
+                  event.sender.send('llm:chatChunk', { requestId, chunk: current.value });
+                  current = await (response as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>).next();
+                }
+                // When done, current.value is the return value of the generator
+                finalResponseData = current.value;
+                event.sender.send('llm:chatStreamComplete', { requestId, finalResponse: finalResponseData });
+              } catch (streamError: any) {
+                console.error('Error during chat stream:', streamError);
+                event.sender.send('llm:chatError', { requestId, error: streamError.message || 'Unknown streaming error' });
+              }
+            };
+            streamProcessing(); // Fire and forget for IPC events, but main handler returns streamStarted
+
+          } catch (streamError: any) { // This catch is for errors *before* stream iteration starts
+            console.error('Error setting up chat stream:', streamError);
+            event.sender.send('llm:chatError', { requestId, error: streamError.message || 'Unknown streaming setup error' });
+          }
+        })();
+        // Indicate that streaming has started and the client should listen for 'llm:chatChunk' events.
+        // The actual final result of the invoke will be minimal, as data is sent via events.
+        return { streamStarted: true, requestId };
+      } else {
+        // Handle non-streamed response
+        return { streamStarted: false, requestId, data: response as ILLMCompletionResponse };
+      }
+    } catch (error: any) {
+      console.error('IPC llm:sendChat error:', error);
+      // If the error happens before streaming starts, it's caught here and returned by the handle.
+      // If it happens during streaming, it's sent via 'llm:chatError' event.
+      return { streamStarted: false, requestId, error: error.message || 'Failed to send chat request' };
+    }
+  });
 
   console.log('IPC Handlers Setup');
 };
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.on('ready', () => {
   setupIpcHandlers(); // Setup handlers first
   createWindow(); // Create the main chat window
   createConfigWindow(); // Create config window on startup
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -224,16 +256,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
     createConfigWindow();
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
-
-// Example: Add a menu item or IPC call to open the config window if needed
-// (See ipcMain.handle('open-config-window', ...) added earlier)

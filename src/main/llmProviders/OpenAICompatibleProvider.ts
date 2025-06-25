@@ -203,9 +203,17 @@ export class OpenAICompatibleProvider implements ILLMProvider {
                 aggregatedResponse.id = chunkData.id;
                 firstChunk = false;
               }
+              
+              const choice = chunkData.choices?.[0];
+              if (choice?.error) {
+                // If the chunk itself is an error reported by the provider
+                const errorMessage = `OpenAI-Compatible stream error: ${choice.error.message || 'Unknown error'}`;
+                console.error(errorMessage, choice.error);
+                throw new Error(errorMessage);
+              }
 
-              const delta = chunkData.choices?.[0]?.delta;
-              const finish_reason = chunkData.choices?.[0]?.finish_reason;
+              const delta = choice?.delta;
+              const finish_reason = choice?.finish_reason;
               
               const streamChunk: ILLMStreamChunk = {
                 id: chunkData.id,
