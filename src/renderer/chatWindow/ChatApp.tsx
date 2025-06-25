@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // For unique IDs
+import MarkdownRenderer from './MarkdownRenderer'; // Import Markdown renderer
 
 // Define message structure (can be moved to a types file later)
 interface ChatMessage {
@@ -179,7 +180,7 @@ function ChatApp() {
                   <div className={`${
                     msg.role === 'user' ? 'player-message' : msg.role === 'assistant' ? 'ai-message' : 'system-message'
                   }`}>
-                    {msg.content}
+                    <MarkdownRenderer content={msg.content} />
                     {msg.isLoading && <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>}
                   </div>
                 </div>
