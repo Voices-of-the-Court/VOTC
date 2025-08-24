@@ -47,6 +47,7 @@
     "@types/react-dom": "^19.1.2",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.0.1",
+    "flowtoken": "^1.0.40",
     "ollama": "^0.5.15",
     "openai": "^4.98.0",
     "react": "^19.1.0",

@@ -2,8 +2,10 @@ import { app, BrowserWindow, screen, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { LLMProviderConfig, ILLMCompletionRequest, ILLMStreamChunk, ILLMCompletionResponse } from './llmProviders/types'; // Added more types
+import { ClipboardListener } from './ClipboardListener'; // Add missing import
 
 // Keep a reference to the config window, managed globally
+let chatWindow: BrowserWindow | null = null;
 let configWindowInstance: BrowserWindow | null = null;
 
 // Vite-specific environment variable for development server URL
@@ -14,7 +16,7 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
-const createWindow = (): void => {
+const createWindow = (): BrowserWindow => {
   // Get primary display dimensions
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
@@ -23,12 +25,13 @@ const createWindow = (): void => {
   const chatWindow = new BrowserWindow({
     width,
     height,
-    show: true, // Initially hide the window
+    show: false, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
     alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
     webPreferences: {
+      partition: 'persist:chat',
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
       nodeIntegration: false, // Best practice: disable nodeIntegration
       contextIsolation: true, // Best practice: enable contextIsolation
@@ -61,12 +64,8 @@ const createWindow = (): void => {
     }
   });
 
-  chatWindow.once('ready-to-show', () => {
-    chatWindow.show();
-  });
-
+  return chatWindow;
 };
-
 const createConfigWindow = (): void => {
   // Create the config browser window.
   // Assign to the global instance variable
@@ -75,6 +74,7 @@ const createConfigWindow = (): void => {
     height: 600,
     show: false, // Initially hide the window
     webPreferences: {
+      partition: 'persist:config',
       preload: path.join(__dirname, '../preload/preload.js'), // Use common preload, adjusted path
       nodeIntegration: false,
       contextIsolation: true,
@@ -247,6 +247,28 @@ app.on('ready', () => {
   setupIpcHandlers(); // Setup handlers first
   createWindow(); // Create the main chat window
   createConfigWindow(); // Create config window on startup
+
+  // Create and start clipboard listener
+  const clipboardListener = new ClipboardListener();
+  clipboardListener.start();
+  
+  clipboardListener.on('VOTC:IN', () => {
+    if (!chatWindow || chatWindow.isDestroyed()) {
+      chatWindow = createWindow();
+    }
+    
+    // Show window and reset chat state
+    chatWindow.show();
+    chatWindow.focus();
+    chatWindow.webContents.send('chat-reset');
+  });
+  
+  // Add IPC handler for hiding window
+  ipcMain.on('chat-hide', () => {
+    if (chatWindow && !chatWindow.isDestroyed()) {
+      chatWindow.hide();
+    }
+  });
 });
 
 app.on('window-all-closed', () => {
@@ -261,4 +283,3 @@ app.on('activate', () => {
     createConfigWindow();
   }
 });
-

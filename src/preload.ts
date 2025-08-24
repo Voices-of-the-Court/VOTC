@@ -10,6 +10,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.send('set-ignore-mouse-events', ignore);
   },
   openConfigWindow: (): Promise<void> => ipcRenderer.invoke('open-config-window'),
+  hideWindow: (): void => ipcRenderer.send('chat-hide'),
+  onChatReset: (callback: () => void) => {
+    ipcRenderer.on('chat-reset', callback);
+    return () => ipcRenderer.removeListener('chat-reset', callback);
+  },
 });
 
 contextBridge.exposeInMainWorld('llmConfigAPI', {
@@ -55,6 +60,8 @@ declare global {
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
       openConfigWindow: () => Promise<void>;
+      hideWindow: () => void;
+      onChatReset: (callback: () => void) => () => void;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;

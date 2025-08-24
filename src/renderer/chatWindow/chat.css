@@ -13,6 +13,7 @@ body, html, #root {
   padding: 0;
   background-color: transparent; /* Ensure transparency */
   overflow: hidden; /* Prevent scrollbars */
+  color: rgba(0, 0, 0, 0);
 }
 
 body {
@@ -33,7 +34,7 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   background-image: url('../assets/background_area_light.png');
-  cursor: url('../assets/cursor.png'), auto;
+  cursor: url('../assets/cursor.png'), none;
   font-family: Gitan;	
 }
 
@@ -79,7 +80,7 @@ body {
   font-size: 1rem;
   box-sizing: border-box;
   transition: border-color 0.3s;
-  cursor: url('../assets/cursor.png'), auto; 	
+  cursor: url('../assets/cursor.png'), none; 	
 }
 
 .chat-input::-webkit-scrollbar{
@@ -97,7 +98,7 @@ body {
   background-image: url('../assets/button.png');
   background-size: cover;
   font-family:  Gitan;
-  cursor: url('../assets/cursor.png'), auto;	
+  cursor: url('../assets/cursor.png'), none;	
 }
 
 .leave-button:hover {
@@ -115,7 +116,7 @@ body {
   background-image: url('../assets/button.png');
   background-size: cover;
   font-family:  Gitan;
-  cursor: url('../assets/cursor.png'), auto;	
+  cursor: url('../assets/cursor.png'), none;	
 }
 
 .config-button:hover {
@@ -196,7 +197,7 @@ em{
   font-weight: bold;
   line-height: 23px; /* Center text vertically */
   text-align: center;
-  cursor: url('../assets/cursor.png'), auto;
+  cursor: url('../assets/cursor.png'), none;
   transition: background-color 0.2s;
 }
 

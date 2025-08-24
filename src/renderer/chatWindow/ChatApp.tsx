@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // For unique IDs
-import MarkdownRenderer from './MarkdownRenderer'; // Import Markdown renderer
+import { AnimatedMarkdown } from 'flowtoken'; // Import AnimatedMarkdown
+import 'flowtoken/dist/styles.css'; // Import FlowToken styles
 
 // Define message structure (can be moved to a types file later)
 interface ChatMessage {
@@ -15,6 +16,12 @@ function ChatApp() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isMinimized, setIsMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null); // For auto-scrolling
+
+  // Reset chat state
+  const resetChat = () => {
+    setMessages([]);
+    setInputValue('');
+  };
 
   // Handler for the main chat box area
   const handleChatBoxMouseEnter = () => {
@@ -36,6 +43,14 @@ function ChatApp() {
   };
 
   useEffect(scrollToBottom, [messages]);
+
+  // Listen for reset event from main process
+  useEffect(() => {
+    const cleanupReset = window.electronAPI.onChatReset(resetChat);
+    return () => {
+      cleanupReset();
+    };
+  }, []);
 
   const handleSend = async () => {
     if (inputValue.trim() === '') return;
@@ -180,7 +195,13 @@ function ChatApp() {
                   <div className={`${
                     msg.role === 'user' ? 'player-message' : msg.role === 'assistant' ? 'ai-message' : 'system-message'
                   }`}>
-                    <MarkdownRenderer content={msg.content} />
+                    <AnimatedMarkdown
+                      content={msg.content}
+                      animation={msg.isLoading ? "fadeIn" : null}
+                      animationDuration="0.5s"
+                      animationTimingFunction="ease-in-out"
+                      sep="char"
+                    />
                     {msg.isLoading && <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>}
                   </div>
                 </div>
@@ -198,7 +219,15 @@ function ChatApp() {
           />
           {/* Consider adding a send button if Enter to send is not always desired */}
           {/* <button onClick={handleSend} className="send-button">Send</button> */}
-          <button className="leave-button">End Conversation</button>
+  <button 
+    className="leave-button"
+    onClick={() => {
+      window.electronAPI.hideWindow();
+      resetChat();
+    }}
+  >
+    End Conversation
+  </button>
           <button 
             onClick={() => window.electronAPI.openConfigWindow()} 
             className="config-button"
