@@ -1,12 +1,12 @@
 import { app, BrowserWindow, screen, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { llmManager } from './LLMManager';
+import { conversationManager } from './conversation/ConversationManager';
 import { LLMProviderConfig, ILLMCompletionRequest, ILLMStreamChunk, ILLMCompletionResponse } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
 
 // Keep a reference to the config window, managed globally
 let chatWindow: BrowserWindow | null = null;
-let configWindowInstance: BrowserWindow | null = null;
 
 // Vite-specific environment variable for development server URL
 // const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']; // Handled by vite-plugin-electron
@@ -25,11 +25,12 @@ const createWindow = (): BrowserWindow => {
   const chatWindow = new BrowserWindow({
     width,
     height,
-    show: false, // Start hidden
+    show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
     alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
+    fullscreen: true,
     webPreferences: {
       partition: 'persist:chat',
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
@@ -47,10 +48,10 @@ const createWindow = (): BrowserWindow => {
 
   // and load the index.html of the app.
   if (process.env.VITE_DEV_SERVER_URL) {
-    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/chatWindow/chat.html`);
+    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/newWindow/app.html`);
   } else {
     // Load your file
-    chatWindow.loadFile(path.join(__dirname, '../../renderer/chat.html'));
+    chatWindow.loadFile(path.join(__dirname, '../../renderer/app.html'));
   }
 
   // Open the DevTools.
@@ -66,51 +67,13 @@ const createWindow = (): BrowserWindow => {
 
   return chatWindow;
 };
-const createConfigWindow = (): void => {
-  // Create the config browser window.
-  // Assign to the global instance variable
-  configWindowInstance = new BrowserWindow({
-    width: 800, // Standard size for a config window
-    height: 600,
-    show: false, // Initially hide the window
-    webPreferences: {
-      partition: 'persist:config',
-      preload: path.join(__dirname, '../preload/preload.js'), // Use common preload, adjusted path
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
-
-  // Load the config.html of the app.
-  if (process.env.VITE_DEV_SERVER_URL) {
-    configWindowInstance.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/configWindow/config.html`);
-  } else {
-    configWindowInstance.loadFile(path.join(__dirname, '../../renderer/config.html'));
-  }
-
-  // Open the DevTools (optional)
-  // configWindowInstance.webContents.openDevTools();
-
-  configWindowInstance.once('ready-to-show', () => {
-    configWindowInstance?.show();
-  });
-
-  // Handle window closed event
-  configWindowInstance.on('closed', () => {
-    configWindowInstance = null;
-  });
-};
 
 
 // --- IPC Handlers for LLMManager and Dialogs ---
 const setupIpcHandlers = () => {
-  // Moved 'open-config-window' handler here
-  ipcMain.handle('open-config-window', () => {
-    if (configWindowInstance && !configWindowInstance.isDestroyed()) {
-      configWindowInstance.focus();
-    } else {
-      createConfigWindow(); // This will assign to configWindowInstance
-    }
+  // TODO:
+  ipcMain.handle('toggle-config-panel', () => {
+    
   });
 
   ipcMain.handle('llm:getAppSettings', () => {
@@ -163,6 +126,49 @@ const setupIpcHandlers = () => {
     llmManager.saveGlobalStreamSetting(enabled);
     // Consider returning a status
   });
+
+  console.log('Setting up conversation IPC handlers...');
+
+  // --- Conversation Management IPC Handlers ---
+
+  ipcMain.handle('conversation:sendMessage', async (_, userMessage: string) => {
+    try {
+      console.log('IPC received conversation:sendMessage with:', userMessage);
+      return await conversationManager.sendMessage(userMessage);
+    } catch (error: any) {
+      console.error('IPC conversation:sendMessage error:', error);
+      return { error: error.message || 'Failed to send message' };
+    }
+  });
+
+  ipcMain.handle('conversation:getHistory', () => {
+    console.log('IPC received conversation:getHistory');
+    return conversationManager.getConversationHistory();
+  });
+
+  ipcMain.handle('conversation:reset', () => {
+    console.log('IPC received conversation:reset');
+    conversationManager.endCurrentConversation();
+    // Create new conversation for demo
+    conversationManager.startDemoConversation();
+    return true;
+  });
+
+  ipcMain.handle('conversation:getNPCInfo', () => {
+    console.log('IPC received conversation:getNPCInfo');
+    const npc = conversationManager.getCurrentNPC();
+    return npc ? {
+      name: npc.shortName,
+      fullName: npc.fullName,
+      title: npc.primaryTitle,
+      personality: npc.personality,
+      opinion: npc.opinionOfPlayer,
+      culture: npc.culture,
+      faith: npc.faith
+    } : null;
+  });
+
+  console.log('Conversation IPC handlers registered successfully');
 
   ipcMain.handle('llm:sendChat', async (event, requestArgs: {
     messages: ILLMCompletionRequest['messages'],
@@ -246,17 +252,26 @@ const setupIpcHandlers = () => {
 app.on('ready', () => {
   setupIpcHandlers(); // Setup handlers first
   createWindow(); // Create the main chat window
-  createConfigWindow(); // Create config window on startup
-
   // Create and start clipboard listener
   const clipboardListener = new ClipboardListener();
   clipboardListener.start();
   
   clipboardListener.on('VOTC:IN', () => {
+    console.log('VOTC:IN triggered - creating/showing window');
     if (!chatWindow || chatWindow.isDestroyed()) {
+      console.log('Creating new chat window');
       chatWindow = createWindow();
     }
-    
+
+    // Initialize or reset conversation
+    if (!conversationManager.hasActiveConversation()) {
+      console.log('Creating demo conversation');
+      conversationManager.startDemoConversation();
+      console.log('Demo conversation created');
+    } else {
+      console.log('Conversation already exists');
+    }
+
     // Show window and reset chat state
     chatWindow.show();
     chatWindow.focus();
@@ -279,7 +294,5 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-    createConfigWindow();
-  }
+    createWindow();  }
 });

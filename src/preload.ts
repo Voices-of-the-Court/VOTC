@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setIgnoreMouseEvents: (ignore: boolean): void => {
     ipcRenderer.send('set-ignore-mouse-events', ignore);
   },
-  openConfigWindow: (): Promise<void> => ipcRenderer.invoke('open-config-window'),
+  toggleConfigPanel: (): Promise<void> => ipcRenderer.invoke('toggle-config-panel'),
   hideWindow: (): void => ipcRenderer.send('chat-hide'),
   onChatReset: (callback: () => void) => {
     ipcRenderer.on('chat-reset', callback);
@@ -52,14 +52,38 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   }
 });
 
+contextBridge.exposeInMainWorld('conversationAPI', {
+  sendMessage: (userMessage: string) => {
+    console.log('Calling conversation:sendMessage with:', userMessage);
+    return ipcRenderer.invoke('conversation:sendMessage', userMessage);
+  },
+  getHistory: (): Promise<any[]> => {
+    console.log('Calling conversation:getHistory');
+    return ipcRenderer.invoke('conversation:getHistory');
+  },
+  reset: (): Promise<boolean> => {
+    console.log('Calling conversation:reset');
+    return ipcRenderer.invoke('conversation:reset');
+  },
+  getNPCInfo: (): Promise<any> => {
+    console.log('Calling conversation:getNPCInfo');
+    return ipcRenderer.invoke('conversation:getNPCInfo');
+  },
+});
 
 // It's good practice to declare the types for the exposed API
 // for TypeScript usage in the renderer process.
 declare global {
   interface Window {
+    conversationAPI: {
+      sendMessage: (userMessage: string) => Promise<any>;
+      getHistory: () => Promise<any[]>;
+      reset: () => Promise<boolean>;
+      getNPCInfo: () => Promise<any>;
+    };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
-      openConfigWindow: () => Promise<void>;
+      toggleConfigPanel: () => Promise<void>;
       hideWindow: () => void;
       onChatReset: (callback: () => void) => () => void;
     };

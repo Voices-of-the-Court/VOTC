@@ -229,7 +229,7 @@ function ChatApp() {
     End Conversation
   </button>
           <button 
-            onClick={() => window.electronAPI.openConfigWindow()} 
+            onClick={() => window.electronAPI.toggleConfigPanel()} 
             className="config-button"
             title="Open Configuration"
           >
