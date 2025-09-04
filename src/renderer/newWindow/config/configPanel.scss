@@ -6,7 +6,9 @@
   right: 30px;
   width: 40%; /* Wider than chat, but leave space */
   height: calc(100vh - 60px);
-  background-color: white;
+  background-image: url('../../assets/background_area_light.png');
+  background-repeat: repeat;
+  background-size: 200px 200px;
   border: 1px solid #EFB16A;
   border-radius: 20px;
   box-sizing: border-box;
@@ -23,7 +25,7 @@
   margin-bottom: 10px;
 
   button {
-    padding: 8px 12px;
+    padding: 10px 10px;
     cursor: url('../../../assets/cursor.png'), auto;
     background-color: rgba(0, 0, 0, 0.5);
     color: #EFB16A;
@@ -31,6 +33,7 @@
     border-radius: 10px;
     font-size: 14px;
     margin-right: 5px;
+    height: 100%;
 
     &.active {
       background-color: #EFB16A;
@@ -69,7 +72,7 @@ label {
   margin-top: 10px;
   margin-bottom: 3px;
   font-weight: bold;
-  color: #EFB16A;
+  color: white;
 }
 
 input[type="text"],
@@ -82,7 +85,7 @@ select {
   border: 1px solid #EFB16A;
   border-radius: 10px;
   box-sizing: border-box;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.4);
   color: #fff;
 
   &:focus {
@@ -90,29 +93,61 @@ select {
     border-color: #FFA500;
   }
 }
+input[readonly] {
+    cursor: not-allowed;
+}
 
-// button {
-//   padding: 10px 15px;
-//   margin-right: 10px;
-//   margin-top: 15px;
-//   border: 1px solid #EFB16A;
-//   border-radius: 10px;
-//   cursor: url('../../../assets/cursor.png'), auto;
-//   background-color: rgba(0, 0, 0, 0.5);
-//   color: #EFB16A;
-//   font-size: 14px;
 
-//   &:hover {
-//     background-color: #EFB16A;
-//     color: black;
-//   }
-// }
+input[type="checkbox"] {
+  margin-right: 5px;
+  vertical-align: middle;
+}
 
 h3 {
   margin-top: 0;
   border-bottom: 1px solid #EFB16A;
   padding-bottom: 5px;
   color: #EFB16A;
+}
+
+h4 {
+  margin-top: 15px;
+  margin-bottom: 5px;
+  color: white;
+}
+
+hr {
+  margin: 20px 0;
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+.suggestions-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #ccc;
+  border-top: none;
+  max-height: 150px;
+  overflow-y: auto;
+  position: absolute;
+  background-color: white;
+  width: 380px; /* Match input width, adjust if needed */
+  box-sizing: border-box;
+  z-index: 1000;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+  li {
+    padding: 8px;
+    cursor: pointer;
+    &:hover {
+      background-color: #ed0101;
+    }
+  }
+}
+.model-search-container {
+    position: relative; /* For absolute positioning of suggestions-list */
 }
 
 .settings-view {
@@ -137,3 +172,140 @@ h3 {
 .config-main-content::-webkit-scrollbar-thumb:hover {
   background-color: #FFA500;
 }
+
+.provider-sidebar {
+    width: 180px; /* Fixed width for sidebar */
+    // padding-right: 15px;
+    margin-right: 15px;
+    border-right: 1px solid #EFB16A;
+    height: 100%;
+    overflow-y: auto;
+    color: white;
+
+    h4 {
+        margin-top: 10px;
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    .provider-list, .preset-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        li {
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            border: 1px solid transparent; // for consistent spacing
+            &:hover {
+                background-color: #e9ecef;
+            }
+            &.active {
+                background-color: #007bff;
+                color: white;
+                font-weight: bold;
+            }
+        }
+    }
+    .preset-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        .preset-name {
+            flex-grow: 1;
+        }
+        .preset-type {
+            font-size: 0.8em;
+            color: #555;
+            margin-left: 5px;
+        }
+         &.active .preset-type {
+            color: #f0f0f0;
+        }
+        .delete-preset-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 2px 5px;
+            font-size: 1.2em;
+            margin: 0;
+            line-height: 1;
+            &:hover {
+                color: #a71d2a;
+                background-color: transparent;
+            }
+        }
+    }
+     button { // Sidebar buttons for provider types
+        display: block;
+        width: 100%;
+        text-align: left;
+        margin-bottom: 5px;
+        background-color: #f8f9fa;
+        color: #333;
+        border: 1px solid #ddd;
+         &:hover {
+            background-color: #e9ecef;
+        }
+        &.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+    }
+}
+
+.provider-config-panel {
+    flex: 1;
+    padding-left: 15px;
+    overflow-y: auto;
+}
+
+.config-panel-placeholder p {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.api-key-required-info {
+    display: flex;
+    width: fit-content;
+    align-items: center;
+    font-size: 0.85em;
+    color: #6c757d; // Muted text color
+    margin-top: -5px; // Adjust spacing relative to the input above
+    margin-bottom: 10px;
+
+    // border: 2px solid transparent; // Base for border-image or background-clip
+    // background: linear-gradient(white, white) padding-box, // Background for content area
+    //             linear-gradient(to bottom, #CBA968, #997642) border-box; // Gradient border
+    // border-radius: 6px; // Slightly larger radius for the border
+    // box-shadow: 0px 2px 4px #2E1E0F; // Apply the shadow
+    // padding: 4px;
+    
+    img {
+        width: 20px; // Adjust icon size as needed
+        height: 20px;
+        margin-right: 5px;
+    }
+}
+
+.test-result {
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 10px;
+    overflow-wrap: break-word;
+    &.success {
+        color: green;
+        background-color: #e6ffed;
+        border: 1px solid green;
+    }
+    &.error {
+        color: red;
+        background-color: #ffe6e6;
+        border: 1px solid red;
+    }
+}
+

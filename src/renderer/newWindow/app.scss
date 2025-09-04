@@ -21,7 +21,8 @@
   padding: 9px;
   width: 50%;
   height: calc(100vh - 60px);
-  background-image: url('../assets/background_area_light.png');
+  background-image:
+    url('../assets/background_area_light.png');
   background-repeat: repeat; /* this is the tiling */
   border: 1px solid #EFB16A;
   border-radius: 20px;
@@ -38,18 +39,17 @@
   border-radius: 10px;
   border: 1px solid #EFB16A;
   padding: 10px;
-}
 
-.messages-container::-webkit-scrollbar {
-  width: 10px;
-  background-color: none;
+  &::-webkit-scrollbar {
+    width: 10px;
+    background-color: none;
+  }
   
-}
-
-.messages-container::-webkit-scrollbar-thumb {
-  background-color: rgba(233, 233, 233, 0.2);
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(233, 233, 233, 0.2);
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .message{
@@ -77,6 +77,7 @@
   justify-content: space-between;
   height: 30%;
   margin-top: 1%;
+  
 }
 
 .buttons-container{
@@ -101,16 +102,45 @@
   font-size: 1rem;
   box-sizing: border-box;
   transition: border-color 0.3s;
-  cursor: url('../assets/cursor.png'), none; 	
+  cursor: url('../assets/cursor.png'), none;
+
+  &:focus{
+    outline: none;
+  }
+  
+  &::-webkit-scrollbar{
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb{
+    background-color: rgba(233, 233, 233, 0.2);
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
 }
 
 button{
-  background-image: url('../assets/button.png');
+  background-image: 
+    radial-gradient(circle, rgba(0, 0, 0, 0.0), rgba(0, 0, 0, 0.0)),
+    url('../assets/button.png');
   background-color: black;
   background-size: 100% 100%;
   border: 1px solid #EFB16A;
+  color: rgb(209, 209, 209);
   border-radius: 10px;
   cursor: url('../assets/cursor.png'), auto;
   width: 90px;
   height: 90px;
+
+  &:hover{
+    background-color: rgba(0, 0, 0, 0.2);
+    transition: background-color 0.1s ease-in;
+  }
+
+  &:active{
+    background-image: 
+      radial-gradient(circle, rgba(0, 0, 0, 0.0), rgba(0, 0, 0, 0.2)),
+      url('../assets/button.png');
+  }
 }
