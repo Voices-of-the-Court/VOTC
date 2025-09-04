@@ -131,10 +131,55 @@ const setupIpcHandlers = () => {
 
   // --- Conversation Management IPC Handlers ---
 
-  ipcMain.handle('conversation:sendMessage', async (_, userMessage: string) => {
+  ipcMain.handle('conversation:sendMessage', async (event, requestArgs: {
+    message: string,
+    streaming?: boolean,
+    requestId?: string // For correlating stream chunks when streaming
+  }) => {
+    const { message, streaming = false, requestId } = requestArgs;
+    console.log('IPC received conversation:sendMessage with:', message, 'streaming:', streaming);
+
     try {
-      console.log('IPC received conversation:sendMessage with:', userMessage);
-      return await conversationManager.sendMessage(userMessage);
+      if (streaming) {
+        // Handle streaming response
+        const generator = await conversationManager.sendMessage(message, true);
+        if (generator && typeof generator[Symbol.asyncIterator] === 'function') {
+          // Fire and forget pattern for streaming
+          (async () => {
+            try {
+              for await (const chunk of generator as AsyncGenerator<ILLMStreamChunk, any, undefined>) {
+                console.log('Sending conversation chat chunk:', requestId);
+                event.sender.send('conversation:chatChunk', {
+                  requestId: requestId || 'default',
+                  chunk
+                });
+              }
+
+              // After generator completes, the final message has been added to conversation
+              console.log('Conversation streaming completed for request:', requestId);
+              event.sender.send('conversation:chatStreamComplete', {
+                requestId: requestId || 'default',
+                finalResponse: { success: true }
+              });
+            } catch (streamError: any) {
+              console.error('Error during conversation stream:', streamError);
+              event.sender.send('conversation:chatError', {
+                requestId: requestId || 'default',
+                error: streamError.message || 'Unknown streaming error'
+              });
+            }
+          })();
+
+          return { streamStarted: true, requestId: requestId || 'default' };
+        } else {
+          throw new Error('Expected streaming response but got non-streaming');
+        }
+      } else {
+        // Handle synchronous response
+        const result = await conversationManager.sendMessage(message, false);
+        console.log('Conversation sendMessage returned:', result);
+        return { message: result };
+      }
     } catch (error: any) {
       console.error('IPC conversation:sendMessage error:', error);
       return { error: error.message || 'Failed to send message' };

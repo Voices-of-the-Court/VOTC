@@ -53,9 +53,9 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {
-  sendMessage: (userMessage: string) => {
-    console.log('Calling conversation:sendMessage with:', userMessage);
-    return ipcRenderer.invoke('conversation:sendMessage', userMessage);
+  sendMessage: (userMessage: string, streaming = false, requestId?: string): Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}> => {
+    console.log('Calling conversation:sendMessage with:', userMessage, 'streaming:', streaming);
+    return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage, streaming, requestId });
   },
   getHistory: (): Promise<any[]> => {
     console.log('Calling conversation:getHistory');
@@ -69,6 +69,23 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     console.log('Calling conversation:getNPCInfo');
     return ipcRenderer.invoke('conversation:getNPCInfo');
   },
+
+  // Streaming listeners
+  onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => {
+    const handler = (_event: any, args: { requestId: string, chunk: any }) => callback(args);
+    ipcRenderer.on('conversation:chatChunk', handler);
+    return () => ipcRenderer.removeListener('conversation:chatChunk', handler);
+  },
+  onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any }) => void) => {
+    const handler = (_event: any, args: { requestId: string, finalResponse?: any }) => callback(args);
+    ipcRenderer.on('conversation:chatStreamComplete', handler);
+    return () => ipcRenderer.removeListener('conversation:chatStreamComplete', handler);
+  },
+  onChatError: (callback: (args: { requestId: string, error: string }) => void) => {
+    const handler = (_event: any, args: { requestId: string, error: string }) => callback(args);
+    ipcRenderer.on('conversation:chatError', handler);
+    return () => ipcRenderer.removeListener('conversation:chatError', handler);
+  },
 });
 
 // It's good practice to declare the types for the exposed API
@@ -76,10 +93,13 @@ contextBridge.exposeInMainWorld('conversationAPI', {
 declare global {
   interface Window {
     conversationAPI: {
-      sendMessage: (userMessage: string) => Promise<any>;
+      sendMessage: (userMessage: string, streaming?: boolean, requestId?: string) => Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}>;
       getHistory: () => Promise<any[]>;
       reset: () => Promise<boolean>;
       getNPCInfo: () => Promise<any>;
+      onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => () => void;
+      onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any }) => void) => () => void;
+      onChatError: (callback: (args: { requestId: string, error: string }) => void) => () => void;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;

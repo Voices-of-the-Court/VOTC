@@ -65,6 +65,7 @@ function Chat({ onToggleConfig }: ChatProps) {
     setInputValue('');
 
     const assistantMessageId = uuidv4();
+    const requestId = uuidv4(); // Unique ID for this request
     const assistantPlaceholder: ChatMessage = {
       id: assistantMessageId,
       role: 'assistant',
@@ -73,29 +74,75 @@ function Chat({ onToggleConfig }: ChatProps) {
     };
     setMessages(prevMessages => [...prevMessages, assistantPlaceholder]);
 
-    try {
-      // Use conversation API instead of direct LLM calls
-      const response = await window.conversationAPI.sendMessage(inputValue.trim());
-
-      if (response && response.content) {
-        // Update with response
+    // Set up streaming listeners
+    const cleanupChatChunk = window.conversationAPI.onChatChunk(({ requestId: resRequestId, chunk }) => {
+      if (resRequestId === requestId) {
         setMessages(prev =>
           prev.map(msg =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: response.content, isLoading: false }
-              : msg
-          )
-        );
-      } else {
-        // Handle error case
-        setMessages(prev =>
-          prev.map(msg =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: 'Error: Failed to get response', isLoading: false }
-              : msg
+            msg.id === assistantMessageId ? { ...msg, content: msg.content + (chunk?.delta?.content || ''), isLoading: true } : msg
           )
         );
       }
+    });
+
+    const cleanupChatStreamComplete = window.conversationAPI.onChatStreamComplete(({ requestId: resRequestId, finalResponse }) => {
+      if (resRequestId === requestId) {
+        setMessages(prev =>
+          prev.map(msg => {
+            if (msg.id === assistantMessageId) {
+              return { ...msg, content: msg.content, isLoading: false };
+            }
+            return msg;
+          })
+        );
+        cleanupChatChunk();
+        cleanupChatStreamComplete();
+        cleanupChatError();
+      }
+    });
+
+    const cleanupChatError = window.conversationAPI.onChatError(({ requestId: resRequestId, error }) => {
+      if (resRequestId === requestId) {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === assistantMessageId ? { ...msg, content: `Error: ${error}`, isLoading: false } : msg
+          )
+        );
+        cleanupChatChunk();
+        cleanupChatStreamComplete();
+        cleanupChatError();
+      }
+    });
+
+    try {
+      // Send message with streaming enabled
+      const response = await window.conversationAPI.sendMessage(inputValue.trim(), true, requestId);
+
+      if (!response.streamStarted) {
+        // Fallback to non-streaming response
+        if (response.message) {
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: response.message.content || '', isLoading: false }
+                : msg
+            )
+          );
+        } else if (response.error) {
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: `Error: ${response.error}`, isLoading: false }
+                : msg
+            )
+          );
+        }
+        // Clean up listeners since streaming didn't start
+        cleanupChatChunk();
+        cleanupChatStreamComplete();
+        cleanupChatError();
+      }
+      // If streaming started, the listeners will handle the updates and cleanup
 
     } catch (error: any) {
       console.error('Failed to send message:', error);
@@ -106,6 +153,10 @@ function Chat({ onToggleConfig }: ChatProps) {
             : msg
         )
       );
+      // Clean up all listeners on error
+      cleanupChatChunk();
+      cleanupChatStreamComplete();
+      cleanupChatError();
     }
   };
   
