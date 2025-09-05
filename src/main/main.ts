@@ -1,5 +1,6 @@
-import { app, BrowserWindow, screen, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { llmManager } from './LLMManager';
 import { conversationManager } from './conversation/ConversationManager';
 import { LLMProviderConfig, ILLMCompletionRequest, ILLMStreamChunk, ILLMCompletionResponse } from './llmProviders/types'; // Added more types
@@ -7,6 +8,7 @@ import { ClipboardListener } from './ClipboardListener'; // Add missing import
 
 // Keep a reference to the config window, managed globally
 let chatWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
 
 // Vite-specific environment variable for development server URL
 // const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']; // Handled by vite-plugin-electron
@@ -73,7 +75,11 @@ const createWindow = (): BrowserWindow => {
 const setupIpcHandlers = () => {
   // TODO:
   ipcMain.handle('toggle-config-panel', () => {
-    
+    // Send toggle settings event to renderer
+    if (chatWindow) {
+      chatWindow.webContents.send('toggle-settings');
+    }
+    return true;
   });
 
   ipcMain.handle('llm:getAppSettings', () => {
@@ -296,13 +302,80 @@ const setupIpcHandlers = () => {
 
 app.on('ready', () => {
   setupIpcHandlers(); // Setup handlers first
-  createWindow(); // Create the main chat window
+  chatWindow = createWindow(); // Create the main chat window and assign to global
+
+  // Create system tray
+  let iconPath: string;
+
+  // Try multiple possible locations for the icon
+  const possiblePaths = [
+    // Development path
+    path.join(__dirname, '../../renderer/assets/icon.ico'),
+    path.join(__dirname, '../../renderer/assets/icon.png'),
+    // Production paths (Electron Forge might put them in different places)
+    path.join(process.resourcesPath, 'renderer/assets/icon.ico'),
+    path.join(process.resourcesPath, 'renderer/assets/icon.png'),
+    path.join(app.getAppPath(), 'src/renderer/assets/icon.ico'),
+    path.join(app.getAppPath(), 'src/renderer/assets/icon.png'),
+  ];
+
+  console.log('Current __dirname:', __dirname);
+  console.log('Process resources:', process.resourcesPath);
+  console.log('App path:', app.getAppPath());
+
+  // Find the first existing path
+  for (const testPath of possiblePaths) {
+    console.log(`Checking path: ${testPath}, exists: ${fs.existsSync(testPath)}`);
+    if (fs.existsSync(testPath)) {
+      iconPath = testPath;
+      console.log('Found icon at:', iconPath);
+      break;
+    }
+  }
+
+  if (!iconPath) {
+    console.error('Tray icon not found in any expected location');
+    // Fallback to a basic icon or skip tray creation
+    return;
+  }
+
+  try {
+    tray = new Tray(iconPath);
+    console.log('Tray created successfully');
+  } catch (error) {
+    console.error('Error creating tray:', error);
+    return;
+  }
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Open Settings',
+      click: () => {
+        // Send toggle settings event to renderer
+        if (chatWindow) {
+          chatWindow.webContents.send('toggle-settings');
+        }
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => {
+        app.quit();
+      }
+    }
+  ]);
+
+  tray.setToolTip('VOTC Overlay');
+  tray.setContextMenu(contextMenu);
+
   // Create and start clipboard listener
   const clipboardListener = new ClipboardListener();
   clipboardListener.start();
   
   clipboardListener.on('VOTC:IN', () => {
-    console.log('VOTC:IN triggered - creating/showing window');
+    console.log('VOTC:IN triggered - showing chat interface');
+
+    // Ensure window exists
     if (!chatWindow || chatWindow.isDestroyed()) {
       console.log('Creating new chat window');
       chatWindow = createWindow();
@@ -317,16 +390,17 @@ app.on('ready', () => {
       console.log('Conversation already exists');
     }
 
-    // Show window and reset chat state
+    // Show window (it might be hidden) and send events to renderer
     chatWindow.show();
     chatWindow.focus();
-    chatWindow.webContents.send('chat-reset');
+    chatWindow.webContents.send('chat-reset'); // This will trigger showChat in App.tsx
   });
   
-  // Add IPC handler for hiding window
+  // Add IPC handler for hiding chat UI (not window - window stays persistent)
   ipcMain.on('chat-hide', () => {
+    // Send event to renderer to hide both chat and config panels
     if (chatWindow && !chatWindow.isDestroyed()) {
-      chatWindow.hide();
+      chatWindow.webContents.send('chat-hide');
     }
   });
 });

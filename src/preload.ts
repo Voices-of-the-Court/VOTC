@@ -15,6 +15,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('chat-reset', callback);
     return () => ipcRenderer.removeListener('chat-reset', callback);
   },
+  onToggleSettings: (callback: () => void) => {
+    ipcRenderer.on('toggle-settings', callback);
+    return () => ipcRenderer.removeListener('toggle-settings', callback);
+  },
+  onHideChat: (callback: () => void) => {
+    ipcRenderer.on('chat-hide', callback);
+    return () => ipcRenderer.removeListener('chat-hide', callback);
+  },
 });
 
 contextBridge.exposeInMainWorld('llmConfigAPI', {
@@ -106,6 +114,8 @@ declare global {
       toggleConfigPanel: () => Promise<void>;
       hideWindow: () => void;
       onChatReset: (callback: () => void) => () => void;
+      onToggleSettings: (callback: () => void) => () => void;
+      onHideChat: (callback: () => void) => () => void;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;

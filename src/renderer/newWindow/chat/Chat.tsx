@@ -222,6 +222,7 @@ function Chat({ onToggleConfig }: ChatProps) {
                 className="leave-button"
                 onClick={() => {
                   window.electronAPI.hideWindow();
+                  window.electronAPI?.setIgnoreMouseEvents(true);
                   resetChat();
                 }}
               >
