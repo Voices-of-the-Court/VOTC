@@ -305,35 +305,14 @@ app.on('ready', () => {
   chatWindow = createWindow(); // Create the main chat window and assign to global
 
   // Create system tray
-  let iconPath: string;
-
-  // Try multiple possible locations for the icon
-  const possiblePaths = [
-    // Development path
-    path.join(__dirname, '../../renderer/assets/icon.ico'),
-    path.join(__dirname, '../../renderer/assets/icon.png'),
-    // Production paths (Electron Forge might put them in different places)
-    path.join(process.resourcesPath, 'renderer/assets/icon.ico'),
-    path.join(process.resourcesPath, 'renderer/assets/icon.png'),
-    path.join(app.getAppPath(), 'src/renderer/assets/icon.ico'),
-    path.join(app.getAppPath(), 'src/renderer/assets/icon.png'),
-  ];
+  let iconPath = path.join(app.getAppPath(), 'src/renderer/assets/icon.ico');
 
   console.log('Current __dirname:', __dirname);
   console.log('Process resources:', process.resourcesPath);
   console.log('App path:', app.getAppPath());
+  console.log(`Checking path: ${iconPath}}, exists: ${fs.existsSync(iconPath)}`);
 
-  // Find the first existing path
-  for (const testPath of possiblePaths) {
-    console.log(`Checking path: ${testPath}, exists: ${fs.existsSync(testPath)}`);
-    if (fs.existsSync(testPath)) {
-      iconPath = testPath;
-      console.log('Found icon at:', iconPath);
-      break;
-    }
-  }
-
-  if (!iconPath) {
+  if (!fs.existsSync(iconPath)) {
     console.error('Tray icon not found in any expected location');
     // Fallback to a basic icon or skip tray creation
     return;
