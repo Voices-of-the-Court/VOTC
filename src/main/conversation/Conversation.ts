@@ -116,20 +116,21 @@ You should respond as this character would, taking into account their personalit
             // Prepare messages for LLM (include system prompt if first message)
             const llmMessages: any[] = [];
 
-            if (this.messages.length === 1) {
-                // Add system prompt for first message
-                const systemPrompt = this.generateSystemPrompt(char);
-                console.log('Adding system prompt:', systemPrompt.substring(0, 100) + '...');
-                const systemMsg: Message = {
-                    role: 'system',
-                    content: systemPrompt,
-                    datetime: new Date()
-                };
-                llmMessages.push({
-                    role: systemMsg.role,
-                    content: systemMsg.content
-                });
-            }
+            console.log('DEBUG: Current messages length:', this.messages.length);
+            console.log('DEBUG: Including system prompt in LLM request');
+
+            // Always include system prompt for character awareness
+            const systemPrompt = this.generateSystemPrompt(char);
+            console.log('Adding system prompt:', systemPrompt.substring(0, 100) + '...');
+            const systemMsg: Message = {
+                role: 'system',
+                content: systemPrompt,
+                datetime: new Date()
+            };
+            llmMessages.push({
+                role: systemMsg.role,
+                content: systemMsg.content
+            });
 
             // Add conversation history
             const conversationHistory = this.messages.slice(-10).map(msg => ({
