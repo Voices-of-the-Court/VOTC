@@ -201,7 +201,7 @@ const setupIpcHandlers = () => {
     console.log('IPC received conversation:reset');
     conversationManager.endCurrentConversation();
     // Create new conversation for demo
-    conversationManager.startDemoConversation();
+    conversationManager.createConversationWithNPC();
     return true;
   });
 
@@ -310,7 +310,7 @@ app.on('ready', () => {
   console.log('Current __dirname:', __dirname);
   console.log('Process resources:', process.resourcesPath);
   console.log('App path:', app.getAppPath());
-  console.log(`Checking path: ${iconPath}}, exists: ${fs.existsSync(iconPath)}`);
+  console.log(`Checking path: ${iconPath}, exists: ${fs.existsSync(iconPath)}`);
 
   if (!fs.existsSync(iconPath)) {
     console.error('Tray icon not found in any expected location');
@@ -363,9 +363,11 @@ app.on('ready', () => {
     // Initialize or reset conversation
     if (!conversationManager.hasActiveConversation()) {
       console.log('Creating demo conversation');
-      conversationManager.startDemoConversation();
+      conversationManager.createConversationWithNPC();
       console.log('Demo conversation created');
     } else {
+      conversationManager.endCurrentConversation();
+      conversationManager.createConversationWithNPC();
       console.log('Conversation already exists');
     }
 

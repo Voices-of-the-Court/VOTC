@@ -1,5 +1,6 @@
 import { GameData } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
+import { parseLog } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
@@ -18,42 +19,36 @@ export interface ErrorMessage {
 export class Conversation {
     id = v4();
     messages: Message[] = [];
-    characters: Map<number, Character> = new Map();
-    playerId: number | null = null;
+    gameData!: GameData;
     isActive: boolean = false;
 
-    constructor(characters?: Character[], playerId?: number) {
-        if (characters && characters.length > 0) {
-            characters.forEach(char => {
-                this.characters.set(char.id, char);
-            });
+    constructor() {
+        this.initializeGameData();
     }
 
-        if (playerId !== undefined) {
-            this.playerId = playerId;
+    private async initializeGameData(): Promise<void> {
+        try {
+            this.gameData = await parseLog(llmManager.getCK3DebugLogPath()!);
+            console.log('GameData initialized with', this.gameData.characters.size, 'characters');
+            this.isActive = true;
+        } catch (error) {
+            console.error('Failed to parse log file:', error);
+            this.isActive = false;
         }
-        this.isActive = characters && characters.length > 0;
     }
 
     /**
      * Generate a system prompt based on the characters in the conversation
      */
-    private generateSystemPrompt(): string {
-        if (this.characters.size === 0) {
+    private generateSystemPrompt(char: Character): string {
+        if (this.gameData.characters.size === 0) {
             console.log('No characters in conversation for system prompt');
             return "You are characters in a medieval strategy game. Engage in conversation naturally.";
         }
 
-        // Assume first character is the primary NPC for now
-        const primaryCharId = this.characters.keys().next().value;
-        if (!primaryCharId) {
-            console.log('No primary character ID found');
-            return "You are characters in a medieval strategy game. Engage in conversation naturally.";
-        }
-
-        const char = this.characters.get(primaryCharId);
+        // const char = this.gameData.characters.get(this.gameData.aiID)!;
         if (!char) {
-            console.log('Primary character not found for ID:', primaryCharId);
+            console.log('Primary character not found for ID:', this.gameData.aiID);
             return "You are characters in a medieval strategy game. Engage in conversation naturally.";
         }
 
@@ -95,14 +90,16 @@ You should respond as this character would, taking into account their personalit
     async sendMessage(userMessage: string, streaming: boolean = false): Promise<Message | AsyncGenerator<ILLMStreamChunk, Message, undefined> | null> {
         console.log('Conversation.sendMessage called with:', userMessage, 'streaming:', streaming);
         console.log('Conversation active:', this.isActive);
-        console.log('Characters in conversation:', this.characters.size);
+        console.log('Characters in conversation:', this.gameData.characters.size);
+        
+        const char = this.gameData.characters.get(this.gameData.aiID)!;
 
         if (!this.isActive) {
             console.warn('Conversation is not active');
             return null;
         }
 
-        if (this.characters.size === 0) {
+        if (this.gameData.characters.size === 0) {
             console.error('No characters in conversation');
             return null;
         }
@@ -115,17 +112,13 @@ You should respond as this character would, taking into account their personalit
         };
         this.messages.push(userMsg);
 
-        // Get primary character for naming (for demo purposes - will be replaced with individual characters)
-        const primaryCharId = this.characters.keys().next().value;
-        const primaryChar = primaryCharId ? this.characters.get(primaryCharId) : null;
-
         try {
             // Prepare messages for LLM (include system prompt if first message)
             const llmMessages: any[] = [];
 
             if (this.messages.length === 1) {
                 // Add system prompt for first message
-                const systemPrompt = this.generateSystemPrompt();
+                const systemPrompt = this.generateSystemPrompt(char);
                 console.log('Adding system prompt:', systemPrompt.substring(0, 100) + '...');
                 const systemMsg: Message = {
                     role: 'system',
@@ -178,7 +171,7 @@ You should respond as this character would, taking into account their personalit
                             const assistantMsg: Message = {
                                 role: 'assistant',
                                 content: finalContent,
-                                name: primaryChar?.shortName || 'NPC',
+                                name: char?.shortName || 'NPC',
                                 datetime: new Date()
                             };
                             this.messages.push(assistantMsg);
@@ -189,7 +182,7 @@ You should respond as this character would, taking into account their personalit
                             const errorMsg: Message = {
                                 role: 'assistant',
                                 content: `Error: ${streamingError instanceof Error ? streamingError.message : 'Unknown error during streaming'}`,
-                                name: primaryChar?.shortName || 'NPC',
+                                name: char?.shortName || 'NPC',
                                 datetime: new Date()
                             };
                             this.messages.push(errorMsg);
@@ -208,7 +201,7 @@ You should respond as this character would, taking into account their personalit
                     const assistantMsg: Message = {
                         role: 'assistant',
                         content: result.content,
-                        name: primaryChar?.shortName || 'NPC',
+                        name: char?.shortName || 'NPC',
                         datetime: new Date()
                     };
                     this.messages.push(assistantMsg);

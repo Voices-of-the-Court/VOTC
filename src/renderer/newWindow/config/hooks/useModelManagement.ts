@@ -78,7 +78,6 @@ export const useModelManagement = ({ editingConfig }: UseModelManagementProps) =
                 setSuggestedModels(
                     availableModels
                         .filter(m => m.name.toLowerCase().includes(searchText.toLowerCase()))
-                        .slice(0, 10)
                 );
             }
         } else {

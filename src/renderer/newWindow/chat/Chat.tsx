@@ -33,6 +33,13 @@ function Chat({ onToggleConfig }: ChatProps) {
     window.electronAPI?.setIgnoreMouseEvents(true);
   };
 
+  const handleLeave = () => {
+  window.electronAPI.hideWindow();
+  window.electronAPI?.setIgnoreMouseEvents(true);
+  window.conversationAPI.reset();
+  resetChat();
+  }
+
   const toggleMinimize = () => {
     const newState = !isMinimized;
     setIsMinimized(newState);
@@ -221,9 +228,7 @@ function Chat({ onToggleConfig }: ChatProps) {
               <button
                 className="leave-button"
                 onClick={() => {
-                  window.electronAPI.hideWindow();
-                  window.electronAPI?.setIgnoreMouseEvents(true);
-                  resetChat();
+                  handleLeave();
                 }}
               >
                 End Conversation

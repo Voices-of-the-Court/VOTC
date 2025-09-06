@@ -27,7 +27,7 @@ export class ConversationManager {
             const npc = character || Conversation.createDemoNPC();
 
             // Create new conversation - wrap single character in array
-            this.currentConversation = new Conversation([npc]);
+            this.currentConversation = new Conversation();
 
             console.log(`Started conversation with ${npc.shortName}`);
             return this.currentConversation;
@@ -141,8 +141,8 @@ export class ConversationManager {
     getCurrentNPC(): Character | null {
         if (!this.currentConversation) return null;
 
-        const firstCharId = this.currentConversation.characters.keys().next().value;
-        return firstCharId ? this.currentConversation.characters.get(firstCharId) || null : null;
+        const firstCharId = this.currentConversation.gameData.characters.keys().next().value;
+        return firstCharId ? this.currentConversation.gameData.characters.get(firstCharId) || null : null;
     }
 
     /**
