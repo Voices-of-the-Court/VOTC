@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import MessageList from './components/MessageList';
-import ChatInput from './components/ChatInput';
-import ChatButtons from './components/ChatButtons';
-import useChatStreaming from './hooks/useChatStreaming';
-import useWindowEvents from './hooks/useWindowEvents';
-import useAutoScroll from './hooks/useAutoScroll';
-import { ChatMessage } from './components/MessageItem';
+import { MessageList, ChatInput, ChatButtons, ChatMessage } from './components';
+import { useChatStreaming, useWindowEvents, useAutoScroll } from './hooks';
 
 interface ChatProps {
   onToggleConfig: () => void;
