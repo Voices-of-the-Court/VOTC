@@ -50,7 +50,8 @@ const createWindow = (): BrowserWindow => {
 
   // and load the index.html of the app.
   if (process.env.VITE_DEV_SERVER_URL) {
-    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/newWindow/app.html`);
+    // chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/newWindow/app.html`);
+    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/app.html`);
   } else {
     // Load your file
     chatWindow.loadFile(path.join(__dirname, '../../renderer/app.html'));

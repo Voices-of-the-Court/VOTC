@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import type { AppSettings, LLMProviderConfig, ILLMModel, ProviderType as ConfigProviderType } from '../../../main/llmProviders/types'; // Adjusted path
+import type { AppSettings, LLMProviderConfig, ILLMModel, ProviderType as ConfigProviderType } from '../../main/llmProviders/types'; // Adjusted path
 import { v4 as uuidv4 } from 'uuid'; // For presets
 import './configPanel.scss'; // Import local styles
 import ConnectionView from './ConnectionView'; // Adjusted path

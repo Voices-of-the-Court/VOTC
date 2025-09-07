@@ -1,44 +1,59 @@
-/* Base styles for Config Window */
-body {
-  font-family: sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #f0f0f0; /* Example background, can be themed later */
-  color: #333;
-  height: 100vh;
-  overflow: hidden; /* Prevent body scroll if app container handles it */
-}
+/* Config Panel Styles with Fantasy Theme Adaptation */
 
-.config-app-container {
+.config-panel-container {
+  position: absolute;
+  top: 30px; /* Match App margin */
+  right: 30px;
+  width: 40%; /* Wider than chat, but leave space */
+  height: calc(100vh - 60px);
+  background-image: url('../assets/background_area_light.png');
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  border: 1px solid #EFB16A;
+  border-radius: 20px;
+  box-sizing: border-box;
   padding: 10px;
-  height: 100vh;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
 }
 
 .config-header {
   display: flex;
-  border-bottom: 1px solid #ccc;
+  justify-content: space-between; /* Close button on right */
+  border-bottom: 1px solid #EFB16A;
   padding-bottom: 10px;
   margin-bottom: 10px;
 
   button {
-    margin-right: 10px;
-    padding: 8px 12px;
-    cursor: pointer;
-    background-color: #6c757d; // Default button color
-    color: white;
-    border: none;
-    border-radius: 4px;
+    padding: 10px 10px;
+    cursor: url('../../assets/cursor.png'), auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #EFB16A;
+    border: 1px solid #EFB16A;
+    border-radius: 10px;
     font-size: 14px;
+    margin-right: 5px;
+    height: 100%;
 
     &.active {
-      background-color: #007bff; // Active tab button color
+      background-color: #EFB16A;
+      color: black;
     }
+
     &:hover {
       opacity: 0.9;
     }
+  }
+
+  .config-close-button {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #EFB16A;
+    padding: 0;
+    width: auto;
+    height: auto;
   }
 }
 
@@ -46,41 +61,39 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 10px;
-  background-color: #fff; // Content area background
-  border-radius: 4px;
-  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  border: 1px solid #EFB16A;
 }
 
-/* Styles from previous inline style tag */
+/* Adapted form styles */
 label {
   display: block;
   margin-top: 10px;
   margin-bottom: 3px;
   font-weight: bold;
+  color: white;
 }
 
 input[type="text"],
 input[type="password"],
 input[type="number"],
 select {
-  width: calc(100% - 18px); /* Adjust width as needed */
+  width: calc(100% - 18px);
   padding: 8px;
   margin-bottom: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #EFB16A;
+  border-radius: 10px;
   box-sizing: border-box;
-  background-color: #fff;
-  color: #333;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #fff;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #FFA500;
   }
 }
-
 input[readonly] {
-    background-color: #e9ecef; // Standard readonly background
     cursor: not-allowed;
 }
 
@@ -90,56 +103,23 @@ input[type="checkbox"] {
   vertical-align: middle;
 }
 
-button {
-  padding: 10px 15px;
-  margin-right: 10px;
-  margin-top: 15px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #007bff;
-  color: white;
-  font-size: 14px;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-
-  &[type="button"] { // More specific selector for non-submit buttons
-    background-color: #6c757d;
-    &:hover {
-      background-color: #545b62;
-    }
-  }
-}
-
 h3 {
   margin-top: 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #EFB16A;
   padding-bottom: 5px;
-  color: #333;
+  color: #EFB16A;
 }
 
 h4 {
   margin-top: 15px;
   margin-bottom: 5px;
-  color: #444;
+  color: white;
 }
 
 hr {
   margin: 20px 0;
   border: 0;
   border-top: 1px solid #eee;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-actions {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #eee;
 }
 
 .suggestions-list {
@@ -152,7 +132,7 @@ hr {
   overflow-y: auto;
   position: absolute;
   background-color: white;
-  width: calc(100% - 18px); /* Match input width, adjust if needed */
+  width: 380px; /* Match input width, adjust if needed */
   box-sizing: border-box;
   z-index: 1000;
   border-radius: 0 0 4px 4px;
@@ -162,39 +142,45 @@ hr {
     padding: 8px;
     cursor: pointer;
     &:hover {
-      background-color: #f0f0f0;
+      background-color: #ed0101;
     }
   }
 }
-
 .model-search-container {
     position: relative; /* For absolute positioning of suggestions-list */
 }
 
-.test-result {
-    margin-top: 10px;
-    padding: 8px;
-    border-radius: 4px;
-    &.success {
-        color: green;
-        background-color: #e6ffed;
-        border: 1px solid #b7ebc9;
-    }
-    &.error {
-        color: red;
-        background-color: #ffe6e6;
-        border: 1px solid #ffb3b3;
-    }
+.settings-view {
+  color: #fff;
 }
 
-/* Sidebar specific styles */
+.settings-view .form-group label {
+  color: #EFB16A;
+}
+
+/* Scrollbar styling for fantasy theme */
+.config-main-content::-webkit-scrollbar {
+  width: 10px;
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.config-main-content::-webkit-scrollbar-thumb {
+  background-color: #EFB16A;
+  border-radius: 10px;
+}
+
+.config-main-content::-webkit-scrollbar-thumb:hover {
+  background-color: #FFA500;
+}
+
 .provider-sidebar {
-    width: 220px; /* Fixed width for sidebar */
-    padding-right: 15px;
+    width: 180px; /* Fixed width for sidebar */
+    // padding-right: 15px;
     margin-right: 15px;
-    border-right: 1px solid #ddd;
+    border-right: 1px solid #EFB16A;
     height: 100%;
     overflow-y: auto;
+    color: white;
 
     h4 {
         margin-top: 10px;
@@ -283,29 +269,6 @@ hr {
     font-style: italic;
 }
 
-/* Modal Styles */
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-}
-
-.modal-content {
-    background-color: white;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    min-width: 300px;
-}
-
-/* Style for the API key required message */
 .api-key-required-info {
     display: flex;
     width: fit-content;
@@ -328,3 +291,21 @@ hr {
         margin-right: 5px;
     }
 }
+
+.test-result {
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 10px;
+    overflow-wrap: break-word;
+    &.success {
+        color: green;
+        background-color: #e6ffed;
+        border: 1px solid green;
+    }
+    &.error {
+        color: red;
+        background-color: #ffe6e6;
+        border: 1px solid red;
+    }
+}
+
