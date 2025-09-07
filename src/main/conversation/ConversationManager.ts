@@ -22,14 +22,7 @@ export class ConversationManager {
         try {
             // End any existing conversation
             this.endCurrentConversation();
-
-            // Use provided character or create demo NPC
-            const npc = character || Conversation.createDemoNPC();
-
-            // Create new conversation - wrap single character in array
             this.currentConversation = new Conversation();
-
-            console.log(`Started conversation with ${npc.shortName}`);
             return this.currentConversation;
         } catch (error) {
             console.error('Failed to create conversation:', error);
