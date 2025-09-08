@@ -18,9 +18,8 @@ export class ConversationManager {
     /**
      * Create a new conversation with an NPC
      */
-    createConversationWithNPC(character?: Character): Conversation | null {
+    createConversation(): Conversation | null {
         try {
-            // End any existing conversation
             this.endCurrentConversation();
             this.currentConversation = new Conversation();
             return this.currentConversation;
@@ -136,13 +135,6 @@ export class ConversationManager {
 
         const firstCharId = this.currentConversation.gameData.characters.keys().next().value;
         return firstCharId ? this.currentConversation.gameData.characters.get(firstCharId) || null : null;
-    }
-
-    /**
-     * Create and switch to demo conversation for development
-     */
-    startDemoConversation(): Conversation | null {
-        return this.createConversationWithNPC();
     }
 }
 

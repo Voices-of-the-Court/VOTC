@@ -1,8 +1,8 @@
 {
-  "name": "revoelectron-react-overlay-test-imp",
-  "productName": "electron-react-overlay-test-imp",
+  "name": "re-voices-of-the-court",
+  "productName": "reVOTC",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Reimplementation of Voices of the Court mod for Crusader Kings III for better experience",
   "main": "dist/electron/main/main.js",
   "scripts": {
     "dev": "chcp 65001 > NUL && vite",
@@ -19,7 +19,7 @@
     "name": "MrAndroPC",
     "email": "sared3420@gmail.com"
   },
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "@electron-forge/cli": "^7.8.0",
     "@electron-forge/maker-deb": "^7.8.0",

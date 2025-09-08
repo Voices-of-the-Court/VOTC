@@ -50,11 +50,10 @@ const createWindow = (): BrowserWindow => {
 
   // and load the index.html of the app.
   if (process.env.VITE_DEV_SERVER_URL) {
-    // chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/newWindow/app.html`);
     chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/app.html`);
   } else {
     // Load your file
-    chatWindow.loadFile(path.join(__dirname, '../../renderer/app.html'));
+    chatWindow.loadFile(path.join(__dirname, '../../renderer/src/renderer/app.html'));
   }
 
   // Open the DevTools.
@@ -201,8 +200,7 @@ const setupIpcHandlers = () => {
   ipcMain.handle('conversation:reset', () => {
     console.log('IPC received conversation:reset');
     conversationManager.endCurrentConversation();
-    // Create new conversation for demo
-    conversationManager.createConversationWithNPC();
+    conversationManager.createConversation();
     return true;
   });
 
@@ -361,16 +359,7 @@ app.on('ready', () => {
       chatWindow = createWindow();
     }
 
-    // Initialize or reset conversation
-    if (!conversationManager.hasActiveConversation()) {
-      console.log('Creating demo conversation');
-      conversationManager.createConversationWithNPC();
-      console.log('Demo conversation created');
-    } else {
-      conversationManager.endCurrentConversation();
-      conversationManager.createConversationWithNPC();
-      console.log('Conversation already exists');
-    }
+    conversationManager.createConversation();
 
     // Show window (it might be hidden) and send events to renderer
     chatWindow.show();
