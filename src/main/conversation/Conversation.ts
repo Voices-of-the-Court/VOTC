@@ -4,23 +4,14 @@ import { parseLog } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
-
-export interface Message {
-    role: 'system' | 'user' | 'assistant';
-    name?: string;
-    content: string;
-    datetime: Date;
-}
-
-export interface ErrorMessage {
-    text: string,
-}
+import { ConversationEntry, Message, ErrorEntry } from "./types";
 
 export class Conversation {
     id = v4();
-    messages: Message[] = [];
+    messages: ConversationEntry[] = [];
     gameData!: GameData;
     isActive: boolean = false;
+    nextId: number = 0;
 
     constructor() {
         this.initializeGameData();
@@ -105,7 +96,10 @@ You should respond as this character would, taking into account their personalit
         }
 
         // Add user message to conversation
-        const userMsg: Message = {
+        const userMsg: Message = 
+        {
+            id: this.nextId++,
+            name: char.shortName,
             role: 'user',
             content: userMessage,
             datetime: new Date()
@@ -123,6 +117,7 @@ You should respond as this character would, taking into account their personalit
             const systemPrompt = this.generateSystemPrompt(char);
             console.log('Adding system prompt:', systemPrompt.substring(0, 100) + '...');
             const systemMsg: Message = {
+                id: this.nextId++,
                 role: 'system',
                 content: systemPrompt,
                 datetime: new Date()
@@ -133,11 +128,10 @@ You should respond as this character would, taking into account their personalit
             });
 
             // Add conversation history
-            const conversationHistory = this.messages.slice(-10).map(msg => ({
+            const conversationHistory = this.getHistory().map(msg => ({
                 role: msg.role,
-                content: msg.content,
-                ...(msg.name && { name: msg.name })
-            }));
+                content: msg.content
+            }))
 
             llmMessages.push(...conversationHistory);
 
@@ -170,6 +164,7 @@ You should respond as this character would, taking into account their personalit
                             // Create and add the final assistant message to conversation
                             const finalContent = fullContent.join('');
                             const assistantMsg: Message = {
+                                id: this.nextId++,
                                 role: 'assistant',
                                 content: finalContent,
                                 name: char?.shortName || 'NPC',
@@ -180,11 +175,11 @@ You should respond as this character would, taking into account their personalit
 
                         } catch (streamingError) {
                             console.error('Error during streaming:', streamingError);
-                            const errorMsg: Message = {
-                                role: 'assistant',
-                                content: `Error: ${streamingError instanceof Error ? streamingError.message : 'Unknown error during streaming'}`,
-                                name: char?.shortName || 'NPC',
-                                datetime: new Date()
+                            const errorMsg: ErrorEntry = {
+                                id: this.nextId++,
+                                datetime: new Date(),
+                                content: 'Error during streaming',
+                                details: streamingError
                             };
                             this.messages.push(errorMsg);
                             return errorMsg;
@@ -200,6 +195,7 @@ You should respond as this character would, taking into account their personalit
                 if (result && typeof result === 'object' && 'content' in result) {
                     // Add assistant message to conversation
                     const assistantMsg: Message = {
+                        id: this.nextId++,
                         role: 'assistant',
                         content: result.content,
                         name: char?.shortName || 'NPC',
@@ -223,7 +219,9 @@ You should respond as this character would, taking into account their personalit
      * Get conversation history
      */
     getHistory(): Message[] {
-        return [...this.messages];
+        return this.messages.filter(
+            (entry): entry is Message => 'role' in entry
+        );
     }
 
     /**

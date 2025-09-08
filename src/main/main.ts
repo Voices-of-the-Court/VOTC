@@ -204,17 +204,17 @@ const setupIpcHandlers = () => {
     return true;
   });
 
-  ipcMain.handle('conversation:getNPCInfo', () => {
-    console.log('IPC received conversation:getNPCInfo');
-    const npc = conversationManager.getCurrentNPC();
-    return npc ? {
-      name: npc.shortName,
-      fullName: npc.fullName,
-      title: npc.primaryTitle,
-      personality: npc.personality,
-      opinion: npc.opinionOfPlayer,
-      culture: npc.culture,
-      faith: npc.faith
+  ipcMain.handle('conversation:getPlayerInfo', () => {
+    console.log('IPC received conversation:getPlayerInfo');
+    const player = conversationManager.getPlayer();
+    return player ? {
+      name: player.shortName,
+      fullName: player.fullName,
+      title: player.primaryTitle,
+      personality: player.personality,
+      opinion: player.opinionOfPlayer,
+      culture: player.culture,
+      faith: player.faith
     } : null;
   });
 

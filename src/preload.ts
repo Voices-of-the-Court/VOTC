@@ -73,9 +73,9 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     console.log('Calling conversation:reset');
     return ipcRenderer.invoke('conversation:reset');
   },
-  getNPCInfo: (): Promise<any> => {
-    console.log('Calling conversation:getNPCInfo');
-    return ipcRenderer.invoke('conversation:getNPCInfo');
+  getPlayerInfo: (): Promise<any> => {
+    console.log('Calling conversation:getPlayerInfo');
+    return ipcRenderer.invoke('conversation:getPlayerInfo');
   },
 
   // Streaming listeners
@@ -104,7 +104,7 @@ declare global {
       sendMessage: (userMessage: string, streaming?: boolean, requestId?: string) => Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}>;
       getHistory: () => Promise<any[]>;
       reset: () => Promise<boolean>;
-      getNPCInfo: () => Promise<any>;
+      getPlayerInfo: () => Promise<any>;
       onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => () => void;
       onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any }) => void) => () => void;
       onChatError: (callback: (args: { requestId: string, error: string }) => void) => () => void;

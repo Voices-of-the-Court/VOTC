@@ -130,11 +130,10 @@ export class ConversationManager {
     /**
      * Get current NPC information (first character for demo purposes)
      */
-    getCurrentNPC(): Character | null {
+    getPlayer(): Character | null {
         if (!this.currentConversation) return null;
 
-        const firstCharId = this.currentConversation.gameData.characters.keys().next().value;
-        return firstCharId ? this.currentConversation.gameData.characters.get(firstCharId) || null : null;
+        return this.currentConversation.gameData.characters.get(this.currentConversation.gameData.playerID);
     }
 }
 

@@ -39,7 +39,7 @@ function Chat({ onToggleConfig }: ChatProps) {
   };
 
   const handleNPCInfo = async () => {
-    const npcInfo = await window.conversationAPI.getNPCInfo();
+    const npcInfo = await window.conversationAPI.getPlayerInfo();
     if (npcInfo) {
       alert(`Current NPC: ${npcInfo.fullName}\n${npcInfo.personality}\nOpinion: ${npcInfo.opinion}/100`);
     } else {
