@@ -52,7 +52,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                     />
                     {providerType === 'openrouter' && !apiKey && (
                         <div className="api-key-required-info">
-                            <img src="../assets/Alert.png" alt="Alert" />
+                            <img src="assets/Alert.png" alt="Alert" />
                             <span>API Key required to search models.</span>
                         </div>
                     )}
