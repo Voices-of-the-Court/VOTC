@@ -16,6 +16,6 @@
 
     "baseUrl": ".",
     "composite": true,
-    "types": ["electron-vite/node", "vite/client", "@types/react", "@types/react-dom"]
+    "types": ["electron-vite/node"]
   }
 }

@@ -49,12 +49,13 @@ const createWindow = (): BrowserWindow => {
   // mainWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
 
   // and load the index.html of the app.
-  if (process.env.VITE_DEV_SERVER_URL) {
-    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/index.html`);
-  } else {
-    // Load your file
-    chatWindow.loadFile(path.join(__dirname, '../../src/renderer/index.html'));
-  }
+if (process.env.VITE_DEV_SERVER_URL) {
+  chatWindow.loadURL(process.env.VITE_DEV_SERVER_URL); 
+} else {
+  chatWindow.loadFile(
+    path.join(__dirname, '../renderer/index.html') // see below for prod
+  );
+}
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
@@ -380,6 +381,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  tray?.destroy();
 });
 
 app.on('activate', () => {
