@@ -12,9 +12,10 @@
     "noImplicitAny": false,
     "sourceMap": true,
     "resolveJsonModule": true,
+    "typeRoots": ["./node_modules/@types"],
 
     "baseUrl": ".",
     "composite": true,
-    "types": ["electron-vite/node"]
+    "types": ["electron-vite/node", "vite/client", "@types/react", "@types/react-dom"]
   }
 }

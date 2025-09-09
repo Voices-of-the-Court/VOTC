@@ -44,3 +44,4 @@ declare global {
   }
 }
 // For now, using 'any' to get the structure in place.
+export {};

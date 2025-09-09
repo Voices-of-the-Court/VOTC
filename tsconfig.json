@@ -1,23 +1,4 @@
 {
-  "compilerOptions": {
-    "target": "ES6",
-    "allowJs": true,
-    "jsx": "react-jsx",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "isolatedModules": true,
-    "skipLibCheck": true,
-    "experimentalDecorators": true,
-    "esModuleInterop": true,
-    "noImplicitAny": false,
-    "sourceMap": true,
-    "baseUrl": ".",
-    // "outDir": "dist",
-    "resolveJsonModule": true,
-    "paths": {
-      "*": ["node_modules/*"]
-    },
-    "types": ["vite/client", "@types/react", "@types/react-dom"]
-  },
-  "include": ["src/**/*", "electron.vite.config.ts"]
+  "files": [],
+  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
 }
