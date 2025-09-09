@@ -50,10 +50,10 @@ const createWindow = (): BrowserWindow => {
 
   // and load the index.html of the app.
   if (process.env.VITE_DEV_SERVER_URL) {
-    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/app.html`);
+    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/index.html`);
   } else {
     // Load your file
-    chatWindow.loadFile(path.join(__dirname, '../../renderer/src/renderer/app.html'));
+    chatWindow.loadFile(path.join(__dirname, '../../src/renderer/index.html'));
   }
 
   // Open the DevTools.
@@ -199,7 +199,7 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('conversation:reset', () => {
     console.log('IPC received conversation:reset');
-    conversationManager.endCurrentConversation();
+    // conversationManager.endCurrentConversation();
     conversationManager.createConversation();
     return true;
   });
@@ -237,7 +237,7 @@ const setupIpcHandlers = () => {
         // The promise returned by this handler will resolve when the stream is complete.
         (async () => {
           try {
-            let finalAggregatedResponse: ILLMCompletionResponse | void;
+            // let finalAggregatedResponse: ILLMCompletionResponse | void;
             for await (const chunk of response as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>) {
               event.sender.send('llm:chatChunk', { requestId, chunk });
             }
@@ -304,7 +304,7 @@ app.on('ready', () => {
   chatWindow = createWindow(); // Create the main chat window and assign to global
 
   // Create system tray
-  let iconPath = path.join(app.getAppPath(), 'src/renderer/assets/icon.ico');
+  const iconPath = path.join(app.getAppPath(), 'src/renderer/assets/icon.ico');
 
   console.log('Current __dirname:', __dirname);
   console.log('Process resources:', process.resourcesPath);

@@ -10,9 +10,9 @@ import {
   ILLMCompletionResponse,
   ILLMStreamChunk,
   ILLMModel,
-  OpenRouterConfig,
-  OllamaConfig,
-  OpenAICompatibleConfig
+  // OpenRouterConfig,
+  // OllamaConfig,
+  // OpenAICompatibleConfig
 } from './llmProviders/types';
 import { OpenRouterProvider } from './llmProviders/OpenRouterProvider';
 import { OpenAICompatibleProvider } from './llmProviders/OpenAICompatibleProvider';

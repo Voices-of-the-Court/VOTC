@@ -1,8 +1,8 @@
 {
+  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
+  "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*"],
   "compilerOptions": {
-    "target": "ES6",
-    "allowJs": true,
-    "jsx": "react-jsx",
+    "target": "es6",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "isolatedModules": true,
@@ -11,13 +11,10 @@
     "esModuleInterop": true,
     "noImplicitAny": false,
     "sourceMap": true,
-    "baseUrl": ".",
-    // "outDir": "dist",
     "resolveJsonModule": true,
-    "paths": {
-      "*": ["node_modules/*"]
-    },
-    "types": ["vite/client", "@types/react", "@types/react-dom"]
-  },
-  "include": ["src/**/*", "electron.vite.config.ts"]
+
+    "baseUrl": ".",
+    "composite": true,
+    "types": ["electron-vite/node"]
+  }
 }

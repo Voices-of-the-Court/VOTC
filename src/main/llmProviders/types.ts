@@ -123,6 +123,6 @@ export interface LLMSettings {
 // General application settings
 export interface AppSettings {
   llmSettings: LLMSettings;
-  ck3UserFolderPath?: string;
+  ck3UserFolderPath?: string | null;
   globalStreamEnabled?: boolean; // Global toggle for streaming
 }

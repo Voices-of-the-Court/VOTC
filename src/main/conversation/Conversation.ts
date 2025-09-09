@@ -78,7 +78,7 @@ You should respond as this character would, taking into account their personalit
     /**
      * Send a user message and get AI response
      */
-    async sendMessage(userMessage: string, streaming: boolean = false): Promise<Message | AsyncGenerator<ILLMStreamChunk, Message, undefined> | null> {
+    async sendMessage(userMessage: string, streaming: boolean = false): Promise<ConversationEntry | AsyncGenerator<ILLMStreamChunk, ConversationEntry, undefined> | null> {
         console.log('Conversation.sendMessage called with:', userMessage, 'streaming:', streaming);
         console.log('Conversation active:', this.isActive);
         console.log('Characters in conversation:', this.gameData.characters.size);
@@ -152,7 +152,7 @@ You should respond as this character would, taking into account their personalit
                     const fullContent: string[] = [];
 
                     // Return async generator that yields chunks and returns final message
-                    return (async function*() {
+                    return (async function*(this: Conversation) {
                         try {
                             for await (const chunk of result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>) {
                                 if (chunk.delta?.content) {
@@ -164,25 +164,35 @@ You should respond as this character would, taking into account their personalit
                             // Create and add the final assistant message to conversation
                             const finalContent = fullContent.join('');
                             const assistantMsg: Message = {
-                                id: this.nextId++,
+                                id: (this as Conversation).nextId++,
                                 role: 'assistant',
                                 content: finalContent,
-                                name: char?.shortName || 'NPC',
+                                name: char?.shortName ?? 'NPC',
                                 datetime: new Date()
                             };
-                            this.messages.push(assistantMsg);
+                            (this as Conversation).messages.push(assistantMsg);
                             return assistantMsg;
 
                         } catch (streamingError) {
                             console.error('Error during streaming:', streamingError);
+                            if (streamingError instanceof Error) {
                             const errorMsg: ErrorEntry = {
-                                id: this.nextId++,
+                                id: (this as Conversation).nextId++,
                                 datetime: new Date(),
                                 content: 'Error during streaming',
-                                details: streamingError
+                                details: streamingError.message
                             };
-                            this.messages.push(errorMsg);
+                            (this as Conversation).messages.push(errorMsg);
                             return errorMsg;
+                            } else {
+                            const errorMsg: ErrorEntry = {
+                                id: (this as Conversation).nextId++,
+                                datetime: new Date(),
+                                content: 'Unknown error during streaming'
+                            };
+                            (this as Conversation).messages.push(errorMsg);
+                            return errorMsg;
+                            }
                         }
                     }.bind(this))();
                 } else {
@@ -192,13 +202,13 @@ You should respond as this character would, taking into account their personalit
                 // Handle synchronous response
                 console.log('LLM result:', result);
 
-                if (result && typeof result === 'object' && 'content' in result) {
+                if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                     // Add assistant message to conversation
                     const assistantMsg: Message = {
                         id: this.nextId++,
                         role: 'assistant',
                         content: result.content,
-                        name: char?.shortName || 'NPC',
+                        name: char?.shortName ?? 'NPC',
                         datetime: new Date()
                     };
                     this.messages.push(assistantMsg);

@@ -2,7 +2,7 @@ import {
   ILLMProvider,
   ILLMCompletionRequest,
   ILLMCompletionResponse,
-  ILLMMessage,
+  // ILLMMessage,
   ILLMModel,
   ILLMStreamChunk,
   OpenRouterConfig,
@@ -181,7 +181,7 @@ export class OpenRouterProvider implements ILLMProvider {
       const contentParts: string[] = [];
       const toolCallsMap: Record<string, any> = {};
       let finalUsage = undefined;
-      let finalFinishReason = null;
+      let finalFinishReason: string | null | undefined = null;
       let firstChunkId = '';
 
       for await (const chunk of stream) {
