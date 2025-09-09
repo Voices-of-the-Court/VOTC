@@ -15,7 +15,6 @@
     "typeRoots": ["./node_modules/@types"],
 
     "baseUrl": ".",
-    "composite": true,
-    "types": ["electron-vite/node"]
+    "composite": true
   }
 }

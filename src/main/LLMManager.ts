@@ -20,16 +20,15 @@ import { OllamaProvider } from './llmProviders/OllamaProvider';
 
 // Define the schema for electron-store for type safety
 const baseProviderConfigSchema = {
-  type: 'object',
+  type: 'object' as const,
   properties: {
-    instanceId: { type: 'string' }, // 'openrouter', 'ollama', 'openai-compatible' for base, UUID for presets
-    providerType: { type: 'string', enum: ['openrouter', 'openai-compatible', 'ollama'] },
-    customName: { type: 'string' }, // Only for presets, base configs derive name
-    apiKey: { type: 'string' },
-    baseUrl: { type: 'string' },
-    defaultModel: { type: 'string' },
-    defaultParameters: { type: 'object' },
-    // stream and isEnabled are removed
+    instanceId: { type: 'string' as const },
+    providerType: { type: 'string' as const, enum: ['openrouter', 'openai-compatible', 'ollama'] },
+    customName: { type: 'string' as const },
+    apiKey: { type: 'string' as const },
+    baseUrl: { type: 'string' as const },
+    defaultModel: { type: 'string' as const },
+    defaultParameters: { type: 'object' as const },
   },
   required: ['instanceId', 'providerType']
 };
