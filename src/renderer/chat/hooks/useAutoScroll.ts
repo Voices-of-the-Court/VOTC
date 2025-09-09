@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 
 const useAutoScroll = () => {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null!);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

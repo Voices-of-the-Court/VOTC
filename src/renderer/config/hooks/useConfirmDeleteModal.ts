@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { AppSettings, ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
+import type { AppSettings, ProviderType as ConfigProviderType } from '@llmTypes';
 
 interface UseConfirmDeleteModalProps {
     appSettings: AppSettings | null;
@@ -118,14 +118,7 @@ export const useConfirmDeleteModal = ({
             }
             await onSetActiveProvider(newSelectedIdToFallBackTo);
         } else if (appSettings.llmSettings.activeProviderInstanceId === presetIdToDelete) {
-            // If the active provider was deleted but not being edited, still need to update active provider
-            // The activeProviderInstanceId is updated in setAppSettings.
-            // We need to ensure onSetActiveProvider is called with the new active ID derived from there.
-            // The `newActiveId` determined earlier in this callback (before setAppSettings)
-            // might not reflect the final state if setAppSettings itself has complex logic.
-            // However, `activeProviderInstanceId` in `setAppSettings` is set to `finalActiveId`.
-            // So, we can use that.
-            let finalActiveIdFromState = appSettings.llmSettings.activeProviderInstanceId;
+            let finalActiveIdFromState: string | null = appSettings.llmSettings.activeProviderInstanceId;
              if (finalActiveIdFromState === presetIdToDelete) { // If it was the one deleted
                 const newPresets = appSettings.llmSettings.presets.filter(p => p.instanceId !== presetIdToDelete);
                 if (newPresets.length > 0) {

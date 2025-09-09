@@ -1,5 +1,5 @@
 import React from 'react';
-import type { AppSettings, ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
+import type { AppSettings, ProviderType as ConfigProviderType } from '@llmTypes';
 
 interface ProviderSidebarProps {
     appSettings: AppSettings | null;

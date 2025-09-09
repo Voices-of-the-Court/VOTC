@@ -3,7 +3,8 @@
   "include": [
     "src/renderer/**/*",
     "src/renderer/**/*.tsx",
-    "src/preload"
+    "src/preload",
+    "src/main/llmProviders/types.ts"
   ],
   "compilerOptions": {
     "composite": true,
@@ -13,6 +14,9 @@
     "paths": {
       "@renderer/*": [
         "src/renderer/src/*"
+      ],
+      "@llmTypes": [
+        "src/main/llmProviders/types.ts"
       ]
     }
   }

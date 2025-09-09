@@ -1,5 +1,6 @@
 import React from 'react';
 import { AnimatedMarkdown } from 'flowtoken';
+import 'flowtoken/dist/styles.css';
 
 export interface ChatMessage {
   id: string;
@@ -20,9 +21,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       }`}>
         <AnimatedMarkdown
           content={message.content}
-          animation={message.isLoading ? "fadeIn" : null}
+          animation="fadeIn"
           animationDuration="0.5s"
-          animationTimingFunction="ease-in-out"
+          animationTimingFunction="ease-out"
           sep="char"
         />
         {message.isLoading && <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>}

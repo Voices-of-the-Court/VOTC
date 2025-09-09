@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LLMProviderConfig, ILLMModel, ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
+import type { LLMProviderConfig, ILLMModel, ProviderType as ConfigProviderType } from '@llmTypes';
 
 // Import reusable components that will remain separate
 import ModelSelector from './ModelSelector';

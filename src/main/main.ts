@@ -10,9 +10,6 @@ import { ClipboardListener } from './ClipboardListener'; // Add missing import
 let chatWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
-// Vite-specific environment variable for development server URL
-// const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']; // Handled by vite-plugin-electron
-
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -30,7 +27,7 @@ const createWindow = (): BrowserWindow => {
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    alwaysOnTop: true, // Keep window on top
+    alwaysOnTop: false, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
     fullscreen: true,
     webPreferences: {
@@ -42,7 +39,7 @@ const createWindow = (): BrowserWindow => {
   });
 
   // Make the window initially click-through
-  chatWindow.setAlwaysOnTop(true, 'screen-saver');
+  // chatWindow.setAlwaysOnTop(true, 'screen-saver');
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Set fullscreen (optional, might conflict with alwaysOnTop/transparency goals depending on OS/WM)
@@ -301,6 +298,7 @@ const setupIpcHandlers = () => {
 };
 
 app.on('ready', () => {
+  console.log(app.getPath('userData'));
   setupIpcHandlers(); // Setup handlers first
   chatWindow = createWindow(); // Create the main chat window and assign to global
 

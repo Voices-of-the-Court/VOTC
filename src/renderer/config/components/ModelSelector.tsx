@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ILLMModel, ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
+import type { ILLMModel, ProviderType as ConfigProviderType } from '@llmTypes';
 
 interface ModelSelectorProps {
     providerType?: ConfigProviderType;
