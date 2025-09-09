@@ -1,9 +1,9 @@
-import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { llmManager } from './LLMManager';
 import { conversationManager } from './conversation/ConversationManager';
-import { LLMProviderConfig, ILLMCompletionRequest, ILLMStreamChunk, ILLMCompletionResponse } from './llmProviders/types'; // Added more types
+import { LLMProviderConfig, ILLMStreamChunk } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
 
 // Keep a reference to the config window, managed globally
@@ -217,84 +217,6 @@ const setupIpcHandlers = () => {
   });
 
   console.log('Conversation IPC handlers registered successfully');
-
-  ipcMain.handle('llm:sendChat', async (event, requestArgs: {
-    messages: ILLMCompletionRequest['messages'],
-    params?: Partial<Omit<ILLMCompletionRequest, 'messages' | 'model' | 'stream'>>,
-    forceStream?: boolean,
-    requestId: string // For correlating stream chunks
-  }) => {
-    const { messages, params, forceStream, requestId } = requestArgs;
-    try {
-      const response = await llmManager.sendChatRequest(messages, params, forceStream);
-
-      if (typeof response[Symbol.asyncIterator] === 'function') {
-        // Handle stream
-        // The 'handle' itself cannot stream back directly in multiple parts to the original 'invoke' promise.
-        // We must use event.sender.send for each chunk.
-        // The promise returned by this handler will resolve when the stream is complete.
-        (async () => {
-          try {
-            // let finalAggregatedResponse: ILLMCompletionResponse | void;
-            for await (const chunk of response as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>) {
-              event.sender.send('llm:chatChunk', { requestId, chunk });
-            }
-
-            const streamProcessing = async () => {
-              let finalResponseData: ILLMCompletionResponse | void;
-              try {
-                // The `for await...of` loop consumes yielded values.
-                // The `response` is the generator.
-                // The return value of the async generator function is what we need.
-                // This is not directly accessible after a `for await...of` loop.
-                // We need to iterate manually or adjust how the generator is called.
-
-                // Simpler: The `_streamChatCompletion` *returns* the aggregated response.
-                // The `llmManager.sendChatRequest` returns the generator.
-                // The `ipcMain.handle` for `llm:sendChat` returns a promise.
-                // The IIFE is already handling the async iteration.
-                // The `aggregatedResponse` is built up *inside* the provider's generator.
-                // The provider's generator *returns* this `aggregatedResponse`.
-                // This return value needs to be passed to `onChatStreamComplete`.
-
-                // The `response` is the generator.
-                // We need to get the value it *returns*.
-                let current = await (response as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>).next();
-                while(!current.done) {
-                  event.sender.send('llm:chatChunk', { requestId, chunk: current.value });
-                  current = await (response as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>).next();
-                }
-                // When done, current.value is the return value of the generator
-                finalResponseData = current.value;
-                event.sender.send('llm:chatStreamComplete', { requestId, finalResponse: finalResponseData });
-              } catch (streamError: any) {
-                console.error('Error during chat stream:', streamError);
-                event.sender.send('llm:chatError', { requestId, error: streamError.message || 'Unknown streaming error' });
-              }
-            };
-            streamProcessing(); // Fire and forget for IPC events, but main handler returns streamStarted
-
-          } catch (streamError: any) { // This catch is for errors *before* stream iteration starts
-            console.error('Error setting up chat stream:', streamError);
-            event.sender.send('llm:chatError', { requestId, error: streamError.message || 'Unknown streaming setup error' });
-          }
-        })();
-        // Indicate that streaming has started and the client should listen for 'llm:chatChunk' events.
-        // The actual final result of the invoke will be minimal, as data is sent via events.
-        return { streamStarted: true, requestId };
-      } else {
-        // Handle non-streamed response
-        return { streamStarted: false, requestId, data: response as ILLMCompletionResponse };
-      }
-    } catch (error: any) {
-      console.error('IPC llm:sendChat error:', error);
-      // If the error happens before streaming starts, it's caught here and returned by the handle.
-      // If it happens during streaming, it's sent via 'llm:chatError' event.
-      return { streamStarted: false, requestId, error: error.message || 'Failed to send chat request' };
-    }
-  });
-
-  console.log('IPC Handlers Setup');
 };
 
 app.on('ready', () => {
@@ -373,6 +295,21 @@ app.on('ready', () => {
       chatWindow.webContents.send('chat-hide');
     }
   });
+
+  // Register global shortcut for Ctrl+H to toggle minimize
+  const ret = globalShortcut.register('Control+H', () => {
+    if (chatWindow && !chatWindow.isDestroyed() && conversationManager.hasActiveConversation()) {
+      console.log('Ctrl+H pressed - toggling minimize');
+      chatWindow.webContents.send('toggle-minimize');
+    }
+  });
+
+  if (!ret) {
+    console.log('Failed to register Ctrl+H global shortcut');
+  }
+
+  // Check if a shortcut is registered
+  console.log('Ctrl+H shortcut registered:', globalShortcut.isRegistered('Control+H'));
 });
 
 app.on('window-all-closed', () => {

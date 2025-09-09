@@ -55,6 +55,14 @@ function Chat({ onToggleConfig }: ChatProps) {
     };
   }, []);
 
+  // Listen for toggle-minimize event from main process (global shortcut)
+  useEffect(() => {
+    const cleanupToggleMinimize = window.electronAPI.onToggleMinimize(toggleMinimize);
+    return () => {
+      cleanupToggleMinimize();
+    };
+  }, [toggleMinimize]);
+
   return (
     <div style={{ pointerEvents: 'none', height: '100%', width: '100%' }}>
       <button

@@ -18,6 +18,7 @@ declare global {
       onChatReset: (callback: () => void) => () => void;
       onToggleSettings: (callback: () => void) => () => void;
       onHideChat: (callback: () => void) => () => void;
+      onToggleMinimize: (callback: () => void) => () => void;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;
@@ -29,17 +30,6 @@ declare global {
       setCK3Folder: (path: string | null) => Promise<void>;
       selectFolder: () => Promise<string | null>;
       saveGlobalStreamSetting: (enabled: boolean) => Promise<void>;
-      sendChat: (requestArgs: {
-        messages: any[], // Replace 'any' with actual message type from types.ts
-        params?: any, // Replace 'any'
-        forceStream?: boolean,
-        requestId: string
-      }) => Promise<{ streamStarted: boolean, requestId: string, data?: any, error?: string }>; // Replace 'any'
-      
-      // Listener types
-      onChatChunk: (callback: (args: { requestId: string, chunk: any /* ILLMStreamChunk */ }) => void) => () => void;
-      onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any /* ILLMCompletionResponse */ }) => void) => () => void;
-      onChatError: (callback: (args: { requestId: string, error: string }) => void) => () => void;
     };
   }
 }
