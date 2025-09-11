@@ -42,9 +42,9 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {
-  sendMessage: (userMessage: string, streaming = false, requestId?: string): Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}> => {
-    console.log('Calling conversation:sendMessage with:', userMessage, 'streaming:', streaming);
-    return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage, streaming, requestId });
+  sendMessage: (userMessage: string, requestId?: string): Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}> => {
+    console.log('Calling conversation:sendMessage with:', userMessage);
+    return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage, requestId });
   },
   getHistory: (): Promise<any[]> => {
     console.log('Calling conversation:getHistory');

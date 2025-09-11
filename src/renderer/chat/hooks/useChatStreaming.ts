@@ -71,7 +71,7 @@ const useChatStreaming = (): ChatStreaming => {
     });
 
     try {
-      const response = await window.conversationAPI.sendMessage(content.trim(), true, requestId);
+      const response = await window.conversationAPI.sendMessage(content.trim(), requestId);
 
       if (!response.streamStarted) {
         if (response.message) {

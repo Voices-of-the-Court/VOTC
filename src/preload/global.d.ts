@@ -3,7 +3,7 @@ import type { LLMProviderConfig, AppSettings, ILLMModel } from '../main/llmProvi
 declare global {
   interface Window {
     conversationAPI: {
-      sendMessage: (userMessage: string, streaming?: boolean, requestId?: string) => Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}>;
+      sendMessage: (userMessage: string, requestId?: string) => Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}>;
       getHistory: () => Promise<any[]>;
       reset: () => Promise<boolean>;
       getPlayerInfo: () => Promise<any>;

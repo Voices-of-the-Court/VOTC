@@ -55,7 +55,7 @@ export class ConversationManager {
         }
 
         try {
-            const result = await this.currentConversation.sendMessage(userMessage, streaming);
+            const result = await this.currentConversation.sendMessage(userMessage);
             console.log('Conversation sendMessage returned type:', typeof result);
 
             // Type guard for async generator

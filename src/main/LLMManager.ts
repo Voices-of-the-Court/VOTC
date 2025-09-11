@@ -7,8 +7,7 @@ import {
   LLMProviderConfig,
   ILLMProvider,
   ILLMCompletionRequest,
-  ILLMCompletionResponse,
-  ILLMStreamChunk,
+  ILLMOutput,
   ILLMModel,
   // OpenRouterConfig,
   // OllamaConfig,
@@ -308,9 +307,7 @@ export class LLMManager {
   // Unified method to send requests to the *active* provider
   async sendChatRequest(
     messages: ILLMCompletionRequest['messages'],
-    params?: Partial<Omit<ILLMCompletionRequest, 'messages' | 'model' | 'stream'>>,
-    forceStream?: boolean // Option to override config's stream setting
-  ): Promise<ILLMCompletionResponse | AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>> {
+  ): Promise<ILLMOutput> {
     const activeConfig = this.getActiveProviderConfig();
     if (!activeConfig) {
       throw new Error('No active and enabled LLM provider configured.');
@@ -323,7 +320,7 @@ export class LLMManager {
 
     // Use global stream setting from AppSettings
     const appSettings = this.getAppSettings();
-    const stream = forceStream !== undefined ? forceStream : (appSettings.globalStreamEnabled ?? true);
+    const stream = appSettings.globalStreamEnabled ?? true;
 
     const request: ILLMCompletionRequest = {
       model: activeConfig.defaultModel,
@@ -331,15 +328,10 @@ export class LLMManager {
       stream: stream,
       // Merge default parameters from config with specific request params
       ...activeConfig.defaultParameters,
-      ...params,
+      // ...params,
     };
 
-    // Type assertion needed because TypeScript struggles with the conditional return type here
-    if (stream) {
-       return provider.chatCompletion(request as ILLMCompletionRequest & { stream: true }, activeConfig) as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>;
-    } else {
-       return provider.chatCompletion(request, activeConfig) as Promise<ILLMCompletionResponse>;
-    }
+    return provider.chatCompletion(request, activeConfig);
   }
 }
 

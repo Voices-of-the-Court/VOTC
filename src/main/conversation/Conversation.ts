@@ -78,8 +78,8 @@ You should respond as this character would, taking into account their personalit
     /**
      * Send a user message and get AI response
      */
-    async sendMessage(userMessage: string, streaming: boolean = false): Promise<ConversationEntry | AsyncGenerator<ILLMStreamChunk, ConversationEntry, undefined> | null> {
-        console.log('Conversation.sendMessage called with:', userMessage, 'streaming:', streaming);
+    async sendMessage(userMessage: string): Promise<ConversationEntry | AsyncGenerator<ILLMStreamChunk, ConversationEntry, undefined> | null> {
+        console.log('Conversation.sendMessage called with:', userMessage);
         console.log('Conversation active:', this.isActive);
         console.log('Characters in conversation:', this.gameData.characters.size);
         
@@ -141,12 +141,10 @@ You should respond as this character would, taking into account their personalit
             })));
 
             // Generate response
-            const requestId = v4();
-            console.log('LLM request ID:', requestId);
-            const result = await llmManager.sendChatRequest(llmMessages, {}, streaming);
+            const result = await llmManager.sendChatRequest(llmMessages);
             console.log('LLM result type:', typeof result);
 
-            if (streaming) {
+            if (llmManager.getGlobalStreamSetting()) {
                 // Handle streaming response
                 if (typeof result === 'object' && typeof (result as any)[Symbol.asyncIterator] === 'function') {
                     const fullContent: string[] = [];

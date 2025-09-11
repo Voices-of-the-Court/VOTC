@@ -26,9 +26,10 @@ function Chat({ onToggleConfig }: ChatProps) {
     window.electronAPI?.setIgnoreMouseEvents(false);
   };
 
-  const handleSend = async () => {
-    await sendMessage(inputValue, setMessages);
+  const handleSend = () => {
+    const message = inputValue;
     setInputValue('');
+    sendMessage(message, setMessages)
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

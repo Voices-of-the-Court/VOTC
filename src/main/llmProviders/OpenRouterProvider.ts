@@ -1,33 +1,26 @@
 import {
-  ILLMProvider,
   ILLMCompletionRequest,
   ILLMCompletionResponse,
-  // ILLMMessage,
   ILLMModel,
   ILLMStreamChunk,
   OpenRouterConfig,
-  LLMProviderConfig
+  LLMProviderConfig,
+  ILLMOutput,
+  OpenRouterErrorResponse
 } from './types';
+import { BaseProvider } from './BaseProvider';
 import OpenAI from 'openai'; // Import OpenAI SDK
 
 // Helper to identify OpenRouter free models
 const isOpenRouterFreeModel = (modelData: any): boolean => {
-  if (modelData.id?.endsWith(':free')) {
-    return true;
-  }
-  const pricing = modelData.pricing;
-  if (pricing && pricing.prompt === '0.000000' && pricing.completion === '0.000000') {
-    return true;
-  }
-  // OpenRouter API for models can also take `max_price=0` query param
-  // but here we check the response data.
-  return false;
+  return modelData.id.endsWith(':free') ||
+         (modelData.pricing?.prompt === '0.000000' && modelData.pricing?.completion === '0.000000');
 };
 
 
-export class OpenRouterProvider implements ILLMProvider {
-  readonly providerId = 'openrouter';
-  readonly name = 'OpenRouter';
+export class OpenRouterProvider extends BaseProvider {
+  providerId = 'openrouter';
+  name = 'OpenRouter';
 
   private getAPIKey(config: LLMProviderConfig): string {
     if (config.providerType !== 'openrouter' || !config.apiKey) {
@@ -37,12 +30,11 @@ export class OpenRouterProvider implements ILLMProvider {
   }
 
   async listModels(config: LLMProviderConfig): Promise<ILLMModel[]> {
-    this.getAPIKey(config); // Ensures config is valid and apiKey is present
-
     try {
       const response = await fetch('https://openrouter.ai/api/v1/models', {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${this.getAPIKey(config)}`,
           'Content-Type': 'application/json',
         },
       });
@@ -72,112 +64,82 @@ export class OpenRouterProvider implements ILLMProvider {
     }
   }
 
-  // Overload for non-streaming
   chatCompletion(
     request: ILLMCompletionRequest,
     config: OpenRouterConfig
-  ): Promise<ILLMCompletionResponse>;
-  // Overload for streaming
-  chatCompletion(
-    request: ILLMCompletionRequest & { stream: true },
-    config: OpenRouterConfig
-  ): AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>;
-  // Implementation
-  chatCompletion(
-    request: ILLMCompletionRequest,
-    config: OpenRouterConfig
-  ): Promise<ILLMCompletionResponse> | AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined> {
-    const apiKey = this.getAPIKey(config);
+  ): ILLMOutput {
+    const openAIClient = new OpenAI({
+      apiKey: this.getAPIKey(config),
+      baseURL: 'https://openrouter.ai/api/v1',
+    });
 
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      // Optional headers, can be made configurable if needed
-      // 'HTTP-Referer': 'YOUR_SITE_URL',
-      // 'X-Title': 'YOUR_SITE_NAME',
-    };
-
-    const body = {
+    const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
       model: request.model,
-      messages: request.messages,
+      messages: request.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
       stream: request.stream,
       temperature: request.temperature,
       max_tokens: request.max_tokens,
       top_p: request.top_p,
       presence_penalty: request.presence_penalty,
       frequency_penalty: request.frequency_penalty,
-      // Add other supported parameters as needed
     };
 
-    if (request.stream) {
-      // Pass config directly to _streamChatCompletion
-      return this._streamChatCompletion(request, config);
+    if (requestParams.stream) {
+      return this._streamChatCompletion(requestParams, openAIClient);
     } else {
-      // _nonStreamChatCompletion still uses headers and body from the old pattern.
-      // This could be refactored similarly later if desired, but is not the focus now.
-      return this._nonStreamChatCompletion(request, headers, body);
+      return this._nonStreamChatCompletion(requestParams, openAIClient);
     }
   }
 
-  private async _nonStreamChatCompletion(
-    request: ILLMCompletionRequest,
-    headers: Record<string, string>,
-    body: any
-  ): Promise<ILLMCompletionResponse> {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`OpenRouter API error (${response.status}) for model ${request.model}: ${errorBody}`);
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorBody}`);
-    }
-
-    const data = await response.json();
+private async _nonStreamChatCompletion(
+  request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+  openAIClient: OpenAI
+): Promise<ILLMCompletionResponse> {
+  try {
+    const data = await openAIClient.chat.completions.create(request);
 
     const choice = data.choices?.[0];
     if (!choice) {
-      throw new Error('Invalid response from OpenRouter: No choices found.');
+      throw new Error(`OpenRouter SDK: No choices returned for model ${request.model}`);
     }
-    
+
     return {
       id: data.id,
-      content: choice.message?.content,
+      content: choice.message?.content ?? null,
       tool_calls: choice.message?.tool_calls,
-      finish_reason: choice.finish_reason,
-      usage: data.usage ? {
-        prompt_tokens: data.usage.prompt_tokens,
-        completion_tokens: data.usage.completion_tokens,
-        total_tokens: data.usage.total_tokens,
-      } : undefined,
+      finish_reason: choice.finish_reason ?? null,
+      usage: data.usage
+        ? {
+            prompt_tokens: data.usage.prompt_tokens,
+            completion_tokens: data.usage.completion_tokens,
+            total_tokens: data.usage.total_tokens,
+          }
+        : undefined,
     };
+  } catch (error: any) {
+    // OpenAI SDK provides a rich APIError type
+    if (error instanceof OpenAI.APIError) {
+      console.error(
+        `[OpenRouterProvider] API error for model ${request.model}:`,
+        error.status,
+        error.name,
+        error.message
+      );
+      throw new Error(`OpenRouter API error via SDK: ${error.status} ${error.name} - ${error.message}`);
+    }
+
+    console.error(`[OpenRouterProvider] Unexpected error for model ${request.model}:`, error);
+    throw new Error(`Unexpected OpenRouter SDK error: ${error.message || error}`);
   }
+}
 
   private async *_streamChatCompletion(
-    request: ILLMCompletionRequest,
-    config: OpenRouterConfig
-  ): AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined> {
-    const openAIClient = new OpenAI({
-      apiKey: this.getAPIKey(config),
-      baseURL: 'https://openrouter.ai/api/v1',
-    });
-
-    const streamRequestParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
-      model: request.model,
-      messages: request.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-      stream: true,
-      temperature: request.temperature,
-      max_tokens: request.max_tokens,
-      top_p: request.top_p,
-      presence_penalty: request.presence_penalty,
-      frequency_penalty: request.frequency_penalty,
-    };
+    request: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
+    openAIClient: OpenAI
+  ): AsyncGenerator<ILLMStreamChunk> {
 
     try {
-      const stream = await openAIClient.chat.completions.create(streamRequestParams);
+      const stream = await openAIClient.chat.completions.create(request);
       const contentParts: string[] = [];
       const toolCallsMap: Record<string, any> = {};
       let finalUsage = undefined;
@@ -185,11 +147,39 @@ export class OpenRouterProvider implements ILLMProvider {
       let firstChunkId = '';
 
       for await (const chunk of stream) {
+        if ("error" in chunk) {
+          const error = chunk.error as OpenRouterErrorResponse["error"]
+          console.error(`OpenRouter API Error: ${error?.code} - ${error?.message}`)
+          // Include metadata in the error message if available
+          const metadataStr = error.metadata ? `\nMetadata: ${JSON.stringify(error.metadata, null, 2)}` : ""
+          throw new Error(`OpenRouter API Error ${error.code}: ${error.message}${metadataStr}`)
+			  }
+
+        const choice = chunk.choices[0];
+
+        if ((choice?.finish_reason as string) === "error") {
+          // Use type assertion since OpenRouter adds non-standard error property
+          const choiceWithError = choice as any
+          if (choiceWithError.error) {
+            const error = choiceWithError.error
+            console.error(
+              `OpenRouter Mid-Stream Error: ${error?.code || "Unknown"} - ${error?.message || "Unknown error"}`,
+            )
+            // Format error details
+            const errorDetails = typeof error === "object" ? JSON.stringify(error, null, 2) : String(error)
+            throw new Error(`OpenRouter Mid-Stream Error: ${errorDetails}`)
+          } else {
+            // Fallback if error details are not available
+            throw new Error(
+              `OpenRouter Mid-Stream Error: Stream terminated with error status but no error details provided`,
+            )
+          }
+        }
+        
         if (!firstChunkId && chunk.id) {
           firstChunkId = chunk.id;
         }
 
-        const choice = chunk.choices[0];
         if (!choice) continue;
 
         const delta = choice.delta;
@@ -269,7 +259,7 @@ export class OpenRouterProvider implements ILLMProvider {
         stream: false,
       };
       
-      const response = await this.chatCompletion(testRequest, config);
+      const response = await (this.chatCompletion(testRequest, config) as Promise<ILLMCompletionResponse>);
       if (response && (response.content || response.id)) {
         return { success: true, message: `Successfully connected to OpenRouter. Received response ID: ${response.id}` };
       }

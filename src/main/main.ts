@@ -55,7 +55,9 @@ if (process.env.VITE_DEV_SERVER_URL) {
 }
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+  chatWindow.webContents.openDevTools(
+    { mode: 'detach' }
+  );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
@@ -137,11 +139,11 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('conversation:sendMessage', async (event, requestArgs: {
     message: string,
-    streaming?: boolean,
     requestId?: string // For correlating stream chunks when streaming
   }) => {
-    const { message, streaming = false, requestId } = requestArgs;
-    console.log('IPC received conversation:sendMessage with:', message, 'streaming:', streaming);
+    const { message, requestId } = requestArgs;
+    const streaming = llmManager.getGlobalStreamSetting();
+    console.log('IPC received conversation:sendMessage with:', message, 'LLM stream setting:', streaming);
 
     try {
       if (streaming) {
@@ -179,7 +181,7 @@ const setupIpcHandlers = () => {
           throw new Error('Expected streaming response but got non-streaming');
         }
       } else {
-        // Handle synchronous response
+        // Handle non-streaming response
         const result = await conversationManager.sendMessage(message, false);
         console.log('Conversation sendMessage returned:', result);
         return { message: result };
