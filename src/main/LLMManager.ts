@@ -331,7 +331,7 @@ export class LLMManager {
       // ...params,
     };
 
-    return provider.chatCompletion(request, activeConfig);
+    return await provider.chatCompletion(request, activeConfig);
   }
 }
 

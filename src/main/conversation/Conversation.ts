@@ -84,7 +84,7 @@ You should respond as this character would, taking into account their personalit
         console.log('Characters in conversation:', this.gameData.characters.size);
         
         const char = this.gameData.characters.get(this.gameData.aiID)!;
-
+        const user = this.gameData.characters.get(this.gameData.playerID)!;
         if (!this.isActive) {
             console.warn('Conversation is not active');
             return null;
@@ -99,7 +99,7 @@ You should respond as this character would, taking into account their personalit
         const userMsg: Message = 
         {
             id: this.nextId++,
-            name: char.shortName,
+            name: user.shortName,
             role: 'user',
             content: userMessage,
             datetime: new Date()
@@ -174,22 +174,22 @@ You should respond as this character would, taking into account their personalit
                         } catch (streamingError) {
                             console.error('Error during streaming:', streamingError);
                             if (streamingError instanceof Error) {
-                            const errorMsg: ErrorEntry = {
-                                id: (this as Conversation).nextId++,
-                                datetime: new Date(),
-                                content: 'Error during streaming',
-                                details: streamingError.message
-                            };
-                            (this as Conversation).messages.push(errorMsg);
-                            return errorMsg;
+                                const errorMsg: ErrorEntry = {
+                                    id: (this as Conversation).nextId++,
+                                    datetime: new Date(),
+                                    content: 'Error during streaming',
+                                    details: streamingError.message
+                                };
+                                (this as Conversation).messages.push(errorMsg);
+                                throw streamingError;
                             } else {
-                            const errorMsg: ErrorEntry = {
-                                id: (this as Conversation).nextId++,
-                                datetime: new Date(),
-                                content: 'Unknown error during streaming'
-                            };
-                            (this as Conversation).messages.push(errorMsg);
-                            return errorMsg;
+                                const errorMsg: ErrorEntry = {
+                                    id: (this as Conversation).nextId++,
+                                    datetime: new Date(),
+                                    content: 'Unknown error during streaming'
+                                };
+                                (this as Conversation).messages.push(errorMsg);
+                                throw new Error('Unknown error during streaming');
                             }
                         }
                     }.bind(this))();
@@ -218,9 +218,17 @@ You should respond as this character would, taking into account their personalit
             }
 
         } catch (error) {
-            console.error('Error sending message:', error);
-            return null;
+            console.error('Failed to get response:', error);
+            const err: ErrorEntry = {
+                id: this.nextId++,
+                datetime: new Date(),
+                content: 'Failed to get response',
+                details: error instanceof Error ? error.message : String(error),
+            };
+            this.messages.push(err);
+            return err;
         }
+
     }
 
     /**

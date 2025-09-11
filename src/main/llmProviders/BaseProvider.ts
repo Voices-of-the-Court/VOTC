@@ -1,7 +1,5 @@
 import {
   ILLMCompletionRequest,
-  ILLMCompletionResponse,
-  ILLMStreamChunk,
   ILLMModel,
   ILLMOutput,
   LLMProviderConfig
