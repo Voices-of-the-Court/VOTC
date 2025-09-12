@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MessageList, ChatInput, ChatButtons, ChatMessage } from './components';
-import { useChatStreaming, useWindowEvents, useAutoScroll } from './hooks';
+import { MessageList, ChatInput, ChatButtons } from './components';
+import { useWindowEvents, useAutoScroll, useConversationEntries } from './hooks';
 
 interface ChatProps {
   onToggleConfig: () => void;
@@ -8,15 +8,13 @@ interface ChatProps {
 
 function Chat({ onToggleConfig }: ChatProps) {
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isMinimized, setIsMinimized] = useState(false);
-  
-  const { sendMessage } = useChatStreaming();
+
+  const { entries, sendMessage } = useConversationEntries();
   const { handleChatBoxMouseEnter, handleChatBoxMouseLeave, handleLeave } = useWindowEvents();
   const { messagesEndRef } = useAutoScroll();
 
   const resetChat = () => {
-    setMessages([]);
     setInputValue('');
   };
 
@@ -29,7 +27,7 @@ function Chat({ onToggleConfig }: ChatProps) {
   const handleSend = () => {
     const message = inputValue;
     setInputValue('');
-    sendMessage(message, setMessages)
+    sendMessage(message)
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -82,7 +80,7 @@ function Chat({ onToggleConfig }: ChatProps) {
           className="chat-box"
           style={{ pointerEvents: 'auto' }}
         >
-          <MessageList messages={messages} scrollRef={messagesEndRef} />
+          <MessageList entries={entries} scrollRef={messagesEndRef} />
           <div className="chat-controls-container">
             <ChatInput
               value={inputValue}

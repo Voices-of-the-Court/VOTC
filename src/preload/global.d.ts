@@ -3,13 +3,12 @@ import type { LLMProviderConfig, AppSettings, ILLMModel } from '../main/llmProvi
 declare global {
   interface Window {
     conversationAPI: {
-      sendMessage: (userMessage: string, requestId?: string) => Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}>;
+      sendMessage: (userMessage: string) => Promise<{streamStarted?: boolean, message?: any, error?: string}>;
       getHistory: () => Promise<any[]>;
       reset: () => Promise<boolean>;
       getPlayerInfo: () => Promise<any>;
-      onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => () => void;
-      onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any }) => void) => () => void;
-      onChatError: (callback: (args: { requestId: string, error: string }) => void) => () => void;
+      getConversationEntries: () => Promise<any[]>;
+      onConversationUpdate: (callback: (entries: any[]) => void) => () => void;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;

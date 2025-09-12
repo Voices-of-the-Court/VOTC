@@ -138,57 +138,20 @@ const setupIpcHandlers = () => {
   // --- Conversation Management IPC Handlers ---
 
   ipcMain.handle('conversation:sendMessage', async (event, requestArgs: {
-    message: string,
-    requestId?: string // For correlating stream chunks when streaming
-  }) => {
-    const { message, requestId } = requestArgs;
-    const streaming = llmManager.getGlobalStreamSetting();
-    console.log('IPC received conversation:sendMessage with:', message, 'LLM stream setting:', streaming);
+    message: string  }) => {
+    const { message } = requestArgs;
 
     try {
-      if (streaming) {
-        // Handle streaming response
-        const generator = await conversationManager.sendMessage(message, true);
-        if (generator && typeof generator[Symbol.asyncIterator] === 'function') {
-          // Fire and forget pattern for streaming
-          (async () => {
-            try {
-              for await (const chunk of generator as AsyncGenerator<ILLMStreamChunk, any, undefined>) {
-                console.log('Sending conversation chat chunk:', requestId);
-                event.sender.send('conversation:chatChunk', {
-                  requestId: requestId || 'default',
-                  chunk
-                });
-              }
-
-              // After generator completes, the final message has been added to conversation
-              console.log('Conversation streaming completed for request:', requestId);
-              event.sender.send('conversation:chatStreamComplete', {
-                requestId: requestId || 'default',
-                finalResponse: { success: true }
-              });
-            } catch (streamError: any) {
-              console.error('Error during conversation stream:', streamError);
-              event.sender.send('conversation:chatError', {
-                requestId: requestId || 'default',
-                error: streamError.message || 'Unknown streaming error'
-              });
-            }
-          })();
-
-          return { streamStarted: true, requestId: requestId || 'default' };
-        } else {
-          throw new Error('Expected streaming response but got non-streaming');
-        }
-      } else {
-        // Handle non-streaming response
-        const result = await conversationManager.sendMessage(message, false);
-        console.log('Conversation sendMessage returned:', result);
-        return { message: result };
-      }
-    } catch (error: any) {
-      console.error('IPC conversation:sendMessage error:', error);
-      return { error: error.message || 'Failed to send message' };
+      console.log('IPC: Sending message:', message);
+      const result = await conversationManager.sendMessage(message);
+      console.log('IPC: Message sent successfully, result type:', typeof result);
+      return { streamStarted: false, message: result };
+    } catch (error) {
+      console.error('IPC: Failed to send message:', error);
+      return {
+        streamStarted: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   });
 
@@ -217,6 +180,22 @@ const setupIpcHandlers = () => {
       faith: player.faith
     } : null;
   });
+
+  ipcMain.handle('conversation:getEntries', () => {
+    console.log('IPC received conversation:getEntries');
+    return conversationManager.getConversationEntries();
+  });
+
+  // Set up conversation update listener
+  const conversationUpdateCallback = (entries: any[]) => {
+    if (chatWindow && !chatWindow.isDestroyed()) {
+      console.log('Sending conversation update to renderer:', entries.length, 'entries');
+      chatWindow.webContents.send('conversation:updated', entries);
+    }
+  };
+
+  // Subscribe to conversation updates
+  conversationManager.onConversationUpdate(conversationUpdateCallback);
 
   console.log('Conversation IPC handlers registered successfully');
 };

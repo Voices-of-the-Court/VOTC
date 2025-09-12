@@ -4,7 +4,8 @@ import { parseLog } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
-import { ConversationEntry, Message, ErrorEntry } from "./types";
+import { ConversationEntry, Message, createError, createMessage } from "./types";
+import { EventEmitter } from "events";
 
 export class Conversation {
     id = v4();
@@ -12,8 +13,10 @@ export class Conversation {
     gameData!: GameData;
     isActive: boolean = false;
     nextId: number = 0;
+    private eventEmitter: EventEmitter;
 
     constructor() {
+        this.eventEmitter = new EventEmitter();
         this.initializeGameData();
     }
 
@@ -96,14 +99,12 @@ You should respond as this character would, taking into account their personalit
         }
 
         // Add user message to conversation
-        const userMsg: Message = 
-        {
+        const userMsg = createMessage({
             id: this.nextId++,
             name: user.shortName,
             role: 'user',
             content: userMessage,
-            datetime: new Date()
-        };
+        });
         this.messages.push(userMsg);
 
         try {
@@ -116,12 +117,11 @@ You should respond as this character would, taking into account their personalit
             // Always include system prompt for character awareness
             const systemPrompt = this.generateSystemPrompt(char);
             console.log('Adding system prompt:', systemPrompt.substring(0, 100) + '...');
-            const systemMsg: Message = {
+            const systemMsg = createMessage( {
                 id: this.nextId++,
                 role: 'system',
                 content: systemPrompt,
-                datetime: new Date()
-            };
+            });
             llmMessages.push({
                 role: systemMsg.role,
                 content: systemMsg.content
@@ -140,6 +140,17 @@ You should respond as this character would, taking into account their personalit
                 content: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : '')
             })));
 
+            const msgId = this.nextId++;
+            const placeholder = createMessage({
+            id: msgId,
+            role: 'assistant',
+            content: '',
+            name: char?.shortName ?? 'NPC',
+            isStreaming: true
+            });
+            this.messages.push(placeholder);
+            this.emitUpdate();
+
             // Generate response
             const result = await llmManager.sendChatRequest(llmMessages);
             console.log('LLM result type:', typeof result);
@@ -147,52 +158,49 @@ You should respond as this character would, taking into account their personalit
             if (llmManager.getGlobalStreamSetting()) {
                 // Handle streaming response
                 if (typeof result === 'object' && typeof (result as any)[Symbol.asyncIterator] === 'function') {
-                    const fullContent: string[] = [];
-
-                    // Return async generator that yields chunks and returns final message
-                    return (async function*(this: Conversation) {
+                    // Handle streaming asynchronously
+                    (async () => {
                         try {
                             for await (const chunk of result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>) {
                                 if (chunk.delta?.content) {
-                                    fullContent.push(chunk.delta.content);
+                                    // Update streaming message content
+                                    const msgIndex = this.messages.findIndex(msg => msg.id === msgId);
+                                    if (msgIndex !== -1 && 'role' in this.messages[msgIndex]) {
+                                        this.messages[msgIndex].content += chunk.delta.content;
+                                        this.emitUpdate(); // Emit update after each chunk
+                                    }
                                 }
-                                yield chunk;
                             }
-
-                            // Create and add the final assistant message to conversation
-                            const finalContent = fullContent.join('');
-                            const assistantMsg: Message = {
-                                id: (this as Conversation).nextId++,
-                                role: 'assistant',
-                                content: finalContent,
-                                name: char?.shortName ?? 'NPC',
-                                datetime: new Date()
-                            };
-                            (this as Conversation).messages.push(assistantMsg);
-                            return assistantMsg;
-
+                            // Finalize streaming message
+                            const msgIndex = this.messages.findIndex(msg => msg.id === msgId);
+                            if (msgIndex !== -1 && 'role' in this.messages[msgIndex]) {
+                                this.messages[msgIndex].isStreaming = false;
+                                this.emitUpdate(); // Emit final update
+                            }
                         } catch (streamingError) {
                             console.error('Error during streaming:', streamingError);
+                            // Remove streaming message and add error
+                            this.messages = this.messages.filter(msg => msg.id !== msgId);
+
                             if (streamingError instanceof Error) {
-                                const errorMsg: ErrorEntry = {
-                                    id: (this as Conversation).nextId++,
-                                    datetime: new Date(),
+                                const errorMsg = createError({
+                                    id: this.nextId++,
                                     content: 'Error during streaming',
                                     details: streamingError.message
-                                };
-                                (this as Conversation).messages.push(errorMsg);
-                                throw streamingError;
+                                });
+                                this.messages.push(errorMsg);
                             } else {
-                                const errorMsg: ErrorEntry = {
-                                    id: (this as Conversation).nextId++,
-                                    datetime: new Date(),
+                                const errorMsg = createError({
+                                    id: this.nextId++,
                                     content: 'Unknown error during streaming'
-                                };
-                                (this as Conversation).messages.push(errorMsg);
-                                throw new Error('Unknown error during streaming');
+                                });
+                                this.messages.push(errorMsg);
                             }
+                            this.emitUpdate();
                         }
-                    }.bind(this))();
+                    })();
+
+                    return placeholder;
                 } else {
                     throw new Error('Expected streaming response but got non-streaming');
                 }
@@ -201,16 +209,14 @@ You should respond as this character would, taking into account their personalit
                 console.log('LLM result:', result);
 
                 if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
-                    // Add assistant message to conversation
-                    const assistantMsg: Message = {
-                        id: this.nextId++,
-                        role: 'assistant',
-                        content: result.content,
-                        name: char?.shortName ?? 'NPC',
-                        datetime: new Date()
-                    };
-                    this.messages.push(assistantMsg);
-                    return assistantMsg;
+                    // Update placeholder message
+                    const msgIndex = this.messages.findIndex(msg => msg.id === msgId);
+                    if (msgIndex !== -1 && 'role' in this.messages[msgIndex]) {
+                        this.messages[msgIndex].content = result.content;
+                        this.messages[msgIndex].isStreaming = false;
+                        this.emitUpdate(); // Emit final update
+                    }
+                    return this.messages[msgIndex];
                 } else {
                     console.error('Unexpected non-streaming response format:', result);
                     return null;
@@ -219,12 +225,11 @@ You should respond as this character would, taking into account their personalit
 
         } catch (error) {
             console.error('Failed to get response:', error);
-            const err: ErrorEntry = {
+            const err = createError({
                 id: this.nextId++,
-                datetime: new Date(),
                 content: 'Failed to get response',
                 details: error instanceof Error ? error.message : String(error),
-            };
+            });
             this.messages.push(err);
             return err;
         }
@@ -253,5 +258,26 @@ You should respond as this character would, taking into account their personalit
     end(): void {
         this.isActive = false;
         this.clearHistory();
+    }
+
+    /**
+     * Emit conversation update event
+     */
+    private emitUpdate(): void {
+        this.eventEmitter.emit('conversation-updated', [...this.messages]);
+    }
+
+    /**
+     * Subscribe to conversation updates
+     */
+    onConversationUpdate(callback: (entries: ConversationEntry[]) => void): void {
+        this.eventEmitter.on('conversation-updated', callback);
+    }
+
+    /**
+     * Unsubscribe from conversation updates
+     */
+    offConversationUpdate(callback: (entries: ConversationEntry[]) => void): void {
+        this.eventEmitter.off('conversation-updated', callback);
     }
 }
