@@ -12,7 +12,12 @@ function Chat({ onToggleConfig }: ChatProps) {
 
   const { entries, sendMessage } = useConversationEntries();
   const { handleChatBoxMouseEnter, handleChatBoxMouseLeave, handleLeave } = useWindowEvents();
-  const { messagesEndRef } = useAutoScroll();
+  const { messagesEndRef, scrollToBottom } = useAutoScroll();
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [entries, scrollToBottom]);
+
 
   const resetChat = () => {
     setInputValue('');

@@ -152,3 +152,14 @@ export type OpenRouterModerationErrorMetadata = {
 	provider_name: string // The name of the provider that requested moderation
 	model_slug: string
 }
+
+export function isOpenRouterErrorResponse(e: unknown): e is OpenRouterErrorResponse {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "error" in e &&
+    typeof (e as any).error === "object" &&
+    typeof (e as any).error.message === "string" &&
+    typeof (e as any).error.code === "number"
+  )
+}

@@ -6,7 +6,8 @@ import {
   OpenRouterConfig,
   LLMProviderConfig,
   ILLMOutput,
-  OpenRouterErrorResponse
+  OpenRouterErrorResponse,
+  isOpenRouterErrorResponse
 } from './types';
 import { BaseProvider } from './BaseProvider';
 import OpenAI from 'openai'; // Import OpenAI SDK
@@ -147,14 +148,6 @@ private async _nonStreamChatCompletion(
       let firstChunkId = '';
 
       for await (const chunk of stream) {
-        if ("error" in chunk) {
-          const error = chunk.error as OpenRouterErrorResponse["error"]
-          console.error(`OpenRouter API Error: ${error?.code} - ${error?.message}`)
-          // Include metadata in the error message if available
-          const metadataStr = error.metadata ? `\nMetadata: ${JSON.stringify(error.metadata, null, 2)}` : ""
-          throw new Error(`OpenRouter API Error ${error.code}: ${error.message}${metadataStr}`)
-			  }
-
         const choice = chunk.choices[0];
 
         if ((choice?.finish_reason as string) === "error") {
@@ -243,6 +236,12 @@ private async _nonStreamChatCompletion(
       };
     } catch (error: any) {
       console.error(`[OpenRouterProvider] OpenAI SDK stream error for model ${request.model}:`, error);
+      if (isOpenRouterErrorResponse(error)) {
+        const openRouterError = error.error
+        const metadataStr = openRouterError.metadata ? `\nMetadata: ${JSON.stringify(openRouterError.metadata, null, 2)}` : ""
+        console.error(`OpenRouter API stream error via SDK: ${openRouterError.code} - ${openRouterError.message} ${metadataStr}`);
+        throw new Error(`OpenRouter API stream error via SDK: ${openRouterError.code} - ${openRouterError.message} ${metadataStr}`);
+      }
       if (error instanceof OpenAI.APIError) {
         throw new Error(`OpenRouter API stream error via SDK: ${error.status} ${error.name} - ${error.message}`);
       }
