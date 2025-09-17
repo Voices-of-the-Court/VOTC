@@ -79,23 +79,90 @@ You should respond as this character would, taking into account their personalit
     }
 
     /**
-     * Send a user message and get AI response
+     * Get list of all NPCs (characters except the player)
      */
-    async sendMessage(userMessage: string): Promise<ConversationEntry | AsyncGenerator<ILLMStreamChunk, ConversationEntry, undefined> | null> {
+    private getNpcList(): Character[] {
+        return [...this.gameData.characters.values()]
+            .filter(c => c.id !== this.gameData.playerID);
+    }
+
+    /**
+     * Handle response for a single NPC
+     */
+    private async respondAs(npc: Character, history: Message[]): Promise<void> {
+        const systemPrompt = this.generateSystemPrompt(npc);
+        const llmMessages: any[] = [
+            { role: 'system', content: systemPrompt },
+            ...history.map(m => ({ role: m.role, content: m.content }))
+        ];
+
+        const msgId = this.nextId++;
+        const placeholder = createMessage({
+            id: msgId,
+            role: 'assistant',
+            name: npc.shortName,
+            content: '',
+            isStreaming: true
+        });
+        this.messages.push(placeholder);
+        this.emitUpdate();
+
+        try {
+            const result = await llmManager.sendChatRequest(llmMessages);
+
+            if (llmManager.getGlobalStreamSetting() &&
+                typeof result === 'object' &&
+                typeof (result as any)[Symbol.asyncIterator] === 'function') {
+                // Handle streaming response
+                for await (const chunk of result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void>) {
+                    if (chunk.delta?.content) {
+                        placeholder.content += chunk.delta.content;
+                        this.emitUpdate();
+                    }
+                }
+                placeholder.isStreaming = false;
+                this.emitUpdate();
+            } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
+                // Handle synchronous response
+                placeholder.content = result.content;
+                placeholder.isStreaming = false;
+                this.emitUpdate();
+            } else {
+                throw new Error('Bad LLM response format');
+            }
+        } catch (error) {
+            console.error('Failed to get response for', npc.shortName, ':', error);
+            
+            // Remove the placeholder message
+            this.messages = this.messages.filter(msg => msg.id !== msgId);
+            
+            const err = createError({
+                id: this.nextId++,
+                content: `Failed to get response from ${npc.shortName}`,
+                details: error instanceof Error ? error.message : String(error),
+            });
+            this.messages.push(err);
+            this.emitUpdate();
+        }
+    }
+
+    /**
+     * Send a user message and trigger responses from all NPCs
+     */
+    async sendMessage(userMessage: string): Promise<void> {
         console.log('Conversation.sendMessage called with:', userMessage);
         console.log('Conversation active:', this.isActive);
         console.log('Characters in conversation:', this.gameData.characters.size);
-        
-        const char = this.gameData.characters.get(this.gameData.aiID)!;
+
         const user = this.gameData.characters.get(this.gameData.playerID)!;
         if (!this.isActive) {
             console.warn('Conversation is not active');
-            return null;
+            return;
         }
 
         if (this.gameData.characters.size === 0) {
             console.error('No characters in conversation');
-            return null;
+            return;
         }
 
         // Add user message to conversation
@@ -106,134 +173,12 @@ You should respond as this character would, taking into account their personalit
             content: userMessage,
         });
         this.messages.push(userMsg);
+        this.emitUpdate();
 
-        try {
-            // Prepare messages for LLM (include system prompt if first message)
-            const llmMessages: any[] = [];
-
-            console.log('DEBUG: Current messages length:', this.messages.length);
-            console.log('DEBUG: Including system prompt in LLM request');
-
-            // Always include system prompt for character awareness
-            const systemPrompt = this.generateSystemPrompt(char);
-            console.log('Adding system prompt:', systemPrompt.substring(0, 100) + '...');
-            const systemMsg = createMessage( {
-                id: this.nextId++,
-                role: 'system',
-                content: systemPrompt,
-            });
-            llmMessages.push({
-                role: systemMsg.role,
-                content: systemMsg.content
-            });
-
-            // Add conversation history
-            const conversationHistory = this.getHistory().map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }))
-
-            llmMessages.push(...conversationHistory);
-
-            console.log('Final LLM messages array:', llmMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : '')
-            })));
-
-            const msgId = this.nextId++;
-            const placeholder = createMessage({
-            id: msgId,
-            role: 'assistant',
-            content: '',
-            name: char?.shortName ?? 'NPC',
-            isStreaming: true
-            });
-            this.messages.push(placeholder);
-            this.emitUpdate();
-
-            // Generate response
-            const result = await llmManager.sendChatRequest(llmMessages);
-            console.log('LLM result type:', typeof result);
-
-            if (llmManager.getGlobalStreamSetting()) {
-                // Handle streaming response
-                if (typeof result === 'object' && typeof (result as any)[Symbol.asyncIterator] === 'function') {
-                    // Handle streaming asynchronously
-                    (async () => {
-                        try {
-                            for await (const chunk of result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>) {
-                                if (chunk.delta?.content) {
-                                    // Update streaming message content
-                                    const msgIndex = this.messages.findIndex(msg => msg.id === msgId);
-                                    if (msgIndex !== -1 && 'role' in this.messages[msgIndex]) {
-                                        this.messages[msgIndex].content += chunk.delta.content;
-                                        this.emitUpdate(); // Emit update after each chunk
-                                    }
-                                }
-                            }
-                            // Finalize streaming message
-                            const msgIndex = this.messages.findIndex(msg => msg.id === msgId);
-                            if (msgIndex !== -1 && 'role' in this.messages[msgIndex]) {
-                                this.messages[msgIndex].isStreaming = false;
-                                this.emitUpdate(); // Emit final update
-                            }
-                        } catch (streamingError) {
-                            console.error('Error during streaming:', streamingError);
-                            // Remove streaming message and add error
-                            this.messages = this.messages.filter(msg => msg.id !== msgId);
-
-                            if (streamingError instanceof Error) {
-                                const errorMsg = createError({
-                                    id: this.nextId++,
-                                    content: 'Error during streaming',
-                                    details: streamingError.message
-                                });
-                                this.messages.push(errorMsg);
-                            } else {
-                                const errorMsg = createError({
-                                    id: this.nextId++,
-                                    content: 'Unknown error during streaming'
-                                });
-                                this.messages.push(errorMsg);
-                            }
-                            this.emitUpdate();
-                        }
-                    })();
-
-                    return placeholder;
-                } else {
-                    throw new Error('Expected streaming response but got non-streaming');
-                }
-            } else {
-                // Handle synchronous response
-                console.log('LLM result:', result);
-
-                if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
-                    // Update placeholder message
-                    const msgIndex = this.messages.findIndex(msg => msg.id === msgId);
-                    if (msgIndex !== -1 && 'role' in this.messages[msgIndex]) {
-                        this.messages[msgIndex].content = result.content;
-                        this.messages[msgIndex].isStreaming = false;
-                        this.emitUpdate(); // Emit final update
-                    }
-                    return this.messages[msgIndex];
-                } else {
-                    console.error('Unexpected non-streaming response format:', result);
-                    return null;
-                }
-            }
-
-        } catch (error) {
-            console.error('Failed to get response:', error);
-            const err = createError({
-                id: this.nextId++,
-                content: 'Failed to get response',
-                details: error instanceof Error ? error.message : String(error),
-            });
-            this.messages.push(err);
-            return err;
+        // Have each NPC respond sequentially
+        for (const npc of this.getNpcList()) {
+            await this.respondAs(npc, this.getHistory());
         }
-
     }
 
     /**

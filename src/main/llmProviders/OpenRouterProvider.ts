@@ -30,6 +30,22 @@ export class OpenRouterProvider extends BaseProvider {
     return config.apiKey;
   }
 
+  /**
+   * Determine if an error should trigger a retry
+   * @param error The error to check
+   * @returns true if the error is retryable
+   */
+  private shouldRetryOpenRouter(error: any): boolean {
+    if (error instanceof OpenAI.APIError) {
+      const status = error.status;
+      // Retry on rate limiting (429) or server errors (5xx)
+      return status === 429 || (status >= 500 && status < 600);
+    }
+    // Retry on network errors or other transient issues
+    // OpenAI SDK typically wraps these in APIError, but as fallback
+    return error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND';
+  }
+
   async listModels(config: LLMProviderConfig): Promise<ILLMModel[]> {
     try {
       const response = await fetch('https://openrouter.ai/api/v1/models', {
@@ -97,7 +113,12 @@ private async _nonStreamChatCompletion(
   openAIClient: OpenAI
 ): Promise<ILLMCompletionResponse> {
   try {
-    const data = await openAIClient.chat.completions.create(request);
+    const data = await this.retryWithBackoff(
+      () => openAIClient.chat.completions.create(request),
+      3,
+      1000,
+      this.shouldRetryOpenRouter.bind(this)
+    );
 
     const choice = data.choices?.[0];
     if (!choice) {
@@ -140,7 +161,12 @@ private async _nonStreamChatCompletion(
   ): AsyncGenerator<ILLMStreamChunk> {
 
     try {
-      const stream = await openAIClient.chat.completions.create(request);
+      const stream = await this.retryWithBackoff(
+        () => openAIClient.chat.completions.create(request),
+        7,
+        1000,
+        this.shouldRetryOpenRouter.bind(this)
+      );
       const contentParts: string[] = [];
       const toolCallsMap: Record<string, any> = {};
       let finalUsage = undefined;

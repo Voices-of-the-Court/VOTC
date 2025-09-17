@@ -121,4 +121,37 @@ export abstract class BaseProvider {
       }
     }
   }
+
+  /**
+   * Retry an async operation with exponential backoff
+   * @param operation The async operation to retry
+   * @param maxRetries Maximum number of retry attempts (default: 3)
+   * @param initialDelay Initial delay in milliseconds (default: 1000)
+   * @param shouldRetry Function to determine if error is retryable (default: always retry)
+   * @returns Promise resolving to operation result
+   */
+  protected async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    initialDelay: number = 1000,
+    shouldRetry: (error: any) => boolean = () => true
+  ): Promise<T> {
+    let delay = initialDelay;
+    let lastError: any;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        if (attempt === maxRetries || !shouldRetry(error)) {
+          throw error;
+        }
+        console.log(`[${this.providerId}] Retry attempt ${attempt + 1}/${maxRetries + 1} after ${delay}ms delay`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+      }
+    }
+    throw lastError;
+  }
 }
