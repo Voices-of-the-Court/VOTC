@@ -46,8 +46,8 @@ const createWindow = (): BrowserWindow => {
   // mainWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
 
   // and load the index.html of the app.
-if (process.env.VITE_DEV_SERVER_URL) {
-  chatWindow.loadURL(process.env.VITE_DEV_SERVER_URL); 
+if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+  chatWindow.loadURL(process.env['ELECTRON_RENDERER_URL']); 
 } else {
   chatWindow.loadFile(
     path.join(__dirname, '../renderer/index.html') // see below for prod
@@ -162,8 +162,8 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('conversation:reset', () => {
     console.log('IPC received conversation:reset');
-    // conversationManager.endCurrentConversation();
-    conversationManager.createConversation();
+    conversationManager.endCurrentConversation();
+    // conversationManager.createConversation();
     return true;
   });
 

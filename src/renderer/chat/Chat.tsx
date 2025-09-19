@@ -14,6 +14,8 @@ function Chat({ onToggleConfig }: ChatProps) {
   const { handleChatBoxMouseEnter, handleChatBoxMouseLeave, handleLeave } = useWindowEvents();
   const { messagesEndRef, scrollToBottom } = useAutoScroll();
 
+  const isStreaming = entries.some(entry => entry.type === 'message' && entry.isStreaming);
+
   useEffect(() => {
     scrollToBottom();
   }, [entries, scrollToBottom]);
@@ -36,7 +38,7 @@ function Chat({ onToggleConfig }: ChatProps) {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault();
       handleSend();
     }
@@ -92,6 +94,7 @@ function Chat({ onToggleConfig }: ChatProps) {
               onChange={setInputValue}
               onKeyPress={handleKeyPress}
               placeholder="Write a message..."
+              disabled={isStreaming}
             />
             <ChatButtons
               onLeave={() => handleLeave(resetChat)}

@@ -93,14 +93,14 @@ You should respond as this character would, taking into account their personalit
         const systemPrompt = this.generateSystemPrompt(npc);
         const llmMessages: any[] = [
             { role: 'system', content: systemPrompt },
-            ...history.map(m => ({ role: m.role, content: m.content }))
+            ...history.map(m => ({ role: m.role, content: `${m.name}: ${m.content}` }))
         ];
 
         const msgId = this.nextId++;
         const placeholder = createMessage({
             id: msgId,
             role: 'assistant',
-            name: npc.shortName,
+            name: npc.fullName,
             content: '',
             isStreaming: true
         });
@@ -121,7 +121,7 @@ You should respond as this character would, taking into account their personalit
                     }
                 }
                 placeholder.isStreaming = false;
-                this.emitUpdate();
+                // this.emitUpdate();
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
                 placeholder.content = result.content;
@@ -168,7 +168,7 @@ You should respond as this character would, taking into account their personalit
         // Add user message to conversation
         const userMsg = createMessage({
             id: this.nextId++,
-            name: user.shortName,
+            name: user.fullName,
             role: 'user',
             content: userMessage,
         });
@@ -179,6 +179,7 @@ You should respond as this character would, taking into account their personalit
         for (const npc of this.getNpcList()) {
             await this.respondAs(npc, this.getHistory());
         }
+        this.emitUpdate();
     }
 
     /**
