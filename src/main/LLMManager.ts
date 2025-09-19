@@ -304,6 +304,7 @@ export class LLMManager {
   // Unified method to send requests to the *active* provider
   async sendChatRequest(
     messages: ILLMCompletionRequest['messages'],
+    signal?: AbortSignal
   ): Promise<ILLMOutput> {
     const activeConfig = this.getActiveProviderConfig();
     if (!activeConfig) {
@@ -325,6 +326,7 @@ export class LLMManager {
       stream: stream,
       // Merge default parameters from config with specific request params
       ...activeConfig.defaultParameters,
+      signal,
       // ...params,
     };
 

@@ -186,6 +186,11 @@ const setupIpcHandlers = () => {
     return conversationManager.getConversationEntries();
   });
 
+  ipcMain.handle('conversation:cancelStream', () => {
+    console.log('IPC received conversation:cancelStream');
+    conversationManager.cancelCurrentStream();
+  });
+
   // Set up conversation update listener
   const conversationUpdateCallback = (entries: any[]) => {
     if (chatWindow && !chatWindow.isDestroyed()) {

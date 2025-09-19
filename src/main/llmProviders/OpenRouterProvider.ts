@@ -82,31 +82,31 @@ export class OpenRouterProvider extends BaseProvider {
   }
 
   chatCompletion(
-    request: ILLMCompletionRequest,
-    config: OpenRouterConfig
-  ): ILLMOutput {
-    const openAIClient = new OpenAI({
-      apiKey: this.getAPIKey(config),
-      baseURL: 'https://openrouter.ai/api/v1',
-    });
-
-    const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
-      model: request.model,
-      messages: request.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-      stream: request.stream,
-      temperature: request.temperature,
-      max_tokens: request.max_tokens,
-      top_p: request.top_p,
-      presence_penalty: request.presence_penalty,
-      frequency_penalty: request.frequency_penalty,
-    };
-
-    if (requestParams.stream) {
-      return this._streamChatCompletion(requestParams, openAIClient);
-    } else {
-      return this._nonStreamChatCompletion(requestParams, openAIClient);
+      request: ILLMCompletionRequest,
+      config: OpenRouterConfig
+    ): ILLMOutput {
+      const openAIClient = new OpenAI({
+        apiKey: this.getAPIKey(config),
+        baseURL: 'https://openrouter.ai/api/v1',
+      });
+  
+      const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
+        model: request.model,
+        messages: request.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+        stream: request.stream,
+        temperature: request.temperature,
+        max_tokens: request.max_tokens,
+        top_p: request.top_p,
+        presence_penalty: request.presence_penalty,
+        frequency_penalty: request.frequency_penalty,
+      };
+  
+      if (requestParams.stream) {
+        return this._streamChatCompletion(requestParams, openAIClient, request.signal);
+      } else {
+        return this._nonStreamChatCompletion(requestParams, openAIClient);
+      }
     }
-  }
 
 private async _nonStreamChatCompletion(
   request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
@@ -157,12 +157,13 @@ private async _nonStreamChatCompletion(
 
   private async *_streamChatCompletion(
     request: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
-    openAIClient: OpenAI
+    openAIClient: OpenAI,
+    signal?: AbortSignal
   ): AsyncGenerator<ILLMStreamChunk> {
 
     try {
       const stream = await this.retryWithBackoff(
-        () => openAIClient.chat.completions.create(request),
+        () => openAIClient.chat.completions.create(request, signal ? { signal } : undefined),
         7,
         1000,
         this.shouldRetryOpenRouter.bind(this)
@@ -261,6 +262,10 @@ private async _nonStreamChatCompletion(
         usage: finalUsage
       };
     } catch (error: any) {
+      if (signal?.aborted) {
+        console.info(`[OpenRouterProvider] OpenAI SDK stream cancelled for model ${request.model}:`, error);
+        throw new Error(`AbortError: Message cancelled`);
+      }
       console.error(`[OpenRouterProvider] OpenAI SDK stream error for model ${request.model}:`, error);
       if (isOpenRouterErrorResponse(error)) {
         const openRouterError = error.error
@@ -295,3 +300,4 @@ private async _nonStreamChatCompletion(
     }
   }
 }
+

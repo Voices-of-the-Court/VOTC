@@ -32,6 +32,7 @@ export interface ILLMCompletionRequest {
   top_p?: number;
   presence_penalty?: number;
   frequency_penalty?: number;
+  signal?: AbortSignal; // For cancelling requests
   // Provider-specific parameters can be handled within each implementation
   // or by adding an optional 'options?: Record<string, any>' field
 }

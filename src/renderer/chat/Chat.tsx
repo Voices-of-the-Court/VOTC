@@ -53,6 +53,14 @@ function Chat({ onToggleConfig }: ChatProps) {
     }
   };
 
+  const handleCancelStream = async () => {
+    try {
+      await window.conversationAPI.cancelStream();
+    } catch (error) {
+      console.error('Failed to cancel stream:', error);
+    }
+  };
+
   // Listen for reset event from main process
   useEffect(() => {
     const cleanupReset = window.electronAPI.onChatReset(resetChat);
@@ -100,6 +108,8 @@ function Chat({ onToggleConfig }: ChatProps) {
               onLeave={() => handleLeave(resetChat)}
               onNPCInfo={handleNPCInfo}
               onToggleConfig={onToggleConfig}
+              onCancel={handleCancelStream}
+              isStreaming={isStreaming}
             />
           </div>
         </div>

@@ -4,15 +4,28 @@ interface ChatButtonsProps {
   onLeave: () => void;
   onNPCInfo: () => void;
   onToggleConfig: () => void;
+  onCancel?: () => void;
+  isStreaming?: boolean;
 }
 
 const ChatButtons: React.FC<ChatButtonsProps> = ({
   onLeave,
   onNPCInfo,
-  onToggleConfig
+  onToggleConfig,
+  onCancel,
+  isStreaming = false
 }) => {
   return (
     <div className="buttons-container">
+      {isStreaming && onCancel && (
+        <button
+          onClick={onCancel}
+          className="cancel-button"
+          title="Cancel Stream"
+        >
+          ❌ Cancel
+        </button>
+      )}
       <button
         className="leave-button"
         onClick={onLeave}

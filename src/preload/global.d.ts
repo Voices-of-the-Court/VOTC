@@ -9,6 +9,7 @@ declare global {
       getPlayerInfo: () => Promise<any>;
       getConversationEntries: () => Promise<any[]>;
       onConversationUpdate: (callback: (entries: any[]) => void) => () => void;
+      cancelStream: () => Promise<void>;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;

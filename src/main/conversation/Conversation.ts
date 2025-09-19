@@ -14,6 +14,7 @@ export class Conversation {
     isActive: boolean = false;
     nextId: number = 0;
     private eventEmitter: EventEmitter;
+    private currentStreamController: AbortController | null = null;
 
     constructor() {
         this.eventEmitter = new EventEmitter();
@@ -31,16 +32,13 @@ export class Conversation {
         }
     }
 
-    /**
-     * Generate a system prompt based on the characters in the conversation
-     */
+    // Generate a system prompt based on the characters in the conversation
     private generateSystemPrompt(char: Character): string {
         if (this.gameData.characters.size === 0) {
             console.log('No characters in conversation for system prompt');
             return "You are characters in a medieval strategy game. Engage in conversation naturally.";
         }
 
-        // const char = this.gameData.characters.get(this.gameData.aiID)!;
         if (!char) {
             console.log('Primary character not found for ID:', this.gameData.aiID);
             return "You are characters in a medieval strategy game. Engage in conversation naturally.";
@@ -78,17 +76,13 @@ You should respond as this character would, taking into account their personalit
         return prompt;
     }
 
-    /**
-     * Get list of all NPCs (characters except the player)
-     */
+    // Get list of all NPCs (characters except the player)
     private getNpcList(): Character[] {
         return [...this.gameData.characters.values()]
             .filter(c => c.id !== this.gameData.playerID);
     }
 
-    /**
-     * Handle response for a single NPC
-     */
+    // Handle response for a single NPC
     private async respondAs(npc: Character, history: Message[]): Promise<void> {
         const systemPrompt = this.generateSystemPrompt(npc);
         const llmMessages: any[] = [
@@ -107,8 +101,11 @@ You should respond as this character would, taking into account their personalit
         this.messages.push(placeholder);
         this.emitUpdate();
 
+        // Create AbortController for this stream
+        this.currentStreamController = new AbortController();
+
         try {
-            const result = await llmManager.sendChatRequest(llmMessages);
+            const result = await llmManager.sendChatRequest(llmMessages, this.currentStreamController.signal);
 
             if (llmManager.getGlobalStreamSetting() &&
                 typeof result === 'object' &&
@@ -121,7 +118,6 @@ You should respond as this character would, taking into account their personalit
                     }
                 }
                 placeholder.isStreaming = false;
-                // this.emitUpdate();
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
                 placeholder.content = result.content;
@@ -135,20 +131,31 @@ You should respond as this character would, taking into account their personalit
             
             // Remove the placeholder message
             this.messages = this.messages.filter(msg => msg.id !== msgId);
-            
-            const err = createError({
-                id: this.nextId++,
-                content: `Failed to get response from ${npc.shortName}`,
-                details: error instanceof Error ? error.message : String(error),
-            });
-            this.messages.push(err);
+            // Check if this was an abort (user cancelled)
+            if (error instanceof Error && error.message !== 'AbortError: Message cancelled') {
+                const err = createError({
+                    id: this.nextId++,
+                    content: `Failed to get response from ${npc.shortName}`,
+                    details: error instanceof Error ? error.message : String(error),
+                });
+                this.messages.push(err);
+            }
+        } finally {
+            // Clean up the AbortController
             this.emitUpdate();
+            this.currentStreamController = null;
         }
     }
 
-    /**
-     * Send a user message and trigger responses from all NPCs
-     */
+    // Cancel currently active stream
+    cancelCurrentStream(): void {
+        if (this.currentStreamController) {
+            console.log('Cancelling current stream');
+            this.currentStreamController.abort();
+        }
+    }
+
+    // Send a user message and trigger responses from all NPCs
     async sendMessage(userMessage: string): Promise<void> {
         console.log('Conversation.sendMessage called with:', userMessage);
         console.log('Conversation active:', this.isActive);
@@ -182,47 +189,35 @@ You should respond as this character would, taking into account their personalit
         this.emitUpdate();
     }
 
-    /**
-     * Get conversation history
-     */
+    // Get conversation history
     getHistory(): Message[] {
         return this.messages.filter(
             (entry): entry is Message => 'role' in entry
         );
     }
 
-    /**
-     * Clear conversation history
-     */
+    // Clear conversation history
     clearHistory(): void {
         this.messages = [];
     }
 
-    /**
-     * End conversation
-     */
+    // End conversation
     end(): void {
         this.isActive = false;
         this.clearHistory();
     }
 
-    /**
-     * Emit conversation update event
-     */
+    // Emit conversation update event
     private emitUpdate(): void {
         this.eventEmitter.emit('conversation-updated', [...this.messages]);
     }
 
-    /**
-     * Subscribe to conversation updates
-     */
+    // Subscribe to conversation updates
     onConversationUpdate(callback: (entries: ConversationEntry[]) => void): void {
         this.eventEmitter.on('conversation-updated', callback);
     }
 
-    /**
-     * Unsubscribe from conversation updates
-     */
+    // Unsubscribe from conversation updates
     offConversationUpdate(callback: (entries: ConversationEntry[]) => void): void {
         this.eventEmitter.off('conversation-updated', callback);
     }

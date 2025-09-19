@@ -156,6 +156,15 @@ export class ConversationManager {
     }
 
     /**
+     * Cancel the current stream in the active conversation
+     */
+    cancelCurrentStream(): void {
+        if (this.currentConversation) {
+            this.currentConversation.cancelCurrentStream();
+        }
+    }
+
+    /**
      * Check if there's an active conversation
      */
     hasActiveConversation(): boolean {

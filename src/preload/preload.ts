@@ -67,4 +67,8 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     ipcRenderer.on('conversation:updated', handler);
     return () => ipcRenderer.removeListener('conversation:updated', handler);
   },
+  cancelStream: (): Promise<void> => {
+    console.log('Calling conversation:cancelStream');
+    return ipcRenderer.invoke('conversation:cancelStream');
+  },
 });
