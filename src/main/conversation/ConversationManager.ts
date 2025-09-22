@@ -172,6 +172,37 @@ export class ConversationManager {
     }
 
     /**
+     * Pause the current conversation
+     */
+    pauseConversation(): void {
+        if (this.currentConversation) {
+            this.currentConversation.pauseConversation();
+        }
+    }
+
+    /**
+     * Resume the current conversation
+     */
+    resumeConversation(): void {
+        if (this.currentConversation) {
+            this.currentConversation.resumeConversation();
+        }
+    }
+
+    /**
+     * Get conversation state (paused, queue length)
+     */
+    getConversationState(): { isPaused: boolean; queueLength: number } {
+        if (!this.currentConversation) {
+            return { isPaused: false, queueLength: 0 };
+        }
+        return {
+            isPaused: this.currentConversation.isPaused,
+            queueLength: this.currentConversation.npcQueue.length
+        };
+    }
+
+    /**
      * Get current NPC information (first character for demo purposes)
      */
     getPlayer(): Character | null {

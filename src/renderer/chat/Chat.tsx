@@ -9,6 +9,7 @@ interface ChatProps {
 function Chat({ onToggleConfig }: ChatProps) {
   const [inputValue, setInputValue] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
+  const [conversationState, setConversationState] = useState({ isPaused: false, queueLength: 0 });
 
   const { entries, sendMessage } = useConversationEntries();
   const { handleChatBoxMouseEnter, handleChatBoxMouseLeave, handleLeave } = useWindowEvents();
@@ -19,6 +20,19 @@ function Chat({ onToggleConfig }: ChatProps) {
   useEffect(() => {
     scrollToBottom();
   }, [entries, scrollToBottom]);
+
+  // Fetch conversation state on mount and when entries change
+  useEffect(() => {
+    const fetchState = async () => {
+      try {
+        const state = await window.conversationAPI.getConversationState();
+        setConversationState(state);
+      } catch (error) {
+        console.error('Failed to fetch conversation state:', error);
+      }
+    };
+    fetchState();
+  }, [entries]);
 
 
   const resetChat = () => {
@@ -58,6 +72,24 @@ function Chat({ onToggleConfig }: ChatProps) {
       await window.conversationAPI.cancelStream();
     } catch (error) {
       console.error('Failed to cancel stream:', error);
+    }
+  };
+
+  const handlePauseConversation = async () => {
+    try {
+      await window.conversationAPI.pauseConversation();
+      // State will be updated via onConversationUpdate
+    } catch (error) {
+      console.error('Failed to pause conversation:', error);
+    }
+  };
+
+  const handleResumeConversation = async () => {
+    try {
+      await window.conversationAPI.resumeConversation();
+      // State will be updated via onConversationUpdate
+    } catch (error) {
+      console.error('Failed to resume conversation:', error);
     }
   };
 
@@ -109,7 +141,11 @@ function Chat({ onToggleConfig }: ChatProps) {
               onNPCInfo={handleNPCInfo}
               onToggleConfig={onToggleConfig}
               onCancel={handleCancelStream}
+              onPause={handlePauseConversation}
+              onResume={handleResumeConversation}
               isStreaming={isStreaming}
+              isPaused={conversationState.isPaused}
+              queueLength={conversationState.queueLength}
             />
           </div>
         </div>

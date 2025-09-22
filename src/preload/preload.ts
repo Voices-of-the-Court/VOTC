@@ -71,4 +71,16 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     console.log('Calling conversation:cancelStream');
     return ipcRenderer.invoke('conversation:cancelStream');
   },
+  pauseConversation: (): Promise<void> => {
+    console.log('Calling conversation:pause');
+    return ipcRenderer.invoke('conversation:pause');
+  },
+  resumeConversation: (): Promise<void> => {
+    console.log('Calling conversation:resume');
+    return ipcRenderer.invoke('conversation:resume');
+  },
+  getConversationState: (): Promise<{ isPaused: boolean; queueLength: number }> => {
+    console.log('Calling conversation:getState');
+    return ipcRenderer.invoke('conversation:getState');
+  },
 });

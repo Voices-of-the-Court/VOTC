@@ -5,7 +5,11 @@ interface ChatButtonsProps {
   onNPCInfo: () => void;
   onToggleConfig: () => void;
   onCancel?: () => void;
+  onPause?: () => void;
+  onResume?: () => void;
   isStreaming?: boolean;
+  isPaused?: boolean;
+  queueLength?: number;
 }
 
 const ChatButtons: React.FC<ChatButtonsProps> = ({
@@ -13,8 +17,15 @@ const ChatButtons: React.FC<ChatButtonsProps> = ({
   onNPCInfo,
   onToggleConfig,
   onCancel,
-  isStreaming = false
+  onPause,
+  onResume,
+  isStreaming = false,
+  isPaused = false,
+  queueLength = 0
 }) => {
+  const canPause = onPause && !isPaused && isStreaming && queueLength > 1;
+  const canResume = onResume && isPaused && !isStreaming;
+
   return (
     <div className="buttons-container">
       {isStreaming && onCancel && (
@@ -24,6 +35,24 @@ const ChatButtons: React.FC<ChatButtonsProps> = ({
           title="Cancel Stream"
         >
           ❌ Cancel
+        </button>
+      )}
+      {canResume && (
+        <button
+          onClick={onResume}
+          className="resume-button"
+          title="Resume Conversation"
+        >
+          ▶️ Resume
+        </button>
+      )}
+      {canPause && (
+        <button
+          onClick={onPause}
+          className="pause-button"
+          title="Pause Conversation"
+        >
+          ⏸️ Pause
         </button>
       )}
       <button

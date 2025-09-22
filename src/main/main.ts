@@ -191,6 +191,21 @@ const setupIpcHandlers = () => {
     conversationManager.cancelCurrentStream();
   });
 
+  ipcMain.handle('conversation:pause', () => {
+    console.log('IPC received conversation:pause');
+    conversationManager.pauseConversation();
+  });
+
+  ipcMain.handle('conversation:resume', () => {
+    console.log('IPC received conversation:resume');
+    conversationManager.resumeConversation();
+  });
+
+  ipcMain.handle('conversation:getState', () => {
+    console.log('IPC received conversation:getState');
+    return conversationManager.getConversationState();
+  });
+
   // Set up conversation update listener
   const conversationUpdateCallback = (entries: any[]) => {
     if (chatWindow && !chatWindow.isDestroyed()) {

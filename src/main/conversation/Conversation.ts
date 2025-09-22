@@ -16,6 +16,12 @@ export class Conversation {
     private eventEmitter: EventEmitter;
     private currentStreamController: AbortController | null = null;
 
+    // Queue and pause management
+    npcQueue: Character[] = [];
+    customQueue: Character[] | null = null;
+    isPaused: boolean = false;
+    persistCustomQueue: boolean = false;
+
     constructor() {
         this.eventEmitter = new EventEmitter();
         this.initializeGameData();
@@ -121,16 +127,17 @@ You should respond as this character would, taking into account their personalit
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
                 placeholder.content = result.content;
-                placeholder.isStreaming = false;
                 this.emitUpdate();
+                placeholder.isStreaming = false;
             } else {
                 throw new Error('Bad LLM response format');
             }
         } catch (error) {
             console.error('Failed to get response for', npc.shortName, ':', error);
-            
+
             // Remove the placeholder message
             this.messages = this.messages.filter(msg => msg.id !== msgId);
+
             // Check if this was an abort (user cancelled)
             if (error instanceof Error && error.message !== 'AbortError: Message cancelled') {
                 const err = createError({
@@ -139,6 +146,10 @@ You should respond as this character would, taking into account their personalit
                     details: error instanceof Error ? error.message : String(error),
                 });
                 this.messages.push(err);
+            }
+            // Pause conversation on any interruption if more NPCs remain
+            if (this.npcQueue.length > 0) {
+                this.pauseConversation();
             }
         } finally {
             // Clean up the AbortController
@@ -152,6 +163,66 @@ You should respond as this character would, taking into account their personalit
         if (this.currentStreamController) {
             console.log('Cancelling current stream');
             this.currentStreamController.abort();
+        }
+    }
+
+    // Pause the conversation
+    pauseConversation(): void {
+        console.log('Pausing conversation');
+        this.isPaused = true;
+        this.emitUpdate();
+    }
+
+    // Resume the conversation
+    resumeConversation(): void {
+        console.log('Resuming conversation');
+        this.isPaused = false;
+        this.emitUpdate();
+        // Start processing remaining queue if not empty
+        if (this.npcQueue.length > 0) {
+            this.processQueue();
+        }
+    }
+
+    // Set custom queue for conversation
+    setCustomQueue(queue: []): void {
+        // TODO: use ids instead. Frontend side of the app should send an array of character ids in order of custom queue.
+        // Additionally we need to send to UI participating charaters as id's and their names to use for creation of custom queue.
+        this.emitUpdate();
+    }
+
+    // Fill NPC queue with shuffled characters or custom queue
+    private fillNpcQueue(): void {
+        if (this.customQueue && this.customQueue.length > 0) {
+            this.npcQueue = [...this.customQueue];
+            console.log('Using custom queue:', this.npcQueue.map(c => c.shortName));
+            if (!this.persistCustomQueue) {
+                this.customQueue = null;
+            }
+        } else {
+            // Shuffle the NPCs
+            const npcs = this.getNpcList();
+            this.npcQueue = [...npcs].sort(() => Math.random() - 0.5);
+            console.log('Filled shuffled queue:', this.npcQueue.map(c => c.shortName));
+        }
+    }
+
+    // Process the NPC queue asynchronously
+    private async processQueue(): Promise<void> {
+        if (this.npcQueue.length === 0 || this.isPaused) {
+            return;
+        }
+
+        console.log('Processing queue with', this.npcQueue.length, 'NPCs remaining');
+
+        while (this.npcQueue.length > 0 && !this.isPaused) {
+            const npc = this.npcQueue.shift()!;
+            await this.respondAs(npc, this.getHistory());
+        }
+
+        if (this.npcQueue.length === 0 && !this.isPaused) {
+            console.log('Queue processing complete');
+            this.emitUpdate();
         }
     }
 
@@ -182,11 +253,14 @@ You should respond as this character would, taking into account their personalit
         this.messages.push(userMsg);
         this.emitUpdate();
 
-        // Have each NPC respond sequentially
-        for (const npc of this.getNpcList()) {
-            await this.respondAs(npc, this.getHistory());
+        // Fill queue if empty and start processing
+        if (this.npcQueue.length === 0) {
+            this.fillNpcQueue();
         }
-        this.emitUpdate();
+
+        // Start processing the queue asynchronously
+        this.resumeConversation();
+        // this.processQueue();
     }
 
     // Get conversation history

@@ -10,6 +10,9 @@ declare global {
       getConversationEntries: () => Promise<any[]>;
       onConversationUpdate: (callback: (entries: any[]) => void) => () => void;
       cancelStream: () => Promise<void>;
+      pauseConversation: () => Promise<void>;
+      resumeConversation: () => Promise<void>;
+      getConversationState: () => Promise<{ isPaused: boolean; queueLength: number }>;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
