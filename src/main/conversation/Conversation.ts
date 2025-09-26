@@ -93,7 +93,8 @@ You should respond as this character would, taking into account their personalit
         const systemPrompt = this.generateSystemPrompt(npc);
         const llmMessages: any[] = [
             { role: 'system', content: systemPrompt },
-            ...history.map(m => ({ role: m.role, content: `${m.name}: ${m.content}` }))
+            ...history.map(m => ({ role: m.role, content: `${m.name}: ${m.content}` })),
+            { role: 'user', content: `[Write next reply only as ${npc.shortName}]`}
         ];
 
         const msgId = this.nextId++;
