@@ -13,6 +13,8 @@ declare global {
       pauseConversation: () => Promise<void>;
       resumeConversation: () => Promise<void>;
       getConversationState: () => Promise<{ isPaused: boolean; queueLength: number }>;
+      regenerateMessage: (messageId: number) => Promise<{success: boolean, error?: string}>;
+      editUserMessage: (messageId: number, newContent: string) => Promise<{success: boolean, error?: string}>;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
@@ -33,6 +35,8 @@ declare global {
       setCK3Folder: (path: string | null) => Promise<void>;
       selectFolder: () => Promise<string | null>;
       saveGlobalStreamSetting: (enabled: boolean) => Promise<void>;
+      savePauseOnRegenerationSetting: (enabled: boolean) => Promise<void>;
+      saveGenerateFollowingMessagesSetting: (enabled: boolean) => Promise<void>;
     };
   }
 }

@@ -264,6 +264,116 @@ You should respond as this character would, taking into account their personalit
         // this.processQueue();
     }
 
+    // Regenerate assistant message and refill queue
+    async regenerateMessage(messageId: number): Promise<void> {
+        console.log('Regenerating message with ID:', messageId);
+
+        // Find target message
+        const targetIndex = this.messages.findIndex(msg => 'id' in msg && msg.id === messageId);
+        if (targetIndex === -1) {
+            console.error('Message not found for regeneration:', messageId);
+            return;
+        }
+
+        const targetMessage = this.messages[targetIndex] as Message;
+        if (targetMessage.role !== 'assistant') {
+            console.error('Can only regenerate assistant messages:', targetMessage.role);
+            return;
+        }
+
+        // Remove messages from last to target (inclusive)
+        for (let i = this.messages.length - 1; i >= targetIndex; i--) {
+            this.messages.splice(i, 1);
+        }
+
+        // Find the character who sent this message
+        const targetCharacter = this.getNpcList().find(c => c.fullName === targetMessage.name);
+        if (!targetCharacter) {
+            console.error('Could not find character for message:', targetMessage.name);
+            this.emitUpdate();
+            return;
+        }
+
+        // Check settings for generate following messages
+        const generateFollowing = llmManager.getGenerateFollowingMessagesSetting();
+
+        if (generateFollowing) {
+            // Find latest user message before target
+            let latestUserIndex = -1;
+            for (let i = targetIndex - 1; i >= 0; i--) {
+                const msg = this.messages[i];
+                if ('role' in msg && msg.role === 'user') {
+                    latestUserIndex = i;
+                    break;
+                }
+            }
+
+            if (latestUserIndex >= 0) {
+                // Get all characters who haven't responded after the latest user message
+                const respondedCharacters = new Set<string>();
+                for (let i = latestUserIndex + 1; i < targetIndex; i++) { // targetIndex is now where we cut off
+                    const msg = this.messages[i] as Message;
+                    if (msg.role === 'assistant' && msg.name) {
+                        respondedCharacters.add(msg.name);
+                    }
+                }
+
+                const allNpcs = this.getNpcList();
+                const remainingCharacters = allNpcs.filter(
+                    c => !respondedCharacters.has(c.fullName) &&
+                    c.fullName !== targetCharacter.fullName
+                );
+
+                // Refill queue: target character first, then remaining characters
+                this.npcQueue = [targetCharacter, ...remainingCharacters];
+                console.log('Refilled queue for regeneration:', this.npcQueue.map(c => c.shortName));
+            } else {
+                // No user message found, just queue the target character
+                this.npcQueue = [targetCharacter];
+            }
+        } else {
+            // Only regenerate target character
+            this.npcQueue = [targetCharacter];
+        }
+
+        this.emitUpdate();
+
+        // Check pause setting
+        const pauseOnRegeneration = llmManager.getPauseOnRegenerationSetting();
+        this.processQueue();
+        if (pauseOnRegeneration) {
+            this.pauseConversation();
+        }
+    }
+
+    // Edit user message and resend
+    async editUserMessage(messageId: number, newContent: string): Promise<void> {
+        console.log('Editing user message with ID:', messageId);
+
+        // Find target message
+        const targetIndex = this.messages.findIndex(msg => 'id' in msg && msg.id === messageId);
+        if (targetIndex === -1) {
+            console.error('Message not found for editing:', messageId);
+            return;
+        }
+
+        const targetMessage = this.messages[targetIndex] as Message;
+        if (targetMessage.role !== 'user') {
+            console.error('Can only edit user messages:', targetMessage.role);
+            return;
+        }
+
+        // Remove messages from last to target (inclusive)
+        for (let i = this.messages.length - 1; i >= targetIndex; i--) {
+            this.messages.splice(i, 1);
+        }
+
+        this.emitUpdate();
+
+        // Use existing sendMessage functionality with new content
+        await this.sendMessage(newContent);
+    }
+
     // Get conversation history
     getHistory(): Message[] {
         return this.messages.filter(

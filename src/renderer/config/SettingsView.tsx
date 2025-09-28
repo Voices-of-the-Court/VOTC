@@ -21,6 +21,24 @@ const SettingsView: React.FC<SettingsViewProps> = ({ appSettings, setAppSettings
         // alert(`Global streaming setting saved: ${newGlobalStreamEnabled}`); // Optional
     };
 
+    const handlePauseOnRegenerationToggle = async (e: ChangeEvent<HTMLInputElement>) => {
+        const newPauseOnRegeneration = e.target.checked;
+        setAppSettings(prev => {
+            if (!prev) return null;
+            return { ...prev, pauseOnRegeneration: newPauseOnRegeneration };
+        });
+        await window.llmConfigAPI.savePauseOnRegenerationSetting(newPauseOnRegeneration);
+    };
+
+    const handleGenerateFollowingMessagesToggle = async (e: ChangeEvent<HTMLInputElement>) => {
+        const newGenerateFollowingMessages = e.target.checked;
+        setAppSettings(prev => {
+            if (!prev) return null;
+            return { ...prev, generateFollowingMessages: newGenerateFollowingMessages };
+        });
+        await window.llmConfigAPI.saveGenerateFollowingMessagesSetting(newGenerateFollowingMessages);
+    };
+
     const handleSelectCK3Folder = async () => {
         const path = await window.llmConfigAPI.selectFolder();
         if (path) {
@@ -40,6 +58,26 @@ const SettingsView: React.FC<SettingsViewProps> = ({ appSettings, setAppSettings
                     name="globalStreamEnabled"
                     checked={appSettings.globalStreamEnabled ?? true}
                     onChange={handleGlobalStreamToggle}
+                />
+            </div>
+            <div className="form-group">
+                <label htmlFor="pauseOnRegeneration">Pause on Regeneration:</label>
+                <input
+                    type="checkbox"
+                    id="pauseOnRegeneration"
+                    name="pauseOnRegeneration"
+                    checked={appSettings.pauseOnRegeneration ?? true}
+                    onChange={handlePauseOnRegenerationToggle}
+                />
+            </div>
+            <div className="form-group">
+                <label htmlFor="generateFollowingMessages">Generate Following Messages:</label>
+                <input
+                    type="checkbox"
+                    id="generateFollowingMessages"
+                    name="generateFollowingMessages"
+                    checked={appSettings.generateFollowingMessages ?? true}
+                    onChange={handleGenerateFollowingMessagesToggle}
                 />
             </div>
             <hr />

@@ -133,6 +133,14 @@ const setupIpcHandlers = () => {
     // Consider returning a status
   });
 
+  ipcMain.handle('llm:savePauseOnRegenerationSetting', (_, enabled: boolean) => {
+    llmManager.savePauseOnRegenerationSetting(enabled);
+  });
+
+  ipcMain.handle('llm:saveGenerateFollowingMessagesSetting', (_, enabled: boolean) => {
+    llmManager.saveGenerateFollowingMessagesSetting(enabled);
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---
@@ -204,6 +212,51 @@ const setupIpcHandlers = () => {
   ipcMain.handle('conversation:getState', () => {
     console.log('IPC received conversation:getState');
     return conversationManager.getConversationState();
+  });
+
+  ipcMain.handle('conversation:regenerateMessage', async (event, requestArgs: {
+    messageId: number
+  }) => {
+    const { messageId } = requestArgs;
+
+    try {
+      console.log('IPC: Regenerating message:', messageId);
+      const conversation = conversationManager.getCurrentConversation();
+      if (!conversation) {
+        throw new Error('No active conversation');
+      }
+      await conversation.regenerateMessage(messageId);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: Failed to regenerate message:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  });
+
+  ipcMain.handle('conversation:editUserMessage', async (event, requestArgs: {
+    messageId: number,
+    newContent: string
+  }) => {
+    const { messageId, newContent } = requestArgs;
+
+    try {
+      console.log('IPC: Editing user message:', messageId);
+      const conversation = conversationManager.getCurrentConversation();
+      if (!conversation) {
+        throw new Error('No active conversation');
+      }
+      await conversation.editUserMessage(messageId, newContent);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: Failed to edit user message:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   });
 
   // Set up conversation update listener

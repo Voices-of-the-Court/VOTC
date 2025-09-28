@@ -61,6 +61,14 @@ const schema: Schema<AppSettings> = {
   globalStreamEnabled: {
     type: 'boolean',
     default: true
+  },
+  pauseOnRegeneration: {
+    type: 'boolean',
+    default: true
+  },
+  generateFollowingMessages: {
+    type: 'boolean',
+    default: true
   }
 };
 
@@ -140,7 +148,9 @@ export class LLMManager {
     return {
       llmSettings: this.getLLMSettings(),
       ck3UserFolderPath: this.getCK3UserFolderPath(),
-      globalStreamEnabled: this.getGlobalStreamSetting()
+      globalStreamEnabled: this.getGlobalStreamSetting(),
+      pauseOnRegeneration: this.getPauseOnRegenerationSetting(),
+      generateFollowingMessages: this.getGenerateFollowingMessagesSetting()
     };
   }
 
@@ -175,6 +185,24 @@ export class LLMManager {
   setCK3UserFolderPath(path: string | null): void {
     this.store.set('ck3UserFolderPath', path);
     console.log('CK3 User Folder Path saved:', path);
+  }
+
+  getPauseOnRegenerationSetting(): boolean {
+    return this.store.get('pauseOnRegeneration', true); // Default to true
+  }
+
+  savePauseOnRegenerationSetting(enabled: boolean): void {
+    this.store.set('pauseOnRegeneration', enabled);
+    console.log('Pause on regeneration setting saved:', enabled);
+  }
+
+  getGenerateFollowingMessagesSetting(): boolean {
+    return this.store.get('generateFollowingMessages', true); // Default to true
+  }
+
+  saveGenerateFollowingMessagesSetting(enabled: boolean): void {
+    this.store.set('generateFollowingMessages', enabled);
+    console.log('Generate following messages setting saved:', enabled);
   }
 
   // --- Provider Configuration and Preset Management ---

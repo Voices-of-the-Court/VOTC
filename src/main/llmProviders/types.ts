@@ -129,6 +129,8 @@ export interface AppSettings {
   llmSettings: LLMSettings;
   ck3UserFolderPath?: string | null;
   globalStreamEnabled?: boolean; // Global toggle for streaming
+  pauseOnRegeneration?: boolean; // Pause conversation after regenerating a message
+  generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
 }
 
 

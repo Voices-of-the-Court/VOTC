@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setCK3Folder: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setCK3Folder', path),
   selectFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:selectFolder'),
   saveGlobalStreamSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGlobalStreamSetting', enabled),
+  savePauseOnRegenerationSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:savePauseOnRegenerationSetting', enabled),
+  saveGenerateFollowingMessagesSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGenerateFollowingMessagesSetting', enabled),
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {
@@ -82,5 +84,13 @@ contextBridge.exposeInMainWorld('conversationAPI', {
   getConversationState: (): Promise<{ isPaused: boolean; queueLength: number }> => {
     console.log('Calling conversation:getState');
     return ipcRenderer.invoke('conversation:getState');
+  },
+  regenerateMessage: (messageId: number): Promise<{success: boolean, error?: string}> => {
+    console.log('Calling conversation:regenerateMessage with:', messageId);
+    return ipcRenderer.invoke('conversation:regenerateMessage', { messageId });
+  },
+  editUserMessage: (messageId: number, newContent: string): Promise<{success: boolean, error?: string}> => {
+    console.log('Calling conversation:editUserMessage with:', messageId, newContent);
+    return ipcRenderer.invoke('conversation:editUserMessage', { messageId, newContent });
   },
 });
