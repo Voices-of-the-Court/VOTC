@@ -96,10 +96,15 @@
 .buttons-container{
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: space-evenly;
+  gap: 5px;
   width: 90px;
   height: 100%;
   margin-left: 10px;
+
+  button{
+    height: 90px;
+  }
 }
 
 .chat-input {
@@ -159,8 +164,6 @@ button{
   color: rgb(209, 209, 209);
   border-radius: 10px;
   cursor: url('assets/cursor.png'), auto;
-  width: 90px;
-  height: 90px;
 
   &:hover{
     background-color: rgba(0, 0, 0, 0.2);
