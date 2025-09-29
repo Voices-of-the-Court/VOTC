@@ -2,9 +2,14 @@ import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut
 import path from 'path';
 import fs from 'fs';
 import { llmManager } from './LLMManager';
+import { settingsRepository } from './SettingsRepository';
 import { conversationManager } from './conversation/ConversationManager';
 import { LLMProviderConfig, ILLMStreamChunk } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
+// Import providers to ensure they register themselves
+import './llmProviders/OpenRouterProvider';
+import './llmProviders/OpenAICompatibleProvider';
+import './llmProviders/OllamaProvider';
 
 // Keep a reference to the config window, managed globally
 let chatWindow: BrowserWindow | null = null;
@@ -83,20 +88,20 @@ const setupIpcHandlers = () => {
   });
 
   ipcMain.handle('llm:getAppSettings', () => {
-    return llmManager.getAppSettings();
+    return settingsRepository.getAppSettings();
   });
 
   ipcMain.handle('llm:saveProviderConfig', (_, config: LLMProviderConfig) => {
-    return llmManager.saveProviderConfig(config);
+    return settingsRepository.saveProviderConfig(config);
   });
 
   // Renamed from deleteProviderConfig as it now specifically deletes presets
-  ipcMain.handle('llm:deletePreset', (_, instanceId: string) => { 
-    llmManager.deletePreset(instanceId);
+  ipcMain.handle('llm:deletePreset', (_, instanceId: string) => {
+    settingsRepository.deletePreset(instanceId);
   });
 
   ipcMain.handle('llm:setActiveProvider', (_, instanceId: string | null) => {
-    llmManager.setActiveProviderInstanceId(instanceId);
+    settingsRepository.setActiveProviderInstanceId(instanceId);
   });
 
   ipcMain.handle('llm:listModels', async (_, config: LLMProviderConfig) => {
@@ -115,7 +120,7 @@ const setupIpcHandlers = () => {
   });
 
   ipcMain.handle('llm:setCK3Folder', (_, path: string | null) => {
-    llmManager.setCK3UserFolderPath(path);
+    settingsRepository.setCK3UserFolderPath(path);
   });
 
   ipcMain.handle('dialog:selectFolder', async () => {
@@ -129,16 +134,16 @@ const setupIpcHandlers = () => {
   });
 
   ipcMain.handle('llm:saveGlobalStreamSetting', (_, enabled: boolean) => {
-    llmManager.saveGlobalStreamSetting(enabled);
+    settingsRepository.saveGlobalStreamSetting(enabled);
     // Consider returning a status
   });
 
   ipcMain.handle('llm:savePauseOnRegenerationSetting', (_, enabled: boolean) => {
-    llmManager.savePauseOnRegenerationSetting(enabled);
+    settingsRepository.savePauseOnRegenerationSetting(enabled);
   });
 
   ipcMain.handle('llm:saveGenerateFollowingMessagesSetting', (_, enabled: boolean) => {
-    llmManager.saveGenerateFollowingMessagesSetting(enabled);
+    settingsRepository.saveGenerateFollowingMessagesSetting(enabled);
   });
 
   console.log('Setting up conversation IPC handlers...');

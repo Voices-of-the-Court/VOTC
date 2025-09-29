@@ -1,3 +1,4 @@
+import { providerRegistry } from './ProviderRegistry';
 import {
   ILLMProvider,
   ILLMCompletionRequest,
@@ -294,3 +295,6 @@ export class OpenAICompatibleProvider implements ILLMProvider {
     }
   }
 }
+
+// Register this provider with the registry
+providerRegistry.register('openai-compatible', OpenAICompatibleProvider);

@@ -3,6 +3,7 @@ import { Character } from "../gameData/Character";
 import { parseLog } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
+import { settingsRepository } from "../SettingsRepository";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
 import { ConversationEntry, Message, createError, createMessage } from "./types";
 import { EventEmitter } from "events";
@@ -29,7 +30,7 @@ export class Conversation {
 
     private async initializeGameData(): Promise<void> {
         try {
-            this.gameData = await parseLog(llmManager.getCK3DebugLogPath()!);
+            this.gameData = await parseLog(settingsRepository.getCK3DebugLogPath()!);
             console.log('GameData initialized with', this.gameData.characters.size, 'characters');
             this.isActive = true;
         } catch (error) {
@@ -114,7 +115,7 @@ You should respond as this character would, taking into account their personalit
         try {
             const result = await llmManager.sendChatRequest(llmMessages, this.currentStreamController.signal);
 
-            if (llmManager.getGlobalStreamSetting() &&
+            if (settingsRepository.getGlobalStreamSetting() &&
                 typeof result === 'object' &&
                 typeof (result as any)[Symbol.asyncIterator] === 'function') {
                 // Handle streaming response
@@ -295,7 +296,7 @@ You should respond as this character would, taking into account their personalit
         }
 
         // Check settings for generate following messages
-        const generateFollowing = llmManager.getGenerateFollowingMessagesSetting();
+        const generateFollowing = settingsRepository.getGenerateFollowingMessagesSetting();
 
         if (generateFollowing) {
             // Find latest user message before target
@@ -339,7 +340,7 @@ You should respond as this character would, taking into account their personalit
         this.emitUpdate();
 
         // Check pause setting
-        const pauseOnRegeneration = llmManager.getPauseOnRegenerationSetting();
+        const pauseOnRegeneration = settingsRepository.getPauseOnRegenerationSetting();
         this.processQueue();
         if (pauseOnRegeneration) {
             this.pauseConversation();

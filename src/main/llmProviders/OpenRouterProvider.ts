@@ -1,3 +1,4 @@
+import { providerRegistry } from './ProviderRegistry';
 import {
   ILLMCompletionRequest,
   ILLMCompletionResponse,
@@ -301,3 +302,6 @@ private async _nonStreamChatCompletion(
   }
 }
 
+
+// Register this provider with the registry
+providerRegistry.register('openrouter', OpenRouterProvider);

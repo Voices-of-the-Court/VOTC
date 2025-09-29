@@ -1,3 +1,4 @@
+import { providerRegistry } from './ProviderRegistry';
 import {
   ILLMProvider,
   ILLMCompletionRequest,
@@ -240,3 +241,6 @@ export class OllamaProvider implements ILLMProvider {
     }
   }
 }
+
+// Register this provider with the registry
+providerRegistry.register('ollama', OllamaProvider);
