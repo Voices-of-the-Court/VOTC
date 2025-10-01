@@ -6,6 +6,7 @@ import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
 import { ConversationEntry, Message, createError, createMessage } from "./types";
+import { PromptBuilder } from "./PromptBuilder";
 import { EventEmitter } from "events";
 
 export class Conversation {
@@ -39,49 +40,6 @@ export class Conversation {
         }
     }
 
-    // Generate a system prompt based on the characters in the conversation
-    private generateSystemPrompt(char: Character): string {
-        if (this.gameData.characters.size === 0) {
-            console.log('No characters in conversation for system prompt');
-            return "You are characters in a medieval strategy game. Engage in conversation naturally.";
-        }
-
-        if (!char) {
-            console.log('Primary character not found for ID:', this.gameData.aiID);
-            return "You are characters in a medieval strategy game. Engage in conversation naturally.";
-        }
-
-        console.log('Generating system prompt for character:', char.shortName);
-
-        let prompt = `You are ${char.fullName}, ${char.primaryTitle} in a medieval strategy game.
-
-## Character Background:
-- Name: ${char.shortName}
-- Age: ${char.age} years old
-- Personality: ${char.personality}
-- Culture: ${char.culture}, Faith: ${char.faith}
-- Sexuality: ${char.sexuality}
-${char.liege ? `- Liege: ${char.liege}` : ''}
-${char.consort ? `- Consort: ${char.consort}` : ''}
-
-## Traits and Personality:
-${char.traits.map(trait => `- ${trait.category}: ${trait.name} - ${trait.desc}`).join('\n') || 'None specific'}
-
-## Current Situation:
-- Gold: ${char.gold} gold coins
-- Opinion of Player: ${char.opinionOfPlayer}/100
-${char.isRuler ? '- Ruler status' : '- Not a ruler'}
-${char.isIndependentRuler ? '- Independent ruler' : ''}
-${char.capitalLocation ? `- Rules from: ${char.capitalLocation}` : ''}
-
-## Key Relationships:
-${char.relationsToPlayer.map(rel => `- ${rel}`).join('\n') || 'None noted'}
-
-You should respond as this character would, taking into account their personality, traits, and opinions. Be politically minded, strategic, and true to medieval courtly behavior and feudal relationships.`;
-
-        console.log('Generated system prompt:', prompt.substring(0, 200) + '...');
-        return prompt;
-    }
 
     // Get list of all NPCs (characters except the player)
     private getNpcList(): Character[] {
@@ -90,13 +48,8 @@ You should respond as this character would, taking into account their personalit
     }
 
     // Handle response for a single NPC
-    private async respondAs(npc: Character, history: Message[]): Promise<void> {
-        const systemPrompt = this.generateSystemPrompt(npc);
-        const llmMessages: any[] = [
-            { role: 'system', content: systemPrompt },
-            ...history.map(m => ({ role: m.role, content: `${m.name}: ${m.content}` })),
-            { role: 'user', content: `[Write next reply only as ${npc.shortName}]`}
-        ];
+    private async respondAs(npc: Character): Promise<void> {
+        const llmMessages = PromptBuilder.buildMessages(this.getHistory(), npc, this.gameData);
 
         const msgId = this.nextId++;
         const placeholder = createMessage({
@@ -219,7 +172,7 @@ You should respond as this character would, taking into account their personalit
 
         while (this.npcQueue.length > 0 && !this.isPaused) {
             const npc = this.npcQueue.shift()!;
-            await this.respondAs(npc, this.getHistory());
+            await this.respondAs(npc);
         }
 
         if (this.npcQueue.length === 0 && !this.isPaused) {
