@@ -24,13 +24,6 @@ export class OpenRouterProvider extends BaseProvider {
   providerId = 'openrouter';
   name = 'OpenRouter';
 
-  private getAPIKey(config: LLMProviderConfig): string {
-    if (config.providerType !== 'openrouter' || !config.apiKey) {
-      throw new Error('Invalid configuration for OpenRouterProvider: API key is missing.');
-    }
-    return config.apiKey;
-  }
-
   /**
    * Determine if an error should trigger a retry
    * @param error The error to check

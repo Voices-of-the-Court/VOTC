@@ -18,7 +18,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ appSettings, setAppSettings
             return { ...prev, globalStreamEnabled: newGlobalStreamEnabled };
         });
         await window.llmConfigAPI.saveGlobalStreamSetting(newGlobalStreamEnabled);
-        // alert(`Global streaming setting saved: ${newGlobalStreamEnabled}`); // Optional
     };
 
     const handlePauseOnRegenerationToggle = async (e: ChangeEvent<HTMLInputElement>) => {

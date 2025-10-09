@@ -212,7 +212,7 @@ export class SettingsRepository {
         settings.providers.push(configToSave);
       }
     } else { // It's a preset
-      if (!configToSave.instanceId || baseProviderTypes.includes(configToSave.instanceId)) {
+      if (!configToSave.instanceId) {
         // Preset must have a unique ID, not a base provider type ID
         configToSave.instanceId = uuidv4();
       }

@@ -122,6 +122,20 @@ export abstract class BaseProvider {
     }
   }
 
+  protected getAPIKey(config: LLMProviderConfig): string {
+    if (!config.apiKey) {
+      throw new Error(`Invalid configuration for ${this.name}: API key is missing.`);
+    }
+    return config.apiKey;
+  }
+
+  protected getBaseUrl(config: LLMProviderConfig): string {
+    if (!config.baseUrl) {
+      throw new Error(`Invalid configuration for ${this.name}: Base URL is missing.`);
+    }
+    return config.baseUrl;
+  }
+
   /**
    * Retry an async operation with exponential backoff
    * @param operation The async operation to retry
