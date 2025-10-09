@@ -193,19 +193,26 @@ hr {
         list-style-type: none;
         padding: 0;
         margin: 0;
+        margin-left: 2px;
         li {
-            padding: 8px 10px;
+            padding: 6px 4px 6px 10px;
             cursor: pointer;
             border-radius: 4px;
             margin-bottom: 5px;
+            margin-right: 8px;
             border: 1px solid transparent; // for consistent spacing
+            transition: background-color 0.2s ease, border-color 0.2s ease;
             &:hover {
-                background-color: #e9ecef;
+                background-color: rgba(128, 128, 128, 0.2);
             }
             &.active {
-                background-color: #007bff;
-                color: white;
-                font-weight: bold;
+                background-color: rgba(128, 128, 128, 0.2);
+                border-color: #EFB16A;
+                box-shadow: 0 0 5px #EFB16A;
+
+                .preset-name {
+                    font-weight: bold;
+                }
             }
         }
     }
@@ -219,41 +226,23 @@ hr {
         .preset-type {
             font-size: 0.8em;
             color: #555;
-            margin-left: 5px;
         }
          &.active .preset-type {
-            color: #f0f0f0;
+            color: #EFB16A;
         }
         .delete-preset-btn {
             background: none;
             border: none;
             color: #dc3545;
             cursor: pointer;
-            padding: 2px 5px;
-            font-size: 1.2em;
+            font-size: 1.6em;
             margin: 0;
             line-height: 1;
             &:hover {
-                color: #a71d2a;
-                background-color: transparent;
+                color: #ff3448;
+                background-image: radial-gradient(circle, rgba(255, 0, 0, 0.2), rgba(0, 0, 0, 0.0));
+                box-shadow: 0 0 5px rgba(255, 0, 0, 0.2);
             }
-        }
-    }
-     button { // Sidebar buttons for provider types
-        display: block;
-        width: 100%;
-        text-align: left;
-        margin-bottom: 5px;
-        background-color: #f8f9fa;
-        color: #333;
-        border: 1px solid #ddd;
-         &:hover {
-            background-color: #e9ecef;
-        }
-        &.active {
-            background-color: #007bff;
-            color: white;
-            border-color: #007bff;
         }
     }
 }

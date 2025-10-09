@@ -46,10 +46,12 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                             className={`preset-item ${selectedPresetIdForEditing === preset.instanceId ? 'active' : ''}`}
                             onClick={() => onSelectPreset(preset.instanceId)} // Moved onClick to li
                         >
-                            <span className="preset-name"> {/* Removed onClick from span */}
-                                {preset.customName || 'Unnamed Preset'} 
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <span className="preset-name"> {/* Removed onClick from span */}
+                                    {preset.customName || 'Unnamed Preset'} 
+                                </span>
                                 <small className="preset-type">({preset.providerType})</small>
-                            </span>
+                            </div>
                             <button 
                                 onClick={(e) => { 
                                     e.stopPropagation(); // Prevent li onClick from firing
