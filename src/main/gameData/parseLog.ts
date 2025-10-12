@@ -124,12 +124,14 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
 
     
     function parseMemory(data: string[]): Memory{
-        return {
+        const memory: Memory = {
             type: data[1],
             creationDate: data[2],
             desc: data[3],
-            relevanceWeight: Number(data[4])
+            relevanceWeight: Number(data[4]),
+            creationDateTotalDays: Number(data[5])
         }
+        return memory
     }
 
     function parseSecret(data: string[]): Secret{

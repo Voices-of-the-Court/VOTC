@@ -16,6 +16,7 @@ export type Trait = {
 export type Memory = {
     type: string,
     creationDate: string,
+    creationDateTotalDays: number,
     desc: string,
     /**@property {number} relevanceWeight - how relevant the memory to the current conversation. The higher, the more relevant. */
     relevanceWeight: number
@@ -37,6 +38,7 @@ export type Secret = {
 */
 export class GameData {
     date: string;
+    totalDays: number;
     scene: string;
     location: string;
     locationController: string;
@@ -57,6 +59,7 @@ export class GameData {
             this.scene = data[5].substring(11),
             this.location = data[6],
             this.locationController = data[7],
+            this.totalDays = Number(data[8]),
 
             this.characters = new Map<number, Character>()
     }
