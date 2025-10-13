@@ -30,8 +30,8 @@ declare global {
       saveProviderConfig: (config: LLMProviderConfig) => Promise<LLMProviderConfig>;
       deletePreset: (instanceId: string) => Promise<void>; // Renamed
       setActiveProvider: (instanceId: string | null) => Promise<void>;
-      listModels: (config: LLMProviderConfig) => Promise<ILLMModel[] | { error: string }>;
-      testConnection: (config: LLMProviderConfig) => Promise<{success: boolean, error?: string, message?: string}>;
+      listModels: () => Promise<ILLMModel[] | { error: string }>;
+      testConnection: () => Promise<{success: boolean, error?: string, message?: string}>;
       setCK3Folder: (path: string | null) => Promise<void>;
       selectFolder: () => Promise<string | null>;
       saveGlobalStreamSetting: (enabled: boolean) => Promise<void>;

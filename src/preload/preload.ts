@@ -34,13 +34,17 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   saveProviderConfig: (config: LLMProviderConfig): Promise<LLMProviderConfig> => ipcRenderer.invoke('llm:saveProviderConfig', config),
   deletePreset: (instanceId: string): Promise<void> => ipcRenderer.invoke('llm:deletePreset', instanceId), // Renamed
   setActiveProvider: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setActiveProvider', instanceId),
-  listModels: (config: LLMProviderConfig): Promise<ILLMModel[] | { error: string }> => ipcRenderer.invoke('llm:listModels', config),
-  testConnection: (config: LLMProviderConfig): Promise<{success: boolean, error?: string, message?: string}> => ipcRenderer.invoke('llm:testConnection', config),
+  listModels: (): Promise<ILLMModel[] | { error: string }> => ipcRenderer.invoke('llm:listModels'),
+  testConnection: (): Promise<{success: boolean, error?: string, message?: string}> => ipcRenderer.invoke('llm:testConnection'),
   setCK3Folder: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setCK3Folder', path),
   selectFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:selectFolder'),
   saveGlobalStreamSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGlobalStreamSetting', enabled),
   savePauseOnRegenerationSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:savePauseOnRegenerationSetting', enabled),
   saveGenerateFollowingMessagesSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGenerateFollowingMessagesSetting', enabled),
+  getCurrentContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getCurrentContextLength'),
+  getMaxContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getMaxContextLength'),
+  setCustomContextLength: (contextLength: number): Promise<void> => ipcRenderer.invoke('llm:setCustomContextLength', contextLength),
+  clearCustomContextLength: (): Promise<void> => ipcRenderer.invoke('llm:clearCustomContextLength'),
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {

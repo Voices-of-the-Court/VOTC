@@ -1,32 +1,23 @@
 import { useState, useEffect } from 'react';
-import type { AppSettings, ProviderType as ConfigProviderType } from '@llmTypes'; // Adjusted path
-import './configPanel.scss'; // Import local styles
-import ConnectionView from './ConnectionView'; // Adjusted path
-import SettingsView from './SettingsView';   // Adjusted path
+import { useConfigStore } from './store/useConfigStore';
+import './configPanel.scss';
+import ConnectionView from './ConnectionView';
+import SettingsView from './SettingsView';
 
 type CurrentTab = 'connection' | 'settings';
 
 interface ConfigPanelProps {
-  onClose: () => void; // Add close callback prop
+  onClose: () => void;
 }
 
 function ConfigPanel({ onClose }: ConfigPanelProps) {
-  const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
+  const loadSettings = useConfigStore((state) => state.loadSettings);
+  const appSettings = useConfigStore((state) => state.appSettings);
   const [currentTab, setCurrentTab] = useState<CurrentTab>('connection');
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      window.llmConfigAPI.getAppSettings().then(settings => {
-        setAppSettings(settings);
-    });
-    }
-    catch (error) {
-      console.error('Error fetching app settings:', error);
-      setError(`Error fetching app settings: ${error}`);
-    }
-  }, []);
-
+    loadSettings();
+  }, [loadSettings]);
 
   if (!appSettings) {
     return <div>Loading settings...</div>;
@@ -63,8 +54,8 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         </button>
       </header>
       <main className="config-main-content">
-        {currentTab === 'connection' && <ConnectionView appSettings={appSettings} setAppSettings={setAppSettings} />}
-        {currentTab === 'settings' && <SettingsView appSettings={appSettings} setAppSettings={setAppSettings} />}
+        {currentTab === 'connection' && <ConnectionView />}
+        {currentTab === 'settings' && <SettingsView />}
       </main>
     </div>
   );

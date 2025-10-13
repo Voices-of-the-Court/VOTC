@@ -281,6 +281,57 @@ hr {
     }
 }
 
+/* Context Length Field Styles */
+.context-length-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.context-length-input-container input {
+  flex: 1;
+}
+
+.clear-custom-btn {
+  background: none;
+  border: 1px solid #EFB16A;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #EFB16A;
+  
+  &:hover {
+    background-color: rgba(239, 177, 106, 0.2);
+    color: #fff;
+  }
+}
+
+.custom-indicator {
+  color: #FFA500;
+  margin-left: 4px;
+  font-size: 14px;
+}
+
+.context-length-warning {
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.context-length-info {
+  font-size: 12px;
+  color: #ccc;
+  margin-top: 4px;
+}
+
 .test-result {
     margin-top: 10px;
     padding: 8px;

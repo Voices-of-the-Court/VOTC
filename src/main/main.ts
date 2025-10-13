@@ -104,9 +104,9 @@ const setupIpcHandlers = () => {
     settingsRepository.setActiveProviderInstanceId(instanceId);
   });
 
-  ipcMain.handle('llm:listModels', async (_, config: LLMProviderConfig) => {
+  ipcMain.handle('llm:listModels', async () => {
     try {
-      return await llmManager.listModelsForProvider(config);
+      return await llmManager.listModelsForProvider();
     } catch (error: any) {
       console.error('IPC llm:listModels error:', error);
       // Return error information to the renderer
@@ -114,8 +114,8 @@ const setupIpcHandlers = () => {
     }
   });
 
-  ipcMain.handle('llm:testConnection', async (_, config: LLMProviderConfig) => {
-     return await llmManager.testProviderConnection(config);
+  ipcMain.handle('llm:testConnection', async () => {
+     return await llmManager.testProviderConnection();
      // Errors are caught within testProviderConnection and returned in the result object
   });
 
@@ -144,6 +144,42 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('llm:saveGenerateFollowingMessagesSetting', (_, enabled: boolean) => {
     settingsRepository.saveGenerateFollowingMessagesSetting(enabled);
+  });
+
+  ipcMain.handle('llm:getCurrentContextLength', async () => {
+    try {
+      return await llmManager.getCurrentContextLength();
+    } catch (error: any) {
+      console.error('IPC llm:getCurrentContextLength error:', error);
+      return 90000; // Fallback value
+    }
+  });
+
+  ipcMain.handle('llm:getMaxContextLength', async () => {
+    try {
+      return await llmManager.getMaxContextLength();
+    } catch (error: any) {
+      console.error('IPC llm:getMaxContextLength error:', error);
+      return 90000; // Fallback value
+    }
+  });
+
+  ipcMain.handle('llm:setCustomContextLength', (_, contextLength: number) => {
+    try {
+      llmManager.setCustomContextLength(contextLength);
+    } catch (error: any) {
+      console.error('IPC llm:setCustomContextLength error:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('llm:clearCustomContextLength', () => {
+    try {
+      llmManager.clearCustomContextLength();
+    } catch (error: any) {
+      console.error('IPC llm:clearCustomContextLength error:', error);
+      throw error;
+    }
   });
 
   console.log('Setting up conversation IPC handlers...');

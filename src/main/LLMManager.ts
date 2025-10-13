@@ -35,7 +35,12 @@ export class LLMManager {
 
   // --- Core Functionality ---
 
-  async listModelsForProvider(config: LLMProviderConfig): Promise<ILLMModel[]> {
+  async listModelsForProvider(): Promise<ILLMModel[]> {
+    const config = settingsRepository.getActiveProviderConfig();
+    if (!config) {
+      throw new Error('No active and enabled LLM provider configured.');
+    }
+    
     try {
       const provider = this.getProviderInstance(config);
       if (provider.listModels) {
@@ -48,7 +53,12 @@ export class LLMManager {
     }
   }
 
-   async testProviderConnection(config: LLMProviderConfig): Promise<{success: boolean, error?: string, message?: string}> {
+   async testProviderConnection(): Promise<{success: boolean, error?: string, message?: string}> {
+    const config = settingsRepository.getActiveProviderConfig();
+    if (!config) {
+      return { success: false, error: 'No active and enabled LLM provider configured.' };
+    }
+    
      try {
       const provider = this.getProviderInstance(config);
       if (provider.testConnection) {
@@ -90,6 +100,84 @@ export class LLMManager {
     };
 
     return await provider.chatCompletion(request, activeConfig);
+  }
+
+  // Get current context length for the active provider
+  async getCurrentContextLength(): Promise<number> {
+    const activeConfig = settingsRepository.getActiveProviderConfig();
+    if (!activeConfig) {
+      return 90000; // Fallback value
+    }
+
+    // If user has set a custom context length, use that
+    if (activeConfig.customContextLength !== undefined) {
+      return activeConfig.customContextLength;
+    }
+
+    // Otherwise, try to get the default context length for the current model
+    try {
+      const models = await this.listModelsForProvider();
+      const currentModel = models.find(model => model.id === activeConfig.defaultModel);
+      
+      if (currentModel && currentModel.contextLength !== undefined) {
+        return currentModel.contextLength;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch model context length:', error);
+    }
+
+    // Fallback to default value
+    return 90000;
+  }
+
+  // Get the maximum context length for the current model
+  async getMaxContextLength(): Promise<number> {
+    const activeConfig = settingsRepository.getActiveProviderConfig();
+    if (!activeConfig) {
+      return 90000; // Fallback value
+    }
+
+    try {
+      const models = await this.listModelsForProvider();
+      const currentModel = models.find(model => model.id === activeConfig.defaultModel);
+      
+      if (currentModel && currentModel.contextLength !== undefined) {
+        return currentModel.contextLength;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch model max context length:', error);
+    }
+
+    // Fallback to default value
+    return 90000;
+  }
+
+  // Set custom context length for the active provider
+  setCustomContextLength(contextLength: number): void {
+    const activeConfig = settingsRepository.getActiveProviderConfig();
+    if (!activeConfig) {
+      throw new Error('No active and enabled LLM provider configured.');
+    }
+
+    // Update the config with custom context length
+    const updatedConfig = {
+      ...activeConfig,
+      customContextLength: contextLength
+    };
+
+    settingsRepository.saveProviderConfig(updatedConfig);
+  }
+
+  // Clear custom context length for the active provider
+  clearCustomContextLength(): void {
+    const activeConfig = settingsRepository.getActiveProviderConfig();
+    if (!activeConfig) {
+      throw new Error('No active and enabled LLM provider configured.');
+    }
+
+    // Remove custom context length from config
+    const { customContextLength, ...configWithoutCustomContext } = activeConfig;
+    settingsRepository.saveProviderConfig(configWithoutCustomContext);
   }
 }
 

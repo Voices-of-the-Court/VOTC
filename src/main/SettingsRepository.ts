@@ -18,6 +18,7 @@ const baseProviderConfigSchema = {
     baseUrl: { type: 'string' as const },
     defaultModel: { type: 'string' as const },
     defaultParameters: { type: 'object' as const },
+    customContextLength: { type: 'number' as const },
   },
   required: ['instanceId', 'providerType']
 };
@@ -92,6 +93,7 @@ export class SettingsRepository {
           baseUrl: type === 'ollama' ? 'http://localhost:11434' : '',
           defaultModel: '',
           defaultParameters: { temperature: 0.7, max_tokens: 2048 },
+          // customContextLength is intentionally omitted to use default
         });
         settingsChanged = true;
       }
@@ -103,6 +105,7 @@ export class SettingsRepository {
             instanceId: type, providerType: type, apiKey: '',
             baseUrl: type === 'ollama' ? 'http://localhost:11434' : '',
             defaultModel: '', defaultParameters: { temperature: 0.7, max_tokens: 2048 }
+            // customContextLength is intentionally omitted to use default
         };
     }).filter(p => providerTypes.includes(p.instanceId as any));
 
