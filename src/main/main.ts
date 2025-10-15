@@ -4,7 +4,7 @@ import fs from 'fs';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
 import { conversationManager } from './conversation/ConversationManager';
-import { LLMProviderConfig, ILLMStreamChunk } from './llmProviders/types'; // Added more types
+import { LLMProviderConfig } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
 // Import providers to ensure they register themselves
 import './llmProviders/OpenRouterProvider';
@@ -205,19 +205,16 @@ const setupIpcHandlers = () => {
   });
 
   ipcMain.handle('conversation:getHistory', () => {
-    console.log('IPC received conversation:getHistory');
     return conversationManager.getConversationHistory();
   });
 
   ipcMain.handle('conversation:reset', () => {
-    console.log('IPC received conversation:reset');
     conversationManager.endCurrentConversation();
     // conversationManager.createConversation();
     return true;
   });
 
   ipcMain.handle('conversation:getPlayerInfo', () => {
-    console.log('IPC received conversation:getPlayerInfo');
     const player = conversationManager.getPlayer();
     return player ? {
       name: player.shortName,
@@ -231,27 +228,22 @@ const setupIpcHandlers = () => {
   });
 
   ipcMain.handle('conversation:getEntries', () => {
-    console.log('IPC received conversation:getEntries');
     return conversationManager.getConversationEntries();
   });
 
   ipcMain.handle('conversation:cancelStream', () => {
-    console.log('IPC received conversation:cancelStream');
     conversationManager.cancelCurrentStream();
   });
 
   ipcMain.handle('conversation:pause', () => {
-    console.log('IPC received conversation:pause');
     conversationManager.pauseConversation();
   });
 
   ipcMain.handle('conversation:resume', () => {
-    console.log('IPC received conversation:resume');
     conversationManager.resumeConversation();
   });
 
   ipcMain.handle('conversation:getState', () => {
-    console.log('IPC received conversation:getState');
     return conversationManager.getConversationState();
   });
 
@@ -303,7 +295,6 @@ const setupIpcHandlers = () => {
   // Set up conversation update listener
   const conversationUpdateCallback = (entries: any[]) => {
     if (chatWindow && !chatWindow.isDestroyed()) {
-      console.log('Sending conversation update to renderer:', entries.length, 'entries');
       chatWindow.webContents.send('conversation:updated', entries);
     }
   };

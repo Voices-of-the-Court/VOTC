@@ -49,23 +49,18 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
 
 contextBridge.exposeInMainWorld('conversationAPI', {
   sendMessage: (userMessage: string): Promise<{streamStarted?: boolean, message?: any, error?: string}> => {
-    console.log('Calling conversation:sendMessage with:', userMessage);
     return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage });
   },
   getHistory: (): Promise<any[]> => {
-    console.log('Calling conversation:getHistory');
     return ipcRenderer.invoke('conversation:getHistory');
   },
   reset: (): Promise<boolean> => {
-    console.log('Calling conversation:reset');
     return ipcRenderer.invoke('conversation:reset');
   },
   getPlayerInfo: (): Promise<any> => {
-    console.log('Calling conversation:getPlayerInfo');
     return ipcRenderer.invoke('conversation:getPlayerInfo');
   },
   getConversationEntries: (): Promise<any[]> => {
-    console.log('Calling conversation:getEntries');
     return ipcRenderer.invoke('conversation:getEntries');
   },
   onConversationUpdate: (callback: (entries: any[]) => void) => {
@@ -74,27 +69,21 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     return () => ipcRenderer.removeListener('conversation:updated', handler);
   },
   cancelStream: (): Promise<void> => {
-    console.log('Calling conversation:cancelStream');
     return ipcRenderer.invoke('conversation:cancelStream');
   },
   pauseConversation: (): Promise<void> => {
-    console.log('Calling conversation:pause');
     return ipcRenderer.invoke('conversation:pause');
   },
   resumeConversation: (): Promise<void> => {
-    console.log('Calling conversation:resume');
     return ipcRenderer.invoke('conversation:resume');
   },
   getConversationState: (): Promise<{ isPaused: boolean; queueLength: number }> => {
-    console.log('Calling conversation:getState');
     return ipcRenderer.invoke('conversation:getState');
   },
   regenerateMessage: (messageId: number): Promise<{success: boolean, error?: string}> => {
-    console.log('Calling conversation:regenerateMessage with:', messageId);
     return ipcRenderer.invoke('conversation:regenerateMessage', { messageId });
   },
   editUserMessage: (messageId: number, newContent: string): Promise<{success: boolean, error?: string}> => {
-    console.log('Calling conversation:editUserMessage with:', messageId, newContent);
     return ipcRenderer.invoke('conversation:editUserMessage', { messageId, newContent });
   },
 });

@@ -18,6 +18,13 @@ export class Conversation {
     private eventEmitter: EventEmitter;
     private currentStreamController: AbortController | null = null;
 
+    currentSummary: string = '';
+    private lastSummarizedMessageIndex: number = 0;
+    
+    // Configuration placeholders
+    private readonly CONTEXT_LIMIT_PERCENTAGE = 0.75; // Trigger summary at 75% of context
+    private readonly MESSAGES_TO_SUMMARIZE_PERCENTAGE = 0.40; // Summarize oldest 40%
+
     // Queue and pause management
     npcQueue: Character[] = [];
     customQueue: Character[] | null = null;
@@ -33,6 +40,7 @@ export class Conversation {
         try {
             this.gameData = await parseLog(settingsRepository.getCK3DebugLogPath()!);
             console.log('GameData initialized with', this.gameData.characters.size, 'characters');
+            this.gameData.loadCharactersSummaries();
             this.isActive = true;
         } catch (error) {
             console.error('Failed to parse log file:', error);
@@ -40,6 +48,87 @@ export class Conversation {
         }
     }
 
+    private async checkAndSummarizeIfNeeded(npc: Character): Promise<void> {
+        const currentMessages = PromptBuilder.buildMessages(
+            this.getHistory().slice(this.lastSummarizedMessageIndex),
+            npc, 
+            this.gameData,
+            this.currentSummary
+        );
+        
+        const estimatedTokens = this.estimateTokenCount(currentMessages);
+        const contextLimit = await llmManager.getCurrentContextLength() || 10000;
+        
+        if (estimatedTokens > contextLimit * this.CONTEXT_LIMIT_PERCENTAGE) {
+            console.log(`Context approaching limit (${estimatedTokens}/${contextLimit}), creating rolling summary`);
+            await this.createRollingSummary(contextLimit);
+        }
+    }
+
+    /**
+     * Create a rolling summary of older messages to compress context
+     */
+    private async createRollingSummary(contextLimit: number): Promise<void> {
+        const history = this.getHistory().slice(this.lastSummarizedMessageIndex);
+        const tokensToSummarize = Math.floor(
+            contextLimit * this.MESSAGES_TO_SUMMARIZE_PERCENTAGE
+        );
+        
+        // Find messages to summarize (oldest messages not yet summarized)
+        let tokenCount = 0;
+        const messagesToSummarize: Message[] = [];
+        
+        for (let i = this.lastSummarizedMessageIndex; i < history.length; i++) {
+            const msg = history[i];
+            const msgTokens = this.estimateMessageTokens(msg);
+            
+            if (tokenCount + msgTokens > tokensToSummarize) {
+                break;
+            }
+            
+            messagesToSummarize.push(msg);
+            tokenCount += msgTokens;
+            this.lastSummarizedMessageIndex = i + 1;
+        }
+        
+        if (messagesToSummarize.length === 0) {
+            console.log('No new messages to summarize');
+            return;
+        }
+        
+        // Create summary prompt
+        const summaryPrompt = PromptBuilder.buildResummarizePrompt(messagesToSummarize, this.currentSummary);
+        
+        try {
+            const result = await llmManager.sendChatRequest(summaryPrompt, undefined, true);
+            
+            if (result && typeof result === 'object' && 'content' in result) {
+                // Append to existing summary or create new one
+                if (this.currentSummary) {
+                    this.currentSummary = `${this.currentSummary}\n\n${result.content}`;
+                } else {
+                    this.currentSummary = result.content as string;
+                }
+                
+                console.log('Updated rolling summary:', this.currentSummary.substring(0, 100) + '...');
+            }
+        } catch (error) {
+            console.error('Failed to create rolling summary:', error);
+        }
+    }
+
+    /**
+     * Estimate token count (simple approximation)
+     */
+    private estimateTokenCount(messages: any[]): number {
+        const text = JSON.stringify(messages);
+        return Math.ceil(text.length / 4); // Rough estimate: 1 token ≈ 4 characters
+    }
+    
+    private estimateMessageTokens(message: Message): number {
+        const text = `${message.name}: ${message.content}`;
+        return Math.ceil(text.length / 4);
+    }
 
     // Get list of all NPCs (characters except the player)
     private getNpcList(): Character[] {
@@ -49,8 +138,6 @@ export class Conversation {
 
     // Handle response for a single NPC
     private async respondAs(npc: Character): Promise<void> {
-        const llmMessages = PromptBuilder.buildMessages(this.getHistory(), npc, this.gameData);
-
         const msgId = this.nextId++;
         const placeholder = createMessage({
             id: msgId,
@@ -61,6 +148,17 @@ export class Conversation {
         });
         this.messages.push(placeholder);
         this.emitUpdate();
+
+        // Has to be called after emitUpdate to show placeholder in UI in right time
+        await this.checkAndSummarizeIfNeeded(npc);
+        
+        const llmMessages = PromptBuilder.buildMessages(
+            this.getHistory().slice(this.lastSummarizedMessageIndex), 
+            npc, 
+            this.gameData,
+            this.currentSummary
+        );
+
 
         // Create AbortController for this stream
         this.currentStreamController = new AbortController();

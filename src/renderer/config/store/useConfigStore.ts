@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { shallow } from 'zustand/shallow';
 import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel } from '@llmTypes';
 
 const DEFAULT_PARAMETERS = { temperature: 0.7, max_tokens: 2048 };

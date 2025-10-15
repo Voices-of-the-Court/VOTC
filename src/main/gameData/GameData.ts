@@ -1,4 +1,6 @@
+import path from "path";
 import { Character } from "./Character";
+import { app } from "electron";
 
 // Simple replacement for removeTooltip since parseLog.ts doesn't exist
 function removeTooltip(text: string): string {
@@ -74,5 +76,27 @@ export class GameData {
      */
     getAi(): Character{
         return this.characters.get(this.aiID)!;
+    }
+
+    loadCharactersSummaries(){
+        const summariesPath = path.join(app.getPath('userData'), 'conversation_summaries', this.playerID.toString());
+        for (const character of this.characters.values()) {
+            character.loadSummaries(summariesPath + '/' + character.id.toString() + '.json');
+        }
+    }
+
+    saveCharactersSummaries(finalSummary: string){
+        const summariesPath = path.join(app.getPath('userData'), 'conversation_summaries', this.playerID.toString());
+
+        for (const character of this.characters.values()) {
+            character.conversationSummaries.unshift(
+                {
+                    date: this.date,
+                    totalDays: this.totalDays,
+                    content: finalSummary
+                }
+            )
+            character.saveSummaries(summariesPath + '/' + character.id.toString() + '.json');
+        }
     }
 }

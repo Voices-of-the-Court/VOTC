@@ -13,7 +13,7 @@ function Chat({ onToggleConfig }: ChatProps) {
 
   const { entries, sendMessage } = useConversationEntries();
   const { handleChatBoxMouseEnter, handleChatBoxMouseLeave, handleLeave } = useWindowEvents();
-  const { messagesEndRef, scrollToBottom } = useAutoScroll();
+const { messagesEndRef, containerRef, scrollToBottom, handleScroll } = useAutoScroll();
 
   const isStreaming = entries.some(entry => entry.type === 'message' && entry.isStreaming);
 
@@ -127,7 +127,12 @@ function Chat({ onToggleConfig }: ChatProps) {
           className="chat-box"
           style={{ pointerEvents: 'auto' }}
         >
-          <MessageList entries={entries} scrollRef={messagesEndRef} />
+<MessageList 
+  entries={entries} 
+  scrollRef={messagesEndRef}
+  containerRef={containerRef}
+  onScroll={handleScroll}
+/>
           <div className="chat-controls-container">
             <ChatInput
               value={inputValue}

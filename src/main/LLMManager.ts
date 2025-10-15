@@ -74,7 +74,8 @@ export class LLMManager {
   // Unified method to send requests to the *active* provider
   async sendChatRequest(
     messages: ILLMCompletionRequest['messages'],
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    noStream?: boolean
   ): Promise<ILLMOutput> {
     const activeConfig = settingsRepository.getActiveProviderConfig();
     if (!activeConfig) {
@@ -87,7 +88,7 @@ export class LLMManager {
     const provider = this.getProviderInstance(activeConfig);
 
     // Use global stream setting from AppSettings
-    const stream = settingsRepository.getGlobalStreamSetting();
+    const stream = settingsRepository.getGlobalStreamSetting() && !noStream;
 
     const request: ILLMCompletionRequest = {
       model: activeConfig.defaultModel,
