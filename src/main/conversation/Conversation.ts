@@ -238,11 +238,11 @@ export class Conversation {
     }
 
     // Set custom queue for conversation
-    setCustomQueue(queue: []): void {
-        // TODO: use ids instead. Frontend side of the app should send an array of character ids in order of custom queue.
-        // Additionally we need to send to UI participating charaters as id's and their names to use for creation of custom queue.
-        this.emitUpdate();
-    }
+    // setCustomQueue(queue: []): void {
+    //     // TODO: use ids instead. Frontend side of the app should send an array of character ids in order of custom queue.
+    //     // Additionally we need to send to UI participating charaters as id's and their names to use for creation of custom queue.
+    //     this.emitUpdate();
+    // }
 
     // Fill NPC queue with shuffled characters or custom queue
     private fillNpcQueue(): void {

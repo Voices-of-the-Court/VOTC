@@ -53,6 +53,9 @@ export class PromptBuilder {
 
         let prompt = `You are ${char.fullName}, ${char.primaryTitle} in a medieval strategy game.
 
+## Current Scene:
+${gameData.scene}
+
 ## Character Background:
 - Name: ${char.shortName}
 - Age: ${char.age} years old
@@ -75,8 +78,12 @@ ${char.capitalLocation ? `- Rules from: ${char.capitalLocation}` : ''}
 ## Key Relationships:
 ${char.relationsToPlayer.map(rel => `- ${rel}`).join('\n') || 'None noted'}
 
+Other characters in this conversation:
+${Array.from(gameData.characters.values()).map(c => `- ${c.shortName}`).filter(c => c !== char.shortName).join('\n')}
+
 You should respond as this character would, taking into account their personality, traits, and opinions. Be politically minded, strategic, and true to medieval courtly behavior and feudal relationships.
 Characters should include phrases in their native language besides English, to make conversation more realistic.
+Respond to other character's replica only if is addressed to you, alas your character would retort.
 `;
 
         console.log('Generated system prompt:', prompt.substring(0, 200) + '...');

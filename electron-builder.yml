@@ -2,9 +2,15 @@ appId: com.electron.app
 productName: revoices-of-the-court
 directories:
   buildResources: build
+asar: false
 files:
   - '!**/.vscode/*'
   - '!src/*'
+  - '!dist/*'
+  - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
+  - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
+  - '!**/node_modules/*.d.ts'
+  - '!**/node_modules/.bin'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
@@ -13,6 +19,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: revoices-of-the-court
+  icon: build/icon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

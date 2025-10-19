@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AnimatedMarkdown } from 'flowtoken';
-// import 'flowtoken/dist/styles.css';
+import StreamingMarkdown from './StreamingMarkdown';
 import { ChatEntry } from '../types';
+
 
 interface MessageItemProps {
   entry: ChatEntry;
@@ -103,14 +103,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
           </div>
         ) : (
           <>
-            <AnimatedMarkdown
+            <StreamingMarkdown 
               content={message.content}
-              animation={message.isStreaming ? 'fadeIn' : null}
-              animationDuration="0.6s"
-              animationTimingFunction="ease-in-out"
-              sep="diff"
+              isAnimating={message.isStreaming? true : false}
             />
-            {message.isStreaming && <span className="loading-dots"><span>.</span><span>.</span><span>.</span></span>}
+            {message.isStreaming && (
+              <span className="loading-dots">
+                <span>.</span><span>.</span><span>.</span>
+              </span>
+            )}
           </>
         )}
       </div>

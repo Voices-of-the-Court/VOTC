@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { LLMProviderConfig, ILLMModel } from '@llmTypes';
-import { useConfigStore, useModelState } from '../store/useConfigStore';
+import { useModelState } from '../store/useConfigStore';
 
 interface ModelSelectorProps {
   config: Partial<LLMProviderConfig>;
@@ -21,6 +21,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   const { isLoadingModels, getCachedModels } = useModelState();
   const [searchText, setSearchText] = useState(config.defaultModel || '');
   const [suggestions, setSuggestions] = useState<ILLMModel[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
   
   const cacheKey = getCacheKey(config);
   const availableModels = getCachedModels(cacheKey);
@@ -44,7 +45,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           availableModels.filter(m => 
             m.id.toLowerCase().includes(value.toLowerCase()) ||
             m.name.toLowerCase().includes(value.toLowerCase())
-          ).slice(0, 10) // Limit to 10 suggestions
+          ).slice(0, 50)
         );
       }
     }
@@ -54,6 +55,14 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     setSearchText(modelId);
     onModelSelect(modelId);
     setSuggestions([]);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
   };
 
   const canShowSuggestions = 
@@ -84,6 +93,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
             name="defaultModel"
             value={searchText}
             onChange={handleSearchChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             placeholder={
               config.providerType === 'openrouter' 
                 ? 'Search OpenRouter models...' 
@@ -106,10 +117,16 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
             </div>
           )}
           
-          {canShowSuggestions && suggestions.length > 0 && (
+          {canShowSuggestions && isFocused && suggestions.length > 0 && (
             <ul className="suggestions-list">
               {suggestions.map(model => (
-                <li key={model.id} onClick={() => handleSuggestionClick(model.id)}>
+                <li 
+                  key={model.id} 
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSuggestionClick(model.id);
+                  }}
+                >
                   <div className="suggestion-item">
                     <span className="model-id">{model.id}</span>
                     {model.name !== model.id && (

@@ -1,16 +1,18 @@
 import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut } from 'electron';
 import path from 'path';
-import fs from 'fs';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
 import { conversationManager } from './conversation/ConversationManager';
 import { LLMProviderConfig } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
-// Import providers to ensure they register themselves
+import { initLogger, clearLog } from './utils/logger';
+// @ts-ignore
+import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
 
+initLogger();
 // Keep a reference to the config window, managed globally
 let chatWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -19,6 +21,7 @@ let tray: Tray | null = null;
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
+Menu.setApplicationMenu(null)
 
 const createWindow = (): BrowserWindow => {
   // Get primary display dimensions
@@ -186,7 +189,7 @@ const setupIpcHandlers = () => {
 
   // --- Conversation Management IPC Handlers ---
 
-  ipcMain.handle('conversation:sendMessage', async (event, requestArgs: {
+  ipcMain.handle('conversation:sendMessage', async (_, requestArgs: {
     message: string  }) => {
     const { message } = requestArgs;
 
@@ -247,7 +250,7 @@ const setupIpcHandlers = () => {
     return conversationManager.getConversationState();
   });
 
-  ipcMain.handle('conversation:regenerateMessage', async (event, requestArgs: {
+  ipcMain.handle('conversation:regenerateMessage', async (_, requestArgs: {
     messageId: number
   }) => {
     const { messageId } = requestArgs;
@@ -269,7 +272,7 @@ const setupIpcHandlers = () => {
     }
   });
 
-  ipcMain.handle('conversation:editUserMessage', async (event, requestArgs: {
+  ipcMain.handle('conversation:editUserMessage', async (_, requestArgs: {
     messageId: number,
     newContent: string
   }) => {
@@ -307,25 +310,16 @@ const setupIpcHandlers = () => {
 
 app.on('ready', () => {
   console.log(app.getPath('userData'));
+  clearLog();
   setupIpcHandlers(); // Setup handlers first
   chatWindow = createWindow(); // Create the main chat window and assign to global
-
-  // Create system tray
-  const iconPath = path.join(app.getAppPath(), 'src/renderer/assets/icon.ico');
 
   console.log('Current __dirname:', __dirname);
   console.log('Process resources:', process.resourcesPath);
   console.log('App path:', app.getAppPath());
-  console.log(`Checking path: ${iconPath}, exists: ${fs.existsSync(iconPath)}`);
-
-  if (!fs.existsSync(iconPath)) {
-    console.error('Tray icon not found in any expected location');
-    // Fallback to a basic icon or skip tray creation
-    return;
-  }
 
   try {
-    tray = new Tray(iconPath);
+    tray = new Tray(appIcon);
     console.log('Tray created successfully');
   } catch (error) {
     console.error('Error creating tray:', error);

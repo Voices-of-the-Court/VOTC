@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 
 const useAutoScroll = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -17,7 +17,7 @@ const useAutoScroll = () => {
     
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     // Add threshold of 100px to account for smooth scrolling
-    const threshold = 100;
+    const threshold = 50;
     return scrollHeight - scrollTop - clientHeight < threshold;
   }, []);
 

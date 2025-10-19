@@ -71,6 +71,7 @@
   margin-bottom: 10px;
   padding-left: 10px;
   padding-right: 10px;
+  padding-bottom: 5px;
   margin-right: 10px;
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 10px;
@@ -81,12 +82,27 @@
   -moz-hyphens: auto;
   -ms-hyphens: auto;
   -o-hyphens: auto;
-  color: lightgray;
+  color: #fff;
   position: relative;
-
+  font-size: 1.1rem;
   &:hover .message-actions {
     opacity: 1;
   }
+
+  .message-header {
+    font-weight: 600;
+  }
+
+  em {
+    color: #b1b1b1;
+  }
+
+  p {
+    color: #fff;
+    margin: 0;
+    padding: 0px 0px 5px 0px;
+  }
+
 }
 
 .message-header {

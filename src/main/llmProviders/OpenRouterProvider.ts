@@ -7,7 +7,6 @@ import {
   OpenRouterConfig,
   LLMProviderConfig,
   ILLMOutput,
-  OpenRouterErrorResponse,
   isOpenRouterErrorResponse
 } from './types';
 import { BaseProvider } from './BaseProvider';

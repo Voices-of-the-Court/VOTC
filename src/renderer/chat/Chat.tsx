@@ -127,12 +127,12 @@ const { messagesEndRef, containerRef, scrollToBottom, handleScroll } = useAutoSc
           className="chat-box"
           style={{ pointerEvents: 'auto' }}
         >
-<MessageList 
-  entries={entries} 
-  scrollRef={messagesEndRef}
-  containerRef={containerRef}
-  onScroll={handleScroll}
-/>
+        <MessageList 
+          entries={entries} 
+          scrollRef={messagesEndRef}
+          containerRef={containerRef}
+          onScroll={handleScroll}
+        />
           <div className="chat-controls-container">
             <ChatInput
               value={inputValue}
