@@ -79,7 +79,7 @@ export class GameData {
     }
 
     loadCharactersSummaries(){
-        const summariesPath = path.join(VOTC_SUMMARIES_DIR, 'conversation_summaries', this.playerID.toString());
+        const summariesPath = path.join(VOTC_SUMMARIES_DIR, this.playerID.toString());
         for (const character of this.characters.values()) {
             character.loadSummaries(path.join(summariesPath, character.id.toString() + '.json'));
         }
