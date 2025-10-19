@@ -6,6 +6,7 @@ import { conversationManager } from './conversation/ConversationManager';
 import { LLMProviderConfig } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
 import { initLogger, clearLog } from './utils/logger';
+import { importLegacySummaries } from './utils/importLegacySummaries';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
@@ -184,6 +185,19 @@ const setupIpcHandlers = () => {
       throw error;
     }
   });
+
+  ipcMain.handle('llm:importLegacySummaries', async () => {
+  try {
+    return await importLegacySummaries();
+  } catch (error) {
+    console.error('Import legacy summaries error:', error);
+    return {
+      success: false,
+      message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+});
+
 
   console.log('Setting up conversation IPC handlers...');
 

@@ -7,6 +7,7 @@ const SettingsView: React.FC = () => {
   const updatePauseOnRegeneration = useConfigStore((state) => state.updatePauseOnRegeneration);
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
+  const importLegacySummaries = useConfigStore((state) => state.importLegacySummaries);
 
   if (!appSettings) {
     return <div>Loading global settings...</div>;
@@ -27,6 +28,27 @@ const SettingsView: React.FC = () => {
   const handleSelectCK3Folder = async () => {
     await selectCK3Folder();
   };
+
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [importResult, setImportResult] = React.useState<{success: boolean, message: string, filesCopied?: number, errors?: string[]} | null>(null);
+
+  const handleImportLegacySummaries = async () => {
+    setIsImporting(true);
+    setImportResult(null);
+    
+    try {
+      const result = await importLegacySummaries();
+      setImportResult(result);
+    } catch (error) {
+      setImportResult({
+        success: false,
+        message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
 
   return (
     <div className="settings-view">
@@ -63,6 +85,40 @@ const SettingsView: React.FC = () => {
           checked={appSettings.generateFollowingMessages ?? true}
           onChange={handleGenerateFollowingMessagesToggle}
         />
+      </div>
+      
+      <hr />
+      
+      <div className="form-group legacy-data-import">
+        <h4>Legacy Data Import</h4>
+        <p className="help-text">
+          Import conversation summaries from legacy VOTC installation. Existing summaries will be backed up.
+        </p>
+        <button 
+          type="button" 
+          onClick={handleImportLegacySummaries}
+          disabled={isImporting}
+        >
+          {isImporting ? 'Importing...' : 'Import Legacy Summaries'}
+        </button>
+        {importResult && (
+          <div className={`import-result ${importResult.success ? 'success' : 'error'}`}>
+            {importResult.message}
+            {importResult.filesCopied && (
+              <div>Copied {importResult.filesCopied} files.</div>
+            )}
+            {importResult.errors && importResult.errors.length > 0 && (
+              <div className="error-list">
+                <strong>Errors:</strong>
+                <ul>
+                  {importResult.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       <hr />

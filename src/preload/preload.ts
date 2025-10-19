@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   getMaxContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getMaxContextLength'),
   setCustomContextLength: (contextLength: number): Promise<void> => ipcRenderer.invoke('llm:setCustomContextLength', contextLength),
   clearCustomContextLength: (): Promise<void> => ipcRenderer.invoke('llm:clearCustomContextLength'),
+  importLegacySummaries: (): Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}> => ipcRenderer.invoke('llm:importLegacySummaries'),
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {

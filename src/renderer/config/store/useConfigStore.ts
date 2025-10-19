@@ -50,6 +50,7 @@ interface ConfigStore {
   updateGenerateFollowingMessages: (enabled: boolean) => Promise<void>;
   updateCK3Folder: (path: string) => Promise<void>;
   selectCK3Folder: () => Promise<void>;
+  importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
 }
 
 const getCacheKey = (config: Partial<LLMProviderConfig>): string => {
@@ -432,6 +433,22 @@ export const useConfigStore = create<ConfigStore>()(
         if (path) {
           get().updateCK3Folder(path);
         }
+      },
+
+      importLegacySummaries: async () => {
+        const result = await window.llmConfigAPI.importLegacySummaries();
+        
+        // Show feedback to user (this could be handled via a toast/notification system)
+        if (result.success) {
+          console.log(`Import successful: ${result.filesCopied} files copied`);
+        } else {
+          console.error('Import failed:', result.message);
+          if (result.errors && result.errors.length > 0) {
+            console.error('Import errors:', result.errors);
+          }
+        }
+        
+        return result;
       },
     }),
     { name: 'ConfigStore' }
