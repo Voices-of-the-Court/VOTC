@@ -426,6 +426,73 @@ export class Conversation {
         await this.sendMessage(newContent);
     }
 
+
+    
+    /**
+     * Create final comprehensive summary and save to characters
+     */
+    async finalizeConversation(): Promise<void> {
+        if (this.messages.length < 6) {
+            console.log('Not enough messages for final summarization');
+            this.end();
+            return;
+        }
+
+        console.log('Creating final conversation summary...');
+        
+        // Create comprehensive final summary using ALL messages + current rolling summary
+        const finalSummary = await this.createFinalSummary();
+        
+        if (finalSummary) {
+            // Save to game data (which will distribute to all participating characters)
+            this.gameData.saveCharactersSummaries(finalSummary);
+            console.log('Final conversation summary saved to all participants');
+        }
+
+        this.end();
+    }
+
+    /**
+     * Create final comprehensive summary using ALL messages
+     */
+    private async createFinalSummary(): Promise<string | null> {
+        const allMessages = this.getHistory();
+        const estimatedTokens = this.estimateTokenCount(allMessages);
+        const contextLimit = await llmManager.getCurrentContextLength() || 10000;
+
+        let summaryPrompt;
+
+        // Choose summary mode based on compression setting or token threshold
+        if (
+            // TODO: settingsRepository.compressSummarySetting ||
+            estimatedTokens > contextLimit * this.CONTEXT_LIMIT_PERCENTAGE
+        ) {
+            summaryPrompt = PromptBuilder.buildFinalSummary(
+                this.gameData,
+                allMessages,
+                this.currentSummary,
+                this.lastSummarizedMessageIndex
+            );
+        } else {
+            summaryPrompt = PromptBuilder.buildFinalSummary(this.gameData, allMessages);
+        }
+
+        try {
+            const result = await llmManager.sendChatRequest(summaryPrompt, undefined, true);
+
+            if (result && typeof result === 'object' && 'content' in result) {
+                const finalSummary = result.content as string;
+                return finalSummary;
+            }
+
+            console.error('Invalid response format for final summary');
+            return null;
+        } catch (error) {
+            console.error('Failed to create final summary:', error);
+            return null;
+        }
+    }
+
     // Get conversation history
     getHistory(): Message[] {
         return this.messages.filter(

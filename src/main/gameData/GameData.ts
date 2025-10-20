@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import { Character } from "./Character";
 import { VOTC_SUMMARIES_DIR } from "../utils/paths";
 
@@ -86,8 +87,8 @@ export class GameData {
     }
 
     saveCharactersSummaries(finalSummary: string){
-        const summariesPath = path.join(VOTC_SUMMARIES_DIR, 'conversation_summaries', this.playerID.toString());
-
+        const summariesPath = path.join(VOTC_SUMMARIES_DIR, this.playerID.toString());
+        fs.mkdirSync(summariesPath, { recursive: true });
         for (const character of this.characters.values()) {
             character.conversationSummaries.unshift(
                 {

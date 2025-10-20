@@ -177,31 +177,58 @@ Respond to other character's replica only if is addressed to you, alas your char
         return context;
     }
 
-        /**
-     * Create final comprehensive summary using ALL messages
-     */
-    static buildFinalSummary(history: Message[]): any[] {
-        return [
-            {
-                role: 'system',
-                content: 'You are summarizing a medieval roleplay conversation between multiple characters.'
-            },
-            {
-                role: 'system',
-                content: 'Full conversation:\n' + 
-                    history.map(m => `${m.name}: ${m.content}`).join('\n')
-            },
-            {
-                role: 'user',
-                content: `Create a detailed summary of this conversation. Include:
+/**
+ * Build a final, comprehensive summary using all roleplay messages.
+ */
+static buildFinalSummary(
+    gameData: GameData,
+    history: Message[],
+    currentSummary?: string,
+    lastSummarizedMessageIndex?: number
+): any[] {
+    const characters = Array.from(gameData.characters.values())
+        .map(c => c.shortName)
+        .join(', ');
+
+    const baseSystem = {
+        role: 'system',
+        content: `You are summarizing a medieval roleplay conversation between these characters: ${characters}.`
+    };
+
+    const buildConversationText = (msgs: Message[], title: string) => ({
+        role: 'system',
+        content: `${title}\n` + msgs.map(m => `${m.name}: ${m.content}`).join('\n')
+    });
+
+    const userPrompt = {
+        role: 'user',
+        content: `Create a detailed summary of this conversation. Include:
 - Key events and decisions made
 - Important character interactions and relationship developments
 - Plot developments and revelations
 - Emotional moments and conflicts
-- Any agreements, promises, or plans made`
-            }
+- Any agreements, promises, or plans made
+Please summarize the conversation into only a single paragraph.`
+    };
+
+    // Determine whether to include all messages or only the new ones
+    if (lastSummarizedMessageIndex == null) {
+        return [
+            baseSystem,
+            buildConversationText(history, 'Full conversation:'),
+            userPrompt
         ];
     }
+
+    const newMessages = history.slice(lastSummarizedMessageIndex);
+    return [
+        baseSystem,
+        { role: 'system', content: 'Previous summary of this conversation:\n' + currentSummary },
+        buildConversationText(newMessages, 'Recent conversation:'),
+        userPrompt
+    ];
+}
+
 
     /**
      * Calculate relative time between dates

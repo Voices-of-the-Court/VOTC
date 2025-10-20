@@ -149,7 +149,7 @@ export class ConversationManager {
      */
     endCurrentConversation(): void {
         if (this.currentConversation) {
-            this.currentConversation.end();
+            this.currentConversation.finalizeConversation();
             console.log('Conversation ended');
         }
         this.currentConversation = null;
