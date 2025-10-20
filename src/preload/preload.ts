@@ -52,9 +52,6 @@ contextBridge.exposeInMainWorld('conversationAPI', {
   sendMessage: (userMessage: string): Promise<{streamStarted?: boolean, message?: any, error?: string}> => {
     return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage });
   },
-  getHistory: (): Promise<any[]> => {
-    return ipcRenderer.invoke('conversation:getHistory');
-  },
   reset: (): Promise<boolean> => {
     return ipcRenderer.invoke('conversation:reset');
   },

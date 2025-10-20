@@ -221,10 +221,6 @@ const setupIpcHandlers = () => {
     }
   });
 
-  ipcMain.handle('conversation:getHistory', () => {
-    return conversationManager.getConversationHistory();
-  });
-
   ipcMain.handle('conversation:reset', () => {
     conversationManager.endCurrentConversation();
     // conversationManager.createConversation();

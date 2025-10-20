@@ -4,7 +4,6 @@ declare global {
   interface Window {
     conversationAPI: {
       sendMessage: (userMessage: string) => Promise<{streamStarted?: boolean, message?: any, error?: string}>;
-      getHistory: () => Promise<any[]>;
       reset: () => Promise<boolean>;
       getConversationEntries: () => Promise<any[]>;
       onConversationUpdate: (callback: (entries: any[]) => void) => () => void;

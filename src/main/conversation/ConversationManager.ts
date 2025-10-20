@@ -1,5 +1,4 @@
 import { Conversation } from "./Conversation";
-import { Character } from "../gameData/Character";
 import { ILLMStreamChunk } from "../llmProviders/types";
 import { EventEmitter } from "events";
 
@@ -126,22 +125,6 @@ export class ConversationManager {
                 };
             }
         });
-    }
-
-    /**
-     * Get conversation history (legacy method)
-     */
-    getConversationHistory(): { role: string, content: string, datetime: Date }[] {
-        if (!this.currentConversation) {
-            return [];
-        }
-
-        return this.currentConversation.getHistory().map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            datetime: msg.datetime,
-            ...(msg.name && { name: msg.name })
-        }));
     }
 
     /**
