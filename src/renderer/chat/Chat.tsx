@@ -58,15 +58,6 @@ const { messagesEndRef, containerRef, scrollToBottom, handleScroll } = useAutoSc
     }
   };
 
-  const handleNPCInfo = async () => {
-    const npcInfo = await window.conversationAPI.getPlayerInfo();
-    if (npcInfo) {
-      alert(`Current NPC: ${npcInfo.fullName}\n${npcInfo.personality}\nOpinion: ${npcInfo.opinion}/100`);
-    } else {
-      alert('No active conversation');
-    }
-  };
-
   const handleCancelStream = async () => {
     try {
       await window.conversationAPI.cancelStream();
@@ -143,7 +134,6 @@ const { messagesEndRef, containerRef, scrollToBottom, handleScroll } = useAutoSc
             />
             <ChatButtons
               onLeave={() => handleLeave(resetChat)}
-              onNPCInfo={handleNPCInfo}
               onToggleConfig={onToggleConfig}
               onCancel={handleCancelStream}
               onPause={handlePauseConversation}

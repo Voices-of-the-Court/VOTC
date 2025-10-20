@@ -203,16 +203,6 @@ export class ConversationManager {
     }
 
     /**
-     * Get current NPC information (first character for demo purposes)
-     */
-    getPlayer(): Character | null {
-        if (!this.currentConversation) return null;
-
-        const player = this.currentConversation.gameData.characters.get(this.currentConversation.gameData.playerID);
-        return player ?? null;
-    }
-
-    /**
      * Subscribe to conversation updates
      */
     onConversationUpdate(callback: (entries: any[]) => void): void {

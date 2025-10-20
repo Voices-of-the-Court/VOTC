@@ -2,7 +2,6 @@ import React from 'react';
 
 interface ChatButtonsProps {
   onLeave: () => void;
-  onNPCInfo: () => void;
   onToggleConfig: () => void;
   onCancel?: () => void;
   onPause?: () => void;
@@ -14,7 +13,6 @@ interface ChatButtonsProps {
 
 const ChatButtons: React.FC<ChatButtonsProps> = ({
   onLeave,
-  onNPCInfo,
   onToggleConfig,
   onCancel,
   onPause,
@@ -60,13 +58,6 @@ const ChatButtons: React.FC<ChatButtonsProps> = ({
         onClick={onLeave}
       >
         End Conversation
-      </button>
-      <button
-        onClick={onNPCInfo}
-        className="npc-info-button"
-        title="Show NPC Info"
-      >
-        NPC Info
       </button>
       <button
         onClick={onToggleConfig}

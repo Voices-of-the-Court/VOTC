@@ -231,19 +231,6 @@ const setupIpcHandlers = () => {
     return true;
   });
 
-  ipcMain.handle('conversation:getPlayerInfo', () => {
-    const player = conversationManager.getPlayer();
-    return player ? {
-      name: player.shortName,
-      fullName: player.fullName,
-      title: player.primaryTitle,
-      personality: player.personality,
-      opinion: player.opinionOfPlayer,
-      culture: player.culture,
-      faith: player.faith
-    } : null;
-  });
-
   ipcMain.handle('conversation:getEntries', () => {
     return conversationManager.getConversationEntries();
   });

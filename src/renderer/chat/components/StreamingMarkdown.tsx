@@ -35,9 +35,7 @@ const StreamingMarkdown: React.FC<StreamingMarkdownProps> = ({
     // End parser when streaming stops
     if (!isAnimating && parserRef.current) {
       smd.parser_end(parserRef.current);
-      // Reset parser for next use
       parserRef.current = null;
-      lastContentRef.current = '';
     }
   }, [content, isAnimating]);
 

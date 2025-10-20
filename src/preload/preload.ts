@@ -58,9 +58,6 @@ contextBridge.exposeInMainWorld('conversationAPI', {
   reset: (): Promise<boolean> => {
     return ipcRenderer.invoke('conversation:reset');
   },
-  getPlayerInfo: (): Promise<any> => {
-    return ipcRenderer.invoke('conversation:getPlayerInfo');
-  },
   getConversationEntries: (): Promise<any[]> => {
     return ipcRenderer.invoke('conversation:getEntries');
   },

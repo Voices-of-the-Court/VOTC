@@ -6,7 +6,6 @@ declare global {
       sendMessage: (userMessage: string) => Promise<{streamStarted?: boolean, message?: any, error?: string}>;
       getHistory: () => Promise<any[]>;
       reset: () => Promise<boolean>;
-      getPlayerInfo: () => Promise<any>;
       getConversationEntries: () => Promise<any[]>;
       onConversationUpdate: (callback: (entries: any[]) => void) => () => void;
       cancelStream: () => Promise<void>;

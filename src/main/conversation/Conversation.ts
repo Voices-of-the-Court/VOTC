@@ -211,7 +211,6 @@ export class Conversation {
         }
     }
 
-    // Cancel currently active stream
     cancelCurrentStream(): void {
         if (this.currentStreamController) {
             console.log('Cancelling current stream');
@@ -219,25 +218,21 @@ export class Conversation {
         }
     }
 
-    // Pause the conversation
     pauseConversation(): void {
         console.log('Pausing conversation');
         this.isPaused = true;
         this.emitUpdate();
     }
 
-    // Resume the conversation
     resumeConversation(): void {
         console.log('Resuming conversation');
         this.isPaused = false;
         this.emitUpdate();
-        // Start processing remaining queue if not empty
         if (this.npcQueue.length > 0) {
             this.processQueue();
         }
     }
 
-    // Set custom queue for conversation
     // setCustomQueue(queue: []): void {
     //     // TODO: use ids instead. Frontend side of the app should send an array of character ids in order of custom queue.
     //     // Additionally we need to send to UI participating charaters as id's and their names to use for creation of custom queue.
@@ -260,7 +255,6 @@ export class Conversation {
         }
     }
 
-    // Process the NPC queue asynchronously
     private async processQueue(): Promise<void> {
         if (this.npcQueue.length === 0 || this.isPaused) {
             return;
@@ -296,7 +290,6 @@ export class Conversation {
             return;
         }
 
-        // Add user message to conversation
         const userMsg = createMessage({
             id: this.nextId++,
             name: user.fullName,
@@ -306,14 +299,11 @@ export class Conversation {
         this.messages.push(userMsg);
         this.emitUpdate();
 
-        // Fill queue if empty and start processing
         if (this.npcQueue.length === 0) {
             this.fillNpcQueue();
         }
 
-        // Start processing the queue asynchronously
         this.resumeConversation();
-        // this.processQueue();
     }
 
     // Regenerate assistant message and refill queue
@@ -422,15 +412,12 @@ export class Conversation {
 
         this.emitUpdate();
 
-        // Use existing sendMessage functionality with new content
         await this.sendMessage(newContent);
     }
 
 
     
-    /**
-     * Create final comprehensive summary and save to characters
-     */
+    // Create final comprehensive summary and save to characters
     async finalizeConversation(): Promise<void> {
         if (this.messages.length < 6) {
             console.log('Not enough messages for final summarization');
@@ -452,9 +439,7 @@ export class Conversation {
         this.end();
     }
 
-    /**
-     * Create final comprehensive summary using ALL messages
-     */
+    //  Create final comprehensive summary using ALL messages
     private async createFinalSummary(): Promise<string | null> {
         const allMessages = this.getHistory();
         const estimatedTokens = this.estimateTokenCount(allMessages);
@@ -500,12 +485,10 @@ export class Conversation {
         );
     }
 
-    // Clear conversation history
     clearHistory(): void {
         this.messages = [];
     }
 
-    // End conversation
     end(): void {
         this.isActive = false;
         this.clearHistory();
