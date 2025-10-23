@@ -119,6 +119,7 @@ export class ActionRegistry extends EventEmitter {
 
   public async reloadActions(): Promise<void> {
     this.actions.clear();
+    this.settings.validation = {};
     await this.ensureBaseStructure();
     const loaded: LoadedAction[] = [];
     const standardActions = await this.loadDirectory(STANDARD_SUBDIR, "standard");
@@ -182,7 +183,8 @@ export class ActionRegistry extends EventEmitter {
     scope: ActionSource
   ): Promise<LoadedAction | null> {
     try {
-      const url = pathToFileURL(filePath).href;
+      // Append a timestamp as a query parameter to bust the cache
+      const url = `${pathToFileURL(filePath).href}?v=${Date.now()}`;
       const mod = await import(url);
       const candidate: unknown =
         mod?.default !== undefined ? mod.default : mod;
@@ -242,23 +244,25 @@ export class ActionRegistry extends EventEmitter {
       };
     }
 
-    if (typeof action.description !== "string") {
+    if (!(typeof action.description === "string" || typeof (action as any).description === "function")) {
       return {
         valid: false,
-        message: "Action must include a description string.",
+        message: "Action must include a description string or description(context) function.",
       };
     }
 
-    if (!Array.isArray(action.args)) {
+    if (!Array.isArray(action.args) && typeof (action as any).args !== "function") {
       return {
         valid: false,
-        message: "Action args must be an array.",
+        message: "Action args must be an array or args(context) function.",
       };
     }
 
-    const argsValidation = this.validateArguments(action.args);
-    if (!argsValidation.valid) {
-      return argsValidation;
+    if (Array.isArray(action.args)) {
+      const argsValidation = this.validateArguments(action.args);
+      if (!argsValidation.valid) {
+        return argsValidation;
+      }
     }
 
     if (typeof action.check !== "function") {

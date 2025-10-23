@@ -1,5 +1,5 @@
-import { GameData } from "../gameData/GameData.js";
-import { Character } from "../gameData/Character.js";
+import { GameData } from "../gameData/GameData";
+import { Character } from "../gameData/Character";
 
 export type ActionArgumentPrimitiveType = "number" | "string" | "enum";
 
@@ -38,6 +38,9 @@ export type ActionArgumentValue = number | string | null;
 
 export type ActionArgumentValues = Record<string, ActionArgumentValue>;
 
+export type DynamicArgsFunction = (context: { sourceCharacter: Character }) => ActionArgumentDefinition[];
+export type DynamicDescriptionFunction = (context: { sourceCharacter: Character }) => string;
+
 export interface ActionCheckContext {
   gameData: GameData;
   sourceCharacter: Character;
@@ -60,8 +63,8 @@ export interface ActionRunContext {
 export interface ActionDefinition {
   signature: string;
   title?: string;
-  description: string;
-  args: ActionArgumentDefinition[];
+  description: string | DynamicDescriptionFunction;
+  args: ActionArgumentDefinition[] | DynamicArgsFunction;
   check: (context: ActionCheckContext) => Promise<ActionCheckResult> | ActionCheckResult;
   run: (context: ActionRunContext) => Promise<void> | void;
 }

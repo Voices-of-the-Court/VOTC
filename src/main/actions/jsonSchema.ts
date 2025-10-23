@@ -12,6 +12,8 @@ export interface SchemaBuildInput {
     requiresTarget: boolean;
     // When provided, targetCharacterId must be one of these values
     validTargetCharacterIds?: number[];
+    // Human-readable description to present in prompts (computed per sourceCharacter)
+    description?: string;
   }[];
 }
 

@@ -15,19 +15,20 @@ export class ActionPromptBuilder {
     conv: Conversation,
     npc: Character,
     available: SchemaBuildInput["availableActions"],
-    historyWindow: number = 8
+    historyWindow: number = conv.gameData.characters.size
   ): ILLMMessage[] {
     const messages: ILLMMessage[] = [];
 
     // 1) System role: purpose and strict output guidance
     const systemIntro =
-`You are an action selection engine for a Crusader Kings 3 roleplay assistant.
+`You are an action selection engine.
 - You MUST return ONLY JSON that matches the provided schema. Do not include prose or code fences.
 - Actions MUST be selected strictly from the provided "Available Actions" list.
-- Each action MUST have only one targetCharacterId (single target). If you need multiple targets, repeat the action with different targets.
+- Each action MUST have only one targetCharacterId (single target) or none. If you need multiple targets, repeat the action with different targets.
 - If an action requires a target, pick only from the provided validTargetCharacterIds for that action.
 - If an action has arguments, fill them carefully according to the description and allowed values.
-- Do not invent character IDs or action names.`;
+- Do not invent character IDs or action names.
+`;
     messages.push({ role: "system", content: systemIntro });
 
     // 2) Context: Character roster with indices and ids (order is CK3 order)
@@ -42,7 +43,7 @@ export class ActionPromptBuilder {
 `Characters in this conversation (order matches CK3 global list):
 ${characterRosterLines.join("\n")}
 
-You are selecting actions for: ${npc.shortName} (id=${npc.id}).`;
+You MUST select which actions should be executed for ${npc.shortName}.`;
 
     messages.push({ role: "system", content: rosterBlock });
 
@@ -81,8 +82,11 @@ You are selecting actions for: ${npc.shortName} (id=${npc.id}).`;
         targetLine = `Targets: none (omit or use null)`;
       }
 
+      const descLine = action.description ? `Description: ${action.description}` : "";
+
       actionLines.push(
 `${action.signature}
+${descLine}
 ${targetLine}
 Args:
 ${argDescs || "- (no args)"}
@@ -105,7 +109,7 @@ Return JSON only. No extra text.`;
 `Recent messages:
 ${historyLines}
 
-Given the above, select the actions (if any) that ${npc.shortName} (id=${npc.id}) would execute now.`;
+Given the above, select the actions (if any) that should be executed ONLY for ${npc.shortName} (id=${npc.id}) would execute now.`;
     messages.push({ role: "user", content: historyBlock });
 
     return messages;

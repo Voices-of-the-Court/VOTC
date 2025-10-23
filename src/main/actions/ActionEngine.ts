@@ -34,11 +34,28 @@ export class ActionEngine {
 
           const requiresTarget = !!(checkResult.validTargetCharacterIds && checkResult.validTargetCharacterIds.length > 0);
 
+          // Handle dynamic args
+          let args;
+          if (typeof act.definition.args === 'function') {
+            args = act.definition.args({ sourceCharacter: npc });
+          } else {
+            args = act.definition.args;
+          }
+
+          // Handle dynamic description
+          let description: string | undefined;
+          if (typeof act.definition.description === 'function') {
+            description = act.definition.description({ sourceCharacter: npc });
+          } else {
+            description = act.definition.description;
+          }
+
           available.push({
             signature: act.id,
-            args: act.definition.args,
+            args,
             requiresTarget,
             validTargetCharacterIds: checkResult.validTargetCharacterIds,
+            description,
           });
         } catch (err) {
           // mark as invalid but continue
@@ -103,7 +120,7 @@ export class ActionEngine {
       }
     } catch (err) {
       // silent guard: action engine should never crash the conversation loop
-      // console.error("ActionEngine error:", err);
+      console.error("ActionEngine error:", err);
       return;
     }
   }
@@ -117,6 +134,7 @@ export class ActionEngine {
     const targetId = inv.targetCharacterId ?? null;
     const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
 
+    console.log("Running action:", inv.actionId, { source: npc.id, target: targetId });
     const runGameEffect = (effectBody: string) => {
       ActionEffectWriter.writeEffect(
         conv.gameData,

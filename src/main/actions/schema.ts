@@ -13,6 +13,8 @@ export interface SchemaBuildInput {
     args: ActionArgumentDefinition[];
     requiresTarget: boolean;
     validTargetCharacterIds?: number[];
+    // Human-readable description to present in prompts (computed per sourceCharacter)
+    description?: string;
   }[];
 }
 

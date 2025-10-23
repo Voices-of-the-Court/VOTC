@@ -1,21 +1,17 @@
-import { GameData } from "../gameData/GameData.js";
-import { RunFileManager } from "../RunFileManager.js";
-import { settingsRepository } from "../SettingsRepository.js";
-
+import { GameData } from "../gameData/GameData";
+import { runFileManager } from "./RunFileManager";
 /**
  * Utilities for composing and writing CK3 effects with proper source/target scoping.
  * Positions are 0-based to match the provided example and CK3 ordered_in_global_list usage.
  */
 export class ActionEffectWriter {
-  private static runWriter: RunFileManager | null = null;
-
   /**
    * Compose CK3 prelude code to scope source/target characters from the ordered list.
    * Uses:
    *  - global_var:votc_action_source
    *  - global_var:votc_action_target
    */
-  static composeScopePrelude(sourceIndex: number | null | undefined, targetIndex?: number | null): string {
+  static composeScopePrelude(sourceIndex: number | null | undefined, targetIndex?: number | null, isPlayerTarget?: boolean): string {
     let prelude = "";
 
     if (sourceIndex !== null && sourceIndex !== undefined) {
@@ -32,7 +28,19 @@ ordered_in_global_list = {
     }
 
     if (targetIndex !== null && targetIndex !== undefined) {
-      prelude += `
+      if (isPlayerTarget) {
+        // Use 'root' scope for player target
+        prelude += `
+root = {
+    set_global_variable = {
+        name = votc_action_target
+        value = root
+    }
+}
+`;
+      } else {
+        // Regular target scoping
+        prelude += `
 ordered_in_global_list = {
     variable = mcc_characters_list_v2
     position = ${targetIndex}
@@ -42,6 +50,7 @@ ordered_in_global_list = {
     }
 }
 `;
+      }
     }
 
     return prelude;
@@ -59,8 +68,9 @@ ordered_in_global_list = {
   ): string {
     const sourceIndex = this.getCharacterIndex(gameData, sourceCharacterId);
     const targetIndex = targetCharacterId != null ? this.getCharacterIndex(gameData, targetCharacterId) : null;
+    const isPlayerTarget = targetCharacterId != null && targetCharacterId === gameData.playerID;
 
-    const prelude = this.composeScopePrelude(sourceIndex, targetIndex);
+    const prelude = this.composeScopePrelude(sourceIndex, targetIndex, isPlayerTarget);
     return `${prelude}\n${effectBody}\n`;
   }
 
@@ -75,8 +85,12 @@ ordered_in_global_list = {
     effectBody: string
   ): void {
     const effect = this.composeFullEffect(gameData, sourceCharacterId, targetCharacterId, effectBody);
-    const writer = this.getRunWriter();
-    writer.append(effect);
+    runFileManager.append(effect);
+    
+    // Clear runfile after 500ms
+    setTimeout(() => {
+      runFileManager.clear();
+    }, 500);
   }
 
   /**
@@ -92,14 +106,4 @@ ordered_in_global_list = {
     return idx;
   }
 
-  private static getRunWriter(): RunFileManager {
-    if (!this.runWriter) {
-      const ck3Path = settingsRepository.getCK3UserFolderPath();
-      if (!ck3Path) {
-        throw new Error("CK3 user folder path is not configured. Please set it in settings.");
-      }
-      this.runWriter = new RunFileManager(ck3Path);
-    }
-    return this.runWriter;
-  }
 }

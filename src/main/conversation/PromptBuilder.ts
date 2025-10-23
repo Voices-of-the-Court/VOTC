@@ -84,6 +84,7 @@ ${Array.from(gameData.characters.values()).map(c => `- ${c.shortName}`).filter(c
 You should respond as this character would, taking into account their personality, traits, and opinions. Be politically minded, strategic, and true to medieval courtly behavior and feudal relationships.
 Characters should include phrases in their native language besides English, to make conversation more realistic.
 Respond to other character's replica only if is addressed to you, alas your character would retort.
+If any message has /OOC prefix, you should follow every instruction in that message.
 `;
 
         console.log('Generated system prompt:', prompt.substring(0, 200) + '...');

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell } from 'electron';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
@@ -7,6 +7,7 @@ import { LLMProviderConfig } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
 import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
+import { VOTC_ACTIONS_DIR } from './utils/paths';
 import { actionRegistry } from './actions/ActionRegistry';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
@@ -38,7 +39,7 @@ const createWindow = (): BrowserWindow => {
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
     // alwaysOnTop: true, // Keep window on top
-    skipTaskbar: true, // Don't show in taskbar
+    // skipTaskbar: true, // Don't show in taskbar
     fullscreen: true,
     webPreferences: {
       partition: 'persist:chat',
@@ -219,8 +220,6 @@ const setupIpcHandlers = () => {
       return actions.map(a => ({
         id: a.id,
         title: a.definition.title || a.id,
-        description: a.definition.description,
-        args: a.definition.args,
         scope: a.scope,
         filePath: a.filePath,
         validation: a.validation,
@@ -250,6 +249,16 @@ const setupIpcHandlers = () => {
     } catch (error: any) {
       console.error('Failed to get action settings:', error);
       return { disabledActions: [], validation: {} };
+    }
+  });
+
+  ipcMain.handle('actions:openFolder', async () => {
+    try {
+      await shell.openPath(VOTC_ACTIONS_DIR);
+      return;
+    } catch (error: any) {
+      console.error('Failed to open actions folder:', error);
+      throw error;
     }
   });
 

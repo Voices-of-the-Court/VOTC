@@ -81,4 +81,26 @@ contextBridge.exposeInMainWorld('conversationAPI', {
   editUserMessage: (messageId: number, newContent: string): Promise<{success: boolean, error?: string}> => {
     return ipcRenderer.invoke('conversation:editUserMessage', { messageId, newContent });
   },
-});
+ });
+ 
+ // Actions API exposed to renderer
+ // Appends to existing preload bridges
+ 
+ contextBridge.exposeInMainWorld('actionsAPI', {
+   reload: (): Promise<{ success: boolean; error?: string }> =>
+     ipcRenderer.invoke('actions:reload'),
+   getAll: (): Promise<Array<{
+     id: string;
+     title: string;
+     scope: 'standard' | 'custom';
+     filePath: string;
+     validation: { valid: boolean; message?: string };
+     disabled: boolean;
+   }>> => ipcRenderer.invoke('actions:getAll'),
+   setDisabled: (actionId: string, disabled: boolean): Promise<{ success: boolean; error?: string }> =>
+     ipcRenderer.invoke('actions:setDisabled', { actionId, disabled }),
+   getSettings: (): Promise<{ disabledActions: string[]; validation: Record<string, { valid: boolean; message?: string }> }> =>
+     ipcRenderer.invoke('actions:getSettings'),
+   openFolder: (): Promise<void> =>
+     ipcRenderer.invoke('actions:openFolder'),
+ });
