@@ -7,6 +7,7 @@ import { settingsRepository } from "../SettingsRepository";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
 import { ConversationEntry, Message, createError, createMessage } from "./types";
 import { PromptBuilder } from "./PromptBuilder";
+import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
 
 export class Conversation {
@@ -177,11 +178,13 @@ export class Conversation {
                     }
                 }
                 placeholder.isStreaming = false;
+                await ActionEngine.evaluateForCharacter(this, npc);
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
                 placeholder.content = result.content;
                 this.emitUpdate();
                 placeholder.isStreaming = false;
+                await ActionEngine.evaluateForCharacter(this, npc);
             } else {
                 throw new Error('Bad LLM response format');
             }

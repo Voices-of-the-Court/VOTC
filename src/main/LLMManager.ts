@@ -102,6 +102,44 @@ export class LLMManager {
 
     return await provider.chatCompletion(request, activeConfig);
   }
+  // Structured JSON (native) request helper for actions
+  // Pass a JSON Schema in response_format to providers that support it (OpenAI/OpenRouter).
+  async sendStructuredJsonRequest(
+    messages: ILLMCompletionRequest['messages'],
+    schemaName: string,
+    jsonSchemaObject: object,
+    signal?: AbortSignal
+  ): Promise<ILLMOutput> {
+    const activeConfig = settingsRepository.getActiveProviderConfig();
+    if (!activeConfig) {
+      throw new Error('No active and enabled LLM provider configured.');
+    }
+    if (!activeConfig.defaultModel) {
+      throw new Error(`Active provider '${activeConfig.customName}' has no default model selected.`);
+    }
+
+    const provider = this.getProviderInstance(activeConfig);
+    const stream = false; // structured outputs should be non-streamed for reliability
+
+    const request: ILLMCompletionRequest = {
+      model: activeConfig.defaultModel,
+      messages,
+      stream,
+      // Merge default parameters from config with specific request params
+      ...activeConfig.defaultParameters,
+      signal,
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: schemaName,
+          schema: jsonSchemaObject,
+          strict: true
+        }
+      }
+    };
+
+    return await provider.chatCompletion(request, activeConfig);
+  }
 
   // Get current context length for the active provider
   async getCurrentContextLength(): Promise<number> {

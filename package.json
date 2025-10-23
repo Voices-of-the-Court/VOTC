@@ -54,6 +54,7 @@
     "electron-store": "^8.2.0",
     "ollama": "^0.5.15",
     "openai": "^4.98.0",
+    "zod": "^3.23.8",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "streaming-markdown": "^0.2.15",

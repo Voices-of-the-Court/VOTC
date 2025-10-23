@@ -92,6 +92,7 @@ export class OpenRouterProvider extends BaseProvider {
         top_p: request.top_p,
         presence_penalty: request.presence_penalty,
         frequency_penalty: request.frequency_penalty,
+        ...(request.response_format ? { response_format: request.response_format as any } : {}),
       };
   
       if (requestParams.stream) {
