@@ -37,6 +37,20 @@ declare global {
       saveGenerateFollowingMessagesSetting: (enabled: boolean) => Promise<void>;
       importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>
     };
+    actionsAPI: {
+      reload: () => Promise<{ success: boolean; error?: string }>;
+      getAll: () => Promise<Array<{
+        id: string;
+        title: string;
+        scope: 'standard' | 'custom';
+        filePath: string;
+        validation: { valid: boolean; message?: string };
+        disabled: boolean;
+      }>>;
+      setDisabled: (actionId: string, disabled: boolean) => Promise<{ success: boolean; error?: string }>;
+      getSettings: () => Promise<{ disabledActions: string[]; validation: Record<string, { valid: boolean; message?: string }> }>;
+      openFolder: () => Promise<void>;
+    };
   }
 }
 // For now, using 'any' to get the structure in place.

@@ -5,6 +5,7 @@ import {
   AppSettings,
   LLMSettings,
   LLMProviderConfig,
+  ActionSettings,
 } from './llmProviders/types';
 
 // Define the schema for electron-store for type safety
@@ -63,6 +64,21 @@ const schema: Schema<AppSettings> = {
   generateFollowingMessages: {
     type: 'boolean',
     default: true
+  },
+  actionSettings: {
+    type: 'object',
+    default: { disabledActions: [], validation: {} } as any,
+    properties: {
+      disabledActions: {
+        type: 'array',
+        default: [],
+        items: { type: 'string' }
+      },
+      validation: {
+        type: 'object',
+        default: {}
+      }
+    }
   }
 };
 
@@ -134,6 +150,9 @@ export class SettingsRepository {
     if (currentAppSettings.ck3UserFolderPath === undefined) {
         this.store.set('ck3UserFolderPath', null);
     }
+    if ((currentAppSettings as any).actionSettings === undefined) {
+        this.store.set('actionSettings', { disabledActions: [], validation: {} } as any);
+    }
   }
 
   // --- Settings Management ---
@@ -144,7 +163,8 @@ export class SettingsRepository {
       ck3UserFolderPath: this.getCK3UserFolderPath(),
       globalStreamEnabled: this.getGlobalStreamSetting(),
       pauseOnRegeneration: this.getPauseOnRegenerationSetting(),
-      generateFollowingMessages: this.getGenerateFollowingMessagesSetting()
+      generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),
+      actionSettings: this.getActionSettings()
     };
   }
 
@@ -197,6 +217,18 @@ export class SettingsRepository {
   saveGenerateFollowingMessagesSetting(enabled: boolean): void {
     this.store.set('generateFollowingMessages', enabled);
     console.log('Generate following messages setting saved:', enabled);
+  }
+
+  // --- Action Settings (actions toggles and validation cache) ---
+  getActionSettings(): ActionSettings {
+    // electron-store types are loose; cast for safety
+    const def = { disabledActions: [], validation: {} } as any;
+    return (this.store.get('actionSettings', def) as unknown) as ActionSettings;
+  }
+
+  saveActionSettings(settings: ActionSettings): void {
+    this.store.set('actionSettings', settings as any);
+    console.log('Action settings saved.');
   }
 
   // --- Provider Configuration and Preset Management ---

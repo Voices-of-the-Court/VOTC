@@ -1,0 +1,80 @@
+import { GameData } from "../gameData/GameData";
+import { Character } from "../gameData/Character";
+
+export type ActionArgumentPrimitiveType = "number" | "string" | "enum";
+
+export interface ActionArgumentBase {
+  name: string;
+  displayName?: string;
+  description: string;
+  required?: boolean;
+}
+
+export interface NumberArgument extends ActionArgumentBase {
+  type: "number";
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+export interface StringArgument extends ActionArgumentBase {
+  type: "string";
+  maxLength?: number;
+  minLength?: number;
+  pattern?: RegExp | string;
+}
+
+export interface EnumArgument extends ActionArgumentBase {
+  type: "enum";
+  options: string[];
+}
+
+export type ActionArgumentDefinition =
+  | NumberArgument
+  | StringArgument
+  | EnumArgument;
+
+export type ActionArgumentValue = number | string | null;
+
+export type ActionArgumentValues = Record<string, ActionArgumentValue>;
+
+export type DynamicArgsFunction = (context: { sourceCharacter: Character }) => ActionArgumentDefinition[];
+export type DynamicDescriptionFunction = (context: { sourceCharacter: Character }) => string;
+
+export interface ActionCheckContext {
+  gameData: GameData;
+  sourceCharacter: Character;
+}
+
+export interface ActionCheckResult {
+  canExecute: boolean;
+  validTargetCharacterIds?: number[];
+  reason?: string;
+}
+
+export interface ActionRunContext {
+  gameData: GameData;
+  sourceCharacter: Character;
+  targetCharacter?: Character;
+  runGameEffect: (effect: string) => void;
+  args: ActionArgumentValues;
+}
+
+export interface ActionDefinition {
+  signature: string;
+  title?: string;
+  description: string | DynamicDescriptionFunction;
+  args: ActionArgumentDefinition[] | DynamicArgsFunction;
+  check: (context: ActionCheckContext) => Promise<ActionCheckResult> | ActionCheckResult;
+  run: (context: ActionRunContext) => Promise<void> | void;
+}
+
+export interface ActionInvocation {
+  actionId: string;
+  targetCharacterId?: number | null;
+  args: ActionArgumentValues;
+}
+
+export interface StructuredActionResponse {
+  actions: ActionInvocation[];
+}

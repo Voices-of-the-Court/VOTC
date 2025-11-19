@@ -94,3 +94,6 @@ typings/
 # Electron-Forge
 out/
 dist/
+
+src/main/actions/standartActions/*
+!src/main/actions/standartActions/z_*

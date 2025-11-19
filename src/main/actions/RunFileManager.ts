@@ -1,12 +1,13 @@
 import fs from 'fs';
+import { settingsRepository } from '../SettingsRepository';
 
 export class RunFileManager{
     path: string;
 
-    constructor(userFolderPath: string){
-        this.path = userFolderPath+"\\run\\votc.txt";
+    constructor(){
+        this.path = settingsRepository.getCK3UserFolderPath()+"\\run\\votc.txt";
 
-        this.createRunFolder(userFolderPath);
+        this.createRunFolder(settingsRepository.getCK3UserFolderPath()!);
     }
 
     write(text: string): void{
@@ -37,3 +38,5 @@ export class RunFileManager{
         }
     }
 }
+
+export const runFileManager = new RunFileManager();

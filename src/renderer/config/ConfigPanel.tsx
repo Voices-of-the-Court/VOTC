@@ -3,8 +3,9 @@ import { useConfigStore } from './store/useConfigStore';
 import './configPanel.scss';
 import ConnectionView from './ConnectionView';
 import SettingsView from './SettingsView';
+import ActionsView from './ActionsView';
 
-type CurrentTab = 'connection' | 'settings';
+type CurrentTab = 'connection' | 'settings' | 'actions';
 
 interface ConfigPanelProps {
   onClose: () => void;
@@ -52,10 +53,18 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         >
           Settings
         </button>
+        <button
+          onClick={() => setCurrentTab('actions')}
+          className={currentTab === 'actions' ? 'active' : ''}
+          title="Manage detected Actions"
+        >
+          Actions
+        </button>
       </header>
       <main className="config-main-content">
         {currentTab === 'connection' && <ConnectionView />}
         {currentTab === 'settings' && <SettingsView />}
+        {currentTab === 'actions' && <ActionsView />}
       </main>
     </div>
   );

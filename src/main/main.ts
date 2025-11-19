@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell } from 'electron';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
@@ -7,6 +7,8 @@ import { LLMProviderConfig } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
 import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
+import { VOTC_ACTIONS_DIR } from './utils/paths';
+import { actionRegistry } from './actions/ActionRegistry';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
@@ -36,7 +38,7 @@ const createWindow = (): BrowserWindow => {
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    alwaysOnTop: false, // Keep window on top
+    // alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
     fullscreen: true,
     webPreferences: {
@@ -52,7 +54,7 @@ const createWindow = (): BrowserWindow => {
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Set fullscreen (optional, might conflict with alwaysOnTop/transparency goals depending on OS/WM)
-  // mainWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
+  chatWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
 
   // and load the index.html of the app.
 if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
@@ -199,6 +201,67 @@ const setupIpcHandlers = () => {
 });
 
 
+  console.log('Setting up action system IPC handlers...');
+
+  // --- Action System IPC Handlers ---
+  ipcMain.handle('actions:reload', async () => {
+    try {
+      await actionRegistry.reloadActions();
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to reload actions:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('actions:getAll', async () => {
+    try {
+      const actions = actionRegistry.getAllActions(/* includeDisabled = */ true);
+      return actions.map(a => ({
+        id: a.id,
+        title: a.definition.title || a.id,
+        scope: a.scope,
+        filePath: a.filePath,
+        validation: a.validation,
+        disabled: actionRegistry.isActionDisabled(a.id)
+      }));
+    } catch (error: any) {
+      console.error('Failed to get actions:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('actions:setDisabled', async (_, { actionId, disabled }: { actionId: string; disabled: boolean }) => {
+    try {
+      actionRegistry.setActionDisabled(actionId, disabled);
+      const settings = actionRegistry.getSettings();
+      settingsRepository.saveActionSettings(settings);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to set action disabled state:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('actions:getSettings', async () => {
+    try {
+      return settingsRepository.getActionSettings();
+    } catch (error: any) {
+      console.error('Failed to get action settings:', error);
+      return { disabledActions: [], validation: {} };
+    }
+  });
+
+  ipcMain.handle('actions:openFolder', async () => {
+    try {
+      await shell.openPath(VOTC_ACTIONS_DIR);
+      return;
+    } catch (error: any) {
+      console.error('Failed to open actions folder:', error);
+      throw error;
+    }
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---
@@ -310,6 +373,9 @@ app.on('ready', () => {
   clearLog();
   setupIpcHandlers(); // Setup handlers first
   chatWindow = createWindow(); // Create the main chat window and assign to global
+  // Initialize actions registry with saved settings and preload actions
+  actionRegistry.setSettings(settingsRepository.getActionSettings());
+  actionRegistry.reloadActions().catch(err => console.error('Failed to reload actions on startup:', err));
 
   console.log('Current __dirname:', __dirname);
   console.log('Process resources:', process.resourcesPath);

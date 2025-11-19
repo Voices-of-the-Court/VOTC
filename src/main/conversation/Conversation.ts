@@ -7,7 +7,9 @@ import { settingsRepository } from "../SettingsRepository";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
 import { ConversationEntry, Message, createError, createMessage } from "./types";
 import { PromptBuilder } from "./PromptBuilder";
+import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
+import { runFileManager } from "../actions/RunFileManager";
 
 export class Conversation {
     id = v4();
@@ -37,6 +39,7 @@ export class Conversation {
     }
 
     private async initializeGameData(): Promise<void> {
+        runFileManager.clear();    
         try {
             this.gameData = await parseLog(settingsRepository.getCK3DebugLogPath()!);
             console.log('GameData initialized with', this.gameData.characters.size, 'characters');
@@ -177,11 +180,13 @@ export class Conversation {
                     }
                 }
                 placeholder.isStreaming = false;
+                await ActionEngine.evaluateForCharacter(this, npc);
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
                 placeholder.content = result.content;
                 this.emitUpdate();
                 placeholder.isStreaming = false;
+                await ActionEngine.evaluateForCharacter(this, npc);
             } else {
                 throw new Error('Bad LLM response format');
             }

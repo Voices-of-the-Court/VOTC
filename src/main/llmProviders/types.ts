@@ -33,6 +33,13 @@ export interface ILLMCompletionRequest {
   presence_penalty?: number;
   frequency_penalty?: number;
   signal?: AbortSignal; // For cancelling requests
+  /**
+   * Optional response format for providers that support native structured outputs (e.g., OpenAI/OpenRouter).
+   * For OpenAI-compatible SDKs this is typically:
+   * { type: 'json_schema', json_schema: { name: string, schema: JSONSchemaObject } }
+   * or { type: 'json_object' } for generic JSON constraint.
+   */
+  response_format?: Record<string, any>;
   // Provider-specific parameters can be handled within each implementation
   // or by adding an optional 'options?: Record<string, any>' field
 }
@@ -123,6 +130,16 @@ export interface LLMSettings {
   activeProviderInstanceId?: string | null; // instanceId of the active base config or preset
 }
 
+export interface ActionValidationStatus {
+  valid: boolean;
+  message?: string;
+}
+
+export interface ActionSettings {
+  disabledActions: string[];
+  validation: Record<string, ActionValidationStatus>;
+}
+
 // General application settings
 export interface AppSettings {
   llmSettings: LLMSettings;
@@ -130,6 +147,7 @@ export interface AppSettings {
   globalStreamEnabled?: boolean; // Global toggle for streaming
   pauseOnRegeneration?: boolean; // Pause conversation after regenerating a message
   generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
+  actionSettings?: ActionSettings;
 }
 
 

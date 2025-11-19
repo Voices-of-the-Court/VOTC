@@ -5,6 +5,7 @@
   "description": "Reimplementation of Voices of the Court mod for Crusader Kings III for better experience",
   "main": "out/main/main.js",
   "scripts": {
+    "typedefs": "node ./build/createGameDataTypeDefs.js",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
@@ -43,6 +44,7 @@
     "eslint-plugin-import": "^2.31.0",
     "sass": "^1.87.0",
     "ts-node": "^10.9.2",
+    "ts-to-jsdoc": "^2.4.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vite-plugin-electron": "^0.29.0",
@@ -58,6 +60,7 @@
     "react-dom": "^19.1.0",
     "streaming-markdown": "^0.2.15",
     "uuid": "^11.1.0",
+    "zod": "^3.23.8",
     "zustand": "^5.0.8"
   }
 }

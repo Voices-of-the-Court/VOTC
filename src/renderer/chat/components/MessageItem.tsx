@@ -76,7 +76,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
         <div className="message-header">
           <span className="message-role">{message.role === 'user' ? 'You' : message.role === 'assistant' ? message.name : 'System'}</span>
           <div className="message-actions">
-            {message.role === 'assistant' && (
+            {message.role === 'assistant' && !message.isStreaming && (
               <button className="message-action-btn" onClick={handleRegenerate} title="Regenerate">
                 🔄
               </button>
