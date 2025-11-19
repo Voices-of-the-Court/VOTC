@@ -1,4 +1,5 @@
 import {Memory, Trait, OpinionModifier, Secret} from "./GameData"
+import fs from 'fs';
 
 // Simple replacement for removeTooltip since parseLog.ts doesn't exist
 function removeTooltip(text: string): string {
@@ -44,6 +45,10 @@ export class Character {
     relationsToCharacters: { id: number, relations: string[]}[];
     opinionBreakdownToPlayer: OpinionModifier[];
     opinions: { id: number, opinon: number}[];
+
+    // Conversation summaries
+    conversationSummaries: ConversationSummary[] = [];
+
 
     constructor(data: string[]){
         this.id = Number(data[0]),
@@ -153,5 +158,21 @@ export class Character {
         this.opinionOfPlayer = sum;
     }   
 
+
+    saveSummaries(summariesPath: string): void {
+        fs.writeFileSync(summariesPath, JSON.stringify(this.conversationSummaries, null, '\t'));
+    }
+    
+    loadSummaries(summariesPath: string): void {
+        if (fs.existsSync(summariesPath)) {
+            this.conversationSummaries = JSON.parse(fs.readFileSync(summariesPath, 'utf8'));
+        }
+    }
+}
+
+export interface ConversationSummary {
+    date: string;
+    totalDays: number;
+    content: string;
 }
 

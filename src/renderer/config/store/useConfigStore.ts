@@ -1,0 +1,477 @@
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel } from '@llmTypes';
+
+const DEFAULT_PARAMETERS = { temperature: 0.7, max_tokens: 2048 };
+
+interface ConfigStore {
+  // Settings state
+  appSettings: AppSettings | null;
+  
+  // Model cache (session-only)
+  modelCache: Map<string, ILLMModel[]>;
+  isLoadingModels: boolean;
+  
+  // Selection state
+  selectedProviderType: ProviderType | null;
+  selectedPresetId: string | null;
+  editingConfig: Partial<LLMProviderConfig>;
+  initialConfig: Partial<LLMProviderConfig>;
+  
+  // UI state
+  testResult: { success: boolean; message?: string; error?: string } | null;
+  
+  // Auto-save
+  autoSaveTimer: NodeJS.Timeout | null;
+  
+  // Actions
+  loadSettings: () => Promise<void>;
+  updateSettings: (settings: AppSettings) => void;
+  
+  fetchModels: (config: Partial<LLMProviderConfig>) => Promise<void>;
+  getCachedModels: (cacheKey: string) => ILLMModel[];
+  
+  selectProvider: (type: ProviderType) => Promise<void>;
+  selectPreset: (id: string) => Promise<void>;
+  updateEditingConfig: (updates: Partial<LLMProviderConfig>) => void;
+  
+  saveConfigDebounced: () => void;
+  saveConfigImmediate: () => Promise<void>;
+  
+  testConnection: () => Promise<void>;
+  setTestResult: (result: ConfigStore['testResult']) => void;
+  
+  createPreset: (name: string) => Promise<void>;
+  deletePreset: (id: string) => Promise<void>;
+
+  // Settings actions
+  updateGlobalStreamSetting: (enabled: boolean) => Promise<void>;
+  updatePauseOnRegeneration: (enabled: boolean) => Promise<void>;
+  updateGenerateFollowingMessages: (enabled: boolean) => Promise<void>;
+  updateCK3Folder: (path: string) => Promise<void>;
+  selectCK3Folder: () => Promise<void>;
+  importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
+}
+
+const getCacheKey = (config: Partial<LLMProviderConfig>): string => {
+  // All OpenRouter configs (base + presets) share one cache
+  if (config.providerType === 'openrouter') return 'openrouter';
+  
+  // OpenAI-compatible and Ollama use instanceId (each has own cache)
+  return config.instanceId || '';
+};
+
+export const useConfigStore = create<ConfigStore>()(
+  devtools(
+    (set, get) => ({
+      // Initial state
+      appSettings: null,
+      modelCache: new Map(),
+      isLoadingModels: false,
+      selectedProviderType: null,
+      selectedPresetId: null,
+      editingConfig: {},
+      initialConfig: {},
+      testResult: null,
+      autoSaveTimer: null,
+
+      // Load settings from backend
+      loadSettings: async () => {
+        const settings = await window.llmConfigAPI.getAppSettings();
+        set({ appSettings: settings });
+        
+        // Initialize selection based on active provider
+        const activeId = settings.llmSettings.activeProviderInstanceId;
+        if (activeId) {
+          const isBaseProvider = ['openrouter', 'ollama', 'openai-compatible'].includes(activeId);
+          
+          if (isBaseProvider) {
+            get().selectProvider(activeId as ProviderType);
+          } else {
+            get().selectPreset(activeId);
+          }
+        } else {
+          // Default to openrouter
+          get().selectProvider('openrouter');
+        }
+      },
+
+      updateSettings: (settings) => {
+        set({ appSettings: settings });
+      },
+
+      // Fetch and cache models
+      fetchModels: async (config) => {
+        if (!config.providerType) return;
+        
+        const cacheKey = getCacheKey(config);
+        const { modelCache } = get();
+        
+        // Return cached if available
+        if (modelCache.has(cacheKey)) {
+          console.log(`Using cached models for ${cacheKey}`);
+          return;
+        }
+        
+        // Validation checks
+        if (config.providerType === 'openrouter' && !config.apiKey) {
+          return;
+        }
+        if ((config.providerType === 'ollama' || config.providerType === 'openai-compatible') && !config.baseUrl) {
+          return;
+        }
+        
+        set({ isLoadingModels: true });
+        
+        try {
+          const result = await window.llmConfigAPI.listModels();
+          
+          if ('error' in result) {
+            console.error('Error listing models:', result.error);
+          } else {
+            const newCache = new Map(modelCache);
+            newCache.set(cacheKey, result);
+            set({ modelCache: newCache });
+            console.log(`Cached ${result.length} models for ${cacheKey}`);
+          }
+        } catch (error) {
+          console.error('Failed to fetch models:', error);
+        } finally {
+          set({ isLoadingModels: false });
+        }
+      },
+
+      getCachedModels: (cacheKey) => {
+        return get().modelCache.get(cacheKey) || [];
+      },
+
+      // Select provider
+      selectProvider: async (type) => {
+        const { appSettings } = get();
+        if (!appSettings) return;
+        
+        // Get config
+        const config = appSettings.llmSettings.providers.find(p => p.providerType === type) || {
+          instanceId: type,
+          providerType: type,
+          apiKey: '',
+          baseUrl: type === 'ollama' ? 'http://localhost:11434' : '',
+          defaultModel: '',
+          defaultParameters: { ...DEFAULT_PARAMETERS },
+        };
+        
+        set({
+          selectedProviderType: type,
+          selectedPresetId: null,
+          editingConfig: config,
+          initialConfig: config,
+          testResult: null,
+        });
+        
+        // Set active provider
+        await window.llmConfigAPI.setActiveProvider(type);
+        
+        // Fetch models if not cached
+        get().fetchModels(config);
+      },
+
+      // Select preset
+      selectPreset: async (id) => {
+        const { appSettings } = get();
+        if (!appSettings) return;
+        
+        const preset = appSettings.llmSettings.presets.find(p => p.instanceId === id);
+        if (!preset) return;
+        
+        set({
+          selectedProviderType: null,
+          selectedPresetId: id,
+          editingConfig: preset,
+          initialConfig: preset,
+          testResult: null,
+        });
+        
+        // Set active provider
+        await window.llmConfigAPI.setActiveProvider(id);
+        
+        // Fetch models if not cached
+        get().fetchModels(preset);
+      },
+
+      // Update editing config (no auto-save here)
+      updateEditingConfig: (updates) => {
+        set((state) => ({
+          editingConfig: { ...state.editingConfig, ...updates },
+        }));
+        
+        // Trigger debounced save
+        get().saveConfigDebounced();
+      },
+
+      // Debounced save
+      saveConfigDebounced: () => {
+        const { autoSaveTimer } = get();
+        
+        if (autoSaveTimer) {
+          clearTimeout(autoSaveTimer);
+        }
+        
+        const timer = setTimeout(() => {
+          get().saveConfigImmediate();
+        }, 1000);
+        
+        set({ autoSaveTimer: timer });
+      },
+
+      // Immediate save
+      saveConfigImmediate: async () => {
+        const { editingConfig, initialConfig, appSettings } = get();
+        
+        // Validate
+        if (!editingConfig.providerType || !editingConfig.instanceId) {
+          return;
+        }
+        
+        // Check if changed
+        if (JSON.stringify(editingConfig) === JSON.stringify(initialConfig)) {
+          return;
+        }
+        
+        const configToSave: LLMProviderConfig = {
+          instanceId: editingConfig.instanceId!,
+          providerType: editingConfig.providerType!,
+          customName: editingConfig.customName,
+          apiKey: editingConfig.apiKey || '',
+          baseUrl: editingConfig.baseUrl || '',
+          defaultModel: editingConfig.defaultModel || '',
+          defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
+          customContextLength: editingConfig.customContextLength,
+        };
+        
+        try {
+          const saved = await window.llmConfigAPI.saveProviderConfig(configToSave);
+          
+          if (!appSettings) return;
+          
+          const baseProviderTypes = ['openrouter', 'ollama', 'openai-compatible'];
+          let newProviders = [...appSettings.llmSettings.providers];
+          let newPresets = [...appSettings.llmSettings.presets];
+          
+          if (baseProviderTypes.includes(saved.instanceId)) {
+            const index = newProviders.findIndex(p => p.instanceId === saved.instanceId);
+            if (index > -1) {
+              newProviders[index] = saved;
+            } else {
+              newProviders.push(saved);
+            }
+          } else {
+            const index = newPresets.findIndex(p => p.instanceId === saved.instanceId);
+            if (index > -1) {
+              newPresets[index] = saved;
+            } else {
+              newPresets.push(saved);
+            }
+          }
+          
+          const updatedSettings = {
+            ...appSettings,
+            llmSettings: {
+              ...appSettings.llmSettings,
+              providers: newProviders,
+              presets: newPresets,
+            },
+          };
+          
+          set({
+            appSettings: updatedSettings,
+            initialConfig: saved,
+          });
+          
+          console.log(`Auto-saved: ${saved.customName || saved.providerType}`);
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+        }
+      },
+
+      // Test connection
+      testConnection: async () => {
+        set({ testResult: null });
+        const result = await window.llmConfigAPI.testConnection();
+        set({ testResult: result });
+      },
+
+      setTestResult: (result) => {
+        set({ testResult: result });
+      },
+
+      // Create preset
+      createPreset: async (name) => {
+        const { editingConfig, appSettings } = get();
+        
+        if (!editingConfig.providerType || !appSettings) {
+          alert('Cannot create preset from incomplete configuration.');
+          return;
+        }
+        
+        const newPreset: LLMProviderConfig = {
+          instanceId: crypto.randomUUID(),
+          providerType: editingConfig.providerType,
+          customName: name,
+          apiKey: editingConfig.apiKey || '',
+          baseUrl: editingConfig.baseUrl || (editingConfig.providerType === 'ollama' ? 'http://localhost:11434' : ''),
+          defaultModel: editingConfig.defaultModel || '',
+          defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
+          customContextLength: editingConfig.customContextLength,
+        };
+        
+        try {
+          const saved = await window.llmConfigAPI.saveProviderConfig(newPreset);
+          
+          const updatedSettings = {
+            ...appSettings,
+            llmSettings: {
+              ...appSettings.llmSettings,
+              presets: [...appSettings.llmSettings.presets, saved],
+              activeProviderInstanceId: saved.instanceId,
+            },
+          };
+          
+          set({ appSettings: updatedSettings });
+          
+          // Select the new preset
+          get().selectPreset(saved.instanceId);
+        } catch (error) {
+          console.error('Failed to create preset:', error);
+          alert('Failed to create preset. See console for details.');
+        }
+      },
+
+      // Delete preset
+      deletePreset: async (id) => {
+        const { appSettings, selectedPresetId } = get();
+        if (!appSettings) return;
+        
+        await window.llmConfigAPI.deletePreset(id);
+        
+        const newPresets = appSettings.llmSettings.presets.filter(p => p.instanceId !== id);
+        const wasActive = appSettings.llmSettings.activeProviderInstanceId === id;
+        const wasEditing = selectedPresetId === id;
+        
+        // Determine new active/selected
+        let newActiveId: string | null = appSettings.llmSettings.activeProviderInstanceId!;
+        
+        if (wasActive) {
+          if (newPresets.length > 0) {
+            newActiveId = newPresets[0].instanceId;
+          } else {
+            newActiveId = 'openrouter';
+          }
+        }
+        
+        const updatedSettings = {
+          ...appSettings,
+          llmSettings: {
+            ...appSettings.llmSettings,
+            presets: newPresets,
+            activeProviderInstanceId: newActiveId,
+          },
+        };
+        
+        set({ appSettings: updatedSettings });
+        
+        // Update selection if we were editing the deleted preset
+        if (wasEditing) {
+          if (newActiveId && ['openrouter', 'ollama', 'openai-compatible'].includes(newActiveId)) {
+            get().selectProvider(newActiveId as ProviderType);
+          } else if (newActiveId) {
+            get().selectPreset(newActiveId);
+          } else {
+            get().selectProvider('openrouter');
+          }
+        }
+      },
+
+      // Settings actions
+      updateGlobalStreamSetting: async (enabled) => {
+        await window.llmConfigAPI.saveGlobalStreamSetting(enabled);
+        set((state) => ({
+          appSettings: state.appSettings 
+            ? { ...state.appSettings, globalStreamEnabled: enabled }
+            : null,
+        }));
+      },
+
+      updatePauseOnRegeneration: async (enabled) => {
+        await window.llmConfigAPI.savePauseOnRegenerationSetting(enabled);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { ...state.appSettings, pauseOnRegeneration: enabled }
+            : null,
+        }));
+      },
+
+      updateGenerateFollowingMessages: async (enabled) => {
+        await window.llmConfigAPI.saveGenerateFollowingMessagesSetting(enabled);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { ...state.appSettings, generateFollowingMessages: enabled }
+            : null,
+        }));
+      },
+
+      updateCK3Folder: async (path) => {
+        await window.llmConfigAPI.setCK3Folder(path);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { ...state.appSettings, ck3UserFolderPath: path }
+            : null,
+        }));
+      },
+
+      selectCK3Folder: async () => {
+        const path = await window.llmConfigAPI.selectFolder();
+        if (path) {
+          get().updateCK3Folder(path);
+        }
+      },
+
+      importLegacySummaries: async () => {
+        const result = await window.llmConfigAPI.importLegacySummaries();
+        
+        // Show feedback to user (this could be handled via a toast/notification system)
+        if (result.success) {
+          console.log(`Import successful: ${result.filesCopied} files copied`);
+        } else {
+          console.error('Import failed:', result.message);
+          if (result.errors && result.errors.length > 0) {
+            console.error('Import errors:', result.errors);
+          }
+        }
+        
+        return result;
+      },
+    }),
+    { name: 'ConfigStore' }
+  )
+);
+
+// Selectors for granular subscriptions (at the bottom of the file)
+// At the bottom of useConfigStore.ts
+export const useAppSettings = () => useConfigStore((state) => state.appSettings);
+export const useEditingConfig = () => useConfigStore((state) => state.editingConfig);
+export const useTestResult = () => useConfigStore((state) => state.testResult);
+
+// Custom hooks for object selectors
+export const useSelection = () => {
+  const selectedProviderType = useConfigStore((state) => state.selectedProviderType);
+  const selectedPresetId = useConfigStore((state) => state.selectedPresetId);
+  
+  return { selectedProviderType, selectedPresetId };
+};
+
+export const useModelState = () => {
+  const isLoadingModels = useConfigStore((state) => state.isLoadingModels);
+  const getCachedModels = useConfigStore((state) => state.getCachedModels);
+  
+  return { isLoadingModels, getCachedModels };
+};

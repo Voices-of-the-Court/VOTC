@@ -1,3 +1,4 @@
+import { providerRegistry } from './ProviderRegistry';
 import {
   ILLMCompletionRequest,
   ILLMCompletionResponse,
@@ -6,7 +7,6 @@ import {
   OpenRouterConfig,
   LLMProviderConfig,
   ILLMOutput,
-  OpenRouterErrorResponse,
   isOpenRouterErrorResponse
 } from './types';
 import { BaseProvider } from './BaseProvider';
@@ -22,13 +22,6 @@ const isOpenRouterFreeModel = (modelData: any): boolean => {
 export class OpenRouterProvider extends BaseProvider {
   providerId = 'openrouter';
   name = 'OpenRouter';
-
-  private getAPIKey(config: LLMProviderConfig): string {
-    if (config.providerType !== 'openrouter' || !config.apiKey) {
-      throw new Error('Invalid configuration for OpenRouterProvider: API key is missing.');
-    }
-    return config.apiKey;
-  }
 
   /**
    * Determine if an error should trigger a retry
@@ -301,3 +294,6 @@ private async _nonStreamChatCompletion(
   }
 }
 
+
+// Register this provider with the registry
+providerRegistry.register('openrouter', OpenRouterProvider);

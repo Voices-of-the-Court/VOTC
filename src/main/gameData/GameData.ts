@@ -1,4 +1,7 @@
+import path from "path";
+import fs from "fs";
 import { Character } from "./Character";
+import { VOTC_SUMMARIES_DIR } from "../utils/paths";
 
 // Simple replacement for removeTooltip since parseLog.ts doesn't exist
 function removeTooltip(text: string): string {
@@ -16,6 +19,7 @@ export type Trait = {
 export type Memory = {
     type: string,
     creationDate: string,
+    creationDateTotalDays: number,
     desc: string,
     /**@property {number} relevanceWeight - how relevant the memory to the current conversation. The higher, the more relevant. */
     relevanceWeight: number
@@ -37,6 +41,7 @@ export type Secret = {
 */
 export class GameData {
     date: string;
+    totalDays: number;
     scene: string;
     location: string;
     locationController: string;
@@ -57,6 +62,7 @@ export class GameData {
             this.scene = data[5].substring(11),
             this.location = data[6],
             this.locationController = data[7],
+            this.totalDays = Number(data[8]),
 
             this.characters = new Map<number, Character>()
     }
@@ -71,5 +77,27 @@ export class GameData {
      */
     getAi(): Character{
         return this.characters.get(this.aiID)!;
+    }
+
+    loadCharactersSummaries(){
+        const summariesPath = path.join(VOTC_SUMMARIES_DIR, this.playerID.toString());
+        for (const character of this.characters.values()) {
+            character.loadSummaries(path.join(summariesPath, character.id.toString() + '.json'));
+        }
+    }
+
+    saveCharactersSummaries(finalSummary: string){
+        const summariesPath = path.join(VOTC_SUMMARIES_DIR, this.playerID.toString());
+        fs.mkdirSync(summariesPath, { recursive: true });
+        for (const character of this.characters.values()) {
+            character.conversationSummaries.unshift(
+                {
+                    date: this.date,
+                    totalDays: this.totalDays,
+                    content: finalSummary
+                }
+            )
+            character.saveSummaries(path.join(summariesPath, character.id.toString() + '.json'));
+        }
     }
 }

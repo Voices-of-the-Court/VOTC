@@ -1,24 +1,23 @@
 import React from 'react';
-import type { AppSettings, ProviderType as ConfigProviderType } from '@llmTypes';
+import type {  ProviderType as ConfigProviderType } from '@llmTypes';
+import { useAppSettings } from '../store/useConfigStore';
 
 interface ProviderSidebarProps {
-    appSettings: AppSettings | null;
     onSelectProviderType: (type: ConfigProviderType) => void;
     onSelectPreset: (presetId: string) => void;
     onDeletePreset: (presetId: string) => void;
     selectedProviderTypeForEditing: ConfigProviderType | null;
     selectedPresetIdForEditing: string | null;
-    // TODO: Add logos for providers
 }
 
 const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
-    appSettings,
     onSelectProviderType,
     onSelectPreset,
     onDeletePreset,
     selectedProviderTypeForEditing,
     selectedPresetIdForEditing,
 }) => {
+    const appSettings = useAppSettings();
     const baseProviderTypes: ConfigProviderType[] = ['openrouter', 'ollama', 'openai-compatible'];
 
     return (
@@ -31,7 +30,6 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                         onClick={() => onSelectProviderType(type)}
                         className={selectedProviderTypeForEditing === type && !selectedPresetIdForEditing ? 'active' : ''}
                     >
-                        {/* TODO: Add logo here */}
                         {type.charAt(0).toUpperCase() + type.slice(1)}
                     </li>
                 ))}
@@ -46,10 +44,12 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                             className={`preset-item ${selectedPresetIdForEditing === preset.instanceId ? 'active' : ''}`}
                             onClick={() => onSelectPreset(preset.instanceId)} // Moved onClick to li
                         >
-                            <span className="preset-name"> {/* Removed onClick from span */}
-                                {preset.customName || 'Unnamed Preset'} 
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <span className="preset-name"> {/* Removed onClick from span */}
+                                    {preset.customName || 'Unnamed Preset'} 
+                                </span>
                                 <small className="preset-type">({preset.providerType})</small>
-                            </span>
+                            </div>
                             <button 
                                 onClick={(e) => { 
                                     e.stopPropagation(); // Prevent li onClick from firing

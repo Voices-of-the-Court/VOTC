@@ -104,8 +104,7 @@ export interface ProviderConfigBase {
   baseUrl?: string;
   defaultModel?: string;
   defaultParameters?: Partial<Omit<ILLMCompletionRequest, 'messages' | 'model' | 'stream'>>; // Parameters like temperature, max_tokens. Stream is global.
-  // customName is now part of LLMProviderConfig for presets
-  // isEnabled is removed
+  customContextLength?: number; // User-specified context length override
 }
 
 export type OpenRouterConfig = ProviderConfigBase & { providerType: 'openrouter'; };
@@ -129,6 +128,8 @@ export interface AppSettings {
   llmSettings: LLMSettings;
   ck3UserFolderPath?: string | null;
   globalStreamEnabled?: boolean; // Global toggle for streaming
+  pauseOnRegeneration?: boolean; // Pause conversation after regenerating a message
+  generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
 }
 
 

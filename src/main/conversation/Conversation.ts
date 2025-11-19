@@ -3,8 +3,10 @@ import { Character } from "../gameData/Character";
 import { parseLog } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
+import { settingsRepository } from "../SettingsRepository";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
 import { ConversationEntry, Message, createError, createMessage } from "./types";
+import { PromptBuilder } from "./PromptBuilder";
 import { EventEmitter } from "events";
 
 export class Conversation {
@@ -16,6 +18,19 @@ export class Conversation {
     private eventEmitter: EventEmitter;
     private currentStreamController: AbortController | null = null;
 
+    currentSummary: string = '';
+    private lastSummarizedMessageIndex: number = 0;
+    
+    // Configuration placeholders
+    private readonly CONTEXT_LIMIT_PERCENTAGE = 0.75; // Trigger summary at 75% of context
+    private readonly MESSAGES_TO_SUMMARIZE_PERCENTAGE = 0.40; // Summarize oldest 40%
+
+    // Queue and pause management
+    npcQueue: Character[] = [];
+    customQueue: Character[] | null = null;
+    isPaused: boolean = false;
+    persistCustomQueue: boolean = false;
+
     constructor() {
         this.eventEmitter = new EventEmitter();
         this.initializeGameData();
@@ -23,8 +38,9 @@ export class Conversation {
 
     private async initializeGameData(): Promise<void> {
         try {
-            this.gameData = await parseLog(llmManager.getCK3DebugLogPath()!);
+            this.gameData = await parseLog(settingsRepository.getCK3DebugLogPath()!);
             console.log('GameData initialized with', this.gameData.characters.size, 'characters');
+            this.gameData.loadCharactersSummaries();
             this.isActive = true;
         } catch (error) {
             console.error('Failed to parse log file:', error);
@@ -32,48 +48,86 @@ export class Conversation {
         }
     }
 
-    // Generate a system prompt based on the characters in the conversation
-    private generateSystemPrompt(char: Character): string {
-        if (this.gameData.characters.size === 0) {
-            console.log('No characters in conversation for system prompt');
-            return "You are characters in a medieval strategy game. Engage in conversation naturally.";
+    private async checkAndSummarizeIfNeeded(npc: Character): Promise<void> {
+        const currentMessages = PromptBuilder.buildMessages(
+            this.getHistory().slice(this.lastSummarizedMessageIndex),
+            npc, 
+            this.gameData,
+            this.currentSummary
+        );
+        
+        const estimatedTokens = this.estimateTokenCount(currentMessages);
+        const contextLimit = await llmManager.getCurrentContextLength() || 10000;
+        
+        if (estimatedTokens > contextLimit * this.CONTEXT_LIMIT_PERCENTAGE) {
+            console.log(`Context approaching limit (${estimatedTokens}/${contextLimit}), creating rolling summary`);
+            await this.createRollingSummary(contextLimit);
         }
+    }
 
-        if (!char) {
-            console.log('Primary character not found for ID:', this.gameData.aiID);
-            return "You are characters in a medieval strategy game. Engage in conversation naturally.";
+    /**
+     * Create a rolling summary of older messages to compress context
+     */
+    private async createRollingSummary(contextLimit: number): Promise<void> {
+        const history = this.getHistory().slice(this.lastSummarizedMessageIndex);
+        const tokensToSummarize = Math.floor(
+            contextLimit * this.MESSAGES_TO_SUMMARIZE_PERCENTAGE
+        );
+        
+        // Find messages to summarize (oldest messages not yet summarized)
+        let tokenCount = 0;
+        const messagesToSummarize: Message[] = [];
+        
+        for (let i = this.lastSummarizedMessageIndex; i < history.length; i++) {
+            const msg = history[i];
+            const msgTokens = this.estimateMessageTokens(msg);
+            
+            if (tokenCount + msgTokens > tokensToSummarize) {
+                break;
+            }
+            
+            messagesToSummarize.push(msg);
+            tokenCount += msgTokens;
+            this.lastSummarizedMessageIndex = i + 1;
         }
+        
+        if (messagesToSummarize.length === 0) {
+            console.log('No new messages to summarize');
+            return;
+        }
+        
+        // Create summary prompt
+        const summaryPrompt = PromptBuilder.buildResummarizePrompt(messagesToSummarize, this.currentSummary);
+        
+        try {
+            const result = await llmManager.sendChatRequest(summaryPrompt, undefined, true);
+            
+            if (result && typeof result === 'object' && 'content' in result) {
+                // Append to existing summary or create new one
+                if (this.currentSummary) {
+                    this.currentSummary = `${this.currentSummary}\n\n${result.content}`;
+                } else {
+                    this.currentSummary = result.content as string;
+                }
+                
+                console.log('Updated rolling summary:', this.currentSummary.substring(0, 100) + '...');
+            }
+        } catch (error) {
+            console.error('Failed to create rolling summary:', error);
+        }
+    }
 
-        console.log('Generating system prompt for character:', char.shortName);
-
-        let prompt = `You are ${char.fullName}, ${char.primaryTitle} in a medieval strategy game.
-
-## Character Background:
-- Name: ${char.shortName}
-- Age: ${char.age} years old
-- Personality: ${char.personality}
-- Culture: ${char.culture}, Faith: ${char.faith}
-- Sexuality: ${char.sexuality}
-${char.liege ? `- Liege: ${char.liege}` : ''}
-${char.consort ? `- Consort: ${char.consort}` : ''}
-
-## Traits and Personality:
-${char.traits.map(trait => `- ${trait.category}: ${trait.name} - ${trait.desc}`).join('\n') || 'None specific'}
-
-## Current Situation:
-- Gold: ${char.gold} gold coins
-- Opinion of Player: ${char.opinionOfPlayer}/100
-${char.isRuler ? '- Ruler status' : '- Not a ruler'}
-${char.isIndependentRuler ? '- Independent ruler' : ''}
-${char.capitalLocation ? `- Rules from: ${char.capitalLocation}` : ''}
-
-## Key Relationships:
-${char.relationsToPlayer.map(rel => `- ${rel}`).join('\n') || 'None noted'}
-
-You should respond as this character would, taking into account their personality, traits, and opinions. Be politically minded, strategic, and true to medieval courtly behavior and feudal relationships.`;
-
-        console.log('Generated system prompt:', prompt.substring(0, 200) + '...');
-        return prompt;
+    /**
+     * Estimate token count (simple approximation)
+     */
+    private estimateTokenCount(messages: any[]): number {
+        const text = JSON.stringify(messages);
+        return Math.ceil(text.length / 4); // Rough estimate: 1 token ≈ 4 characters
+    }
+    
+    private estimateMessageTokens(message: Message): number {
+        const text = `${message.name}: ${message.content}`;
+        return Math.ceil(text.length / 4);
     }
 
     // Get list of all NPCs (characters except the player)
@@ -83,13 +137,7 @@ You should respond as this character would, taking into account their personalit
     }
 
     // Handle response for a single NPC
-    private async respondAs(npc: Character, history: Message[]): Promise<void> {
-        const systemPrompt = this.generateSystemPrompt(npc);
-        const llmMessages: any[] = [
-            { role: 'system', content: systemPrompt },
-            ...history.map(m => ({ role: m.role, content: `${m.name}: ${m.content}` }))
-        ];
-
+    private async respondAs(npc: Character): Promise<void> {
         const msgId = this.nextId++;
         const placeholder = createMessage({
             id: msgId,
@@ -101,13 +149,24 @@ You should respond as this character would, taking into account their personalit
         this.messages.push(placeholder);
         this.emitUpdate();
 
+        // Has to be called after emitUpdate to show placeholder in UI in right time
+        await this.checkAndSummarizeIfNeeded(npc);
+        
+        const llmMessages = PromptBuilder.buildMessages(
+            this.getHistory().slice(this.lastSummarizedMessageIndex), 
+            npc, 
+            this.gameData,
+            this.currentSummary
+        );
+
+
         // Create AbortController for this stream
         this.currentStreamController = new AbortController();
 
         try {
             const result = await llmManager.sendChatRequest(llmMessages, this.currentStreamController.signal);
 
-            if (llmManager.getGlobalStreamSetting() &&
+            if (settingsRepository.getGlobalStreamSetting() &&
                 typeof result === 'object' &&
                 typeof (result as any)[Symbol.asyncIterator] === 'function') {
                 // Handle streaming response
@@ -121,16 +180,17 @@ You should respond as this character would, taking into account their personalit
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
                 placeholder.content = result.content;
-                placeholder.isStreaming = false;
                 this.emitUpdate();
+                placeholder.isStreaming = false;
             } else {
                 throw new Error('Bad LLM response format');
             }
         } catch (error) {
             console.error('Failed to get response for', npc.shortName, ':', error);
-            
+
             // Remove the placeholder message
             this.messages = this.messages.filter(msg => msg.id !== msgId);
+
             // Check if this was an abort (user cancelled)
             if (error instanceof Error && error.message !== 'AbortError: Message cancelled') {
                 const err = createError({
@@ -140,6 +200,10 @@ You should respond as this character would, taking into account their personalit
                 });
                 this.messages.push(err);
             }
+            // Pause conversation on any interruption if more NPCs remain
+            if (this.npcQueue.length > 0) {
+                this.pauseConversation();
+            }
         } finally {
             // Clean up the AbortController
             this.emitUpdate();
@@ -147,11 +211,65 @@ You should respond as this character would, taking into account their personalit
         }
     }
 
-    // Cancel currently active stream
     cancelCurrentStream(): void {
         if (this.currentStreamController) {
             console.log('Cancelling current stream');
             this.currentStreamController.abort();
+        }
+    }
+
+    pauseConversation(): void {
+        console.log('Pausing conversation');
+        this.isPaused = true;
+        this.emitUpdate();
+    }
+
+    resumeConversation(): void {
+        console.log('Resuming conversation');
+        this.isPaused = false;
+        this.emitUpdate();
+        if (this.npcQueue.length > 0) {
+            this.processQueue();
+        }
+    }
+
+    // setCustomQueue(queue: []): void {
+    //     // TODO: use ids instead. Frontend side of the app should send an array of character ids in order of custom queue.
+    //     // Additionally we need to send to UI participating charaters as id's and their names to use for creation of custom queue.
+    //     this.emitUpdate();
+    // }
+
+    // Fill NPC queue with shuffled characters or custom queue
+    private fillNpcQueue(): void {
+        if (this.customQueue && this.customQueue.length > 0) {
+            this.npcQueue = [...this.customQueue];
+            console.log('Using custom queue:', this.npcQueue.map(c => c.shortName));
+            if (!this.persistCustomQueue) {
+                this.customQueue = null;
+            }
+        } else {
+            // Shuffle the NPCs
+            const npcs = this.getNpcList();
+            this.npcQueue = [...npcs].sort(() => Math.random() - 0.5);
+            console.log('Filled shuffled queue:', this.npcQueue.map(c => c.shortName));
+        }
+    }
+
+    private async processQueue(): Promise<void> {
+        if (this.npcQueue.length === 0 || this.isPaused) {
+            return;
+        }
+
+        console.log('Processing queue with', this.npcQueue.length, 'NPCs remaining');
+
+        while (this.npcQueue.length > 0 && !this.isPaused) {
+            const npc = this.npcQueue.shift()!;
+            await this.respondAs(npc);
+        }
+
+        if (this.npcQueue.length === 0 && !this.isPaused) {
+            console.log('Queue processing complete');
+            this.emitUpdate();
         }
     }
 
@@ -172,7 +290,6 @@ You should respond as this character would, taking into account their personalit
             return;
         }
 
-        // Add user message to conversation
         const userMsg = createMessage({
             id: this.nextId++,
             name: user.fullName,
@@ -182,11 +299,183 @@ You should respond as this character would, taking into account their personalit
         this.messages.push(userMsg);
         this.emitUpdate();
 
-        // Have each NPC respond sequentially
-        for (const npc of this.getNpcList()) {
-            await this.respondAs(npc, this.getHistory());
+        if (this.npcQueue.length === 0) {
+            this.fillNpcQueue();
         }
+
+        this.resumeConversation();
+    }
+
+    // Regenerate assistant message and refill queue
+    async regenerateMessage(messageId: number): Promise<void> {
+        console.log('Regenerating message with ID:', messageId);
+
+        // Find target message
+        const targetIndex = this.messages.findIndex(msg => 'id' in msg && msg.id === messageId);
+        if (targetIndex === -1) {
+            console.error('Message not found for regeneration:', messageId);
+            return;
+        }
+
+        const targetMessage = this.messages[targetIndex] as Message;
+        if (targetMessage.role !== 'assistant') {
+            console.error('Can only regenerate assistant messages:', targetMessage.role);
+            return;
+        }
+
+        // Remove messages from last to target (inclusive)
+        for (let i = this.messages.length - 1; i >= targetIndex; i--) {
+            this.messages.splice(i, 1);
+        }
+
+        // Find the character who sent this message
+        const targetCharacter = this.getNpcList().find(c => c.fullName === targetMessage.name);
+        if (!targetCharacter) {
+            console.error('Could not find character for message:', targetMessage.name);
+            this.emitUpdate();
+            return;
+        }
+
+        // Check settings for generate following messages
+        const generateFollowing = settingsRepository.getGenerateFollowingMessagesSetting();
+
+        if (generateFollowing) {
+            // Find latest user message before target
+            let latestUserIndex = -1;
+            for (let i = targetIndex - 1; i >= 0; i--) {
+                const msg = this.messages[i];
+                if ('role' in msg && msg.role === 'user') {
+                    latestUserIndex = i;
+                    break;
+                }
+            }
+
+            if (latestUserIndex >= 0) {
+                // Get all characters who haven't responded after the latest user message
+                const respondedCharacters = new Set<string>();
+                for (let i = latestUserIndex + 1; i < targetIndex; i++) { // targetIndex is now where we cut off
+                    const msg = this.messages[i] as Message;
+                    if (msg.role === 'assistant' && msg.name) {
+                        respondedCharacters.add(msg.name);
+                    }
+                }
+
+                const allNpcs = this.getNpcList();
+                const remainingCharacters = allNpcs.filter(
+                    c => !respondedCharacters.has(c.fullName) &&
+                    c.fullName !== targetCharacter.fullName
+                );
+
+                // Refill queue: target character first, then remaining characters
+                this.npcQueue = [targetCharacter, ...remainingCharacters];
+                console.log('Refilled queue for regeneration:', this.npcQueue.map(c => c.shortName));
+            } else {
+                // No user message found, just queue the target character
+                this.npcQueue = [targetCharacter];
+            }
+        } else {
+            // Only regenerate target character
+            this.npcQueue = [targetCharacter];
+        }
+
         this.emitUpdate();
+
+        // Check pause setting
+        const pauseOnRegeneration = settingsRepository.getPauseOnRegenerationSetting();
+        this.processQueue();
+        if (pauseOnRegeneration) {
+            this.pauseConversation();
+        }
+    }
+
+    // Edit user message and resend
+    async editUserMessage(messageId: number, newContent: string): Promise<void> {
+        console.log('Editing user message with ID:', messageId);
+
+        // Find target message
+        const targetIndex = this.messages.findIndex(msg => 'id' in msg && msg.id === messageId);
+        if (targetIndex === -1) {
+            console.error('Message not found for editing:', messageId);
+            return;
+        }
+
+        const targetMessage = this.messages[targetIndex] as Message;
+        if (targetMessage.role !== 'user') {
+            console.error('Can only edit user messages:', targetMessage.role);
+            return;
+        }
+
+        // Remove messages from last to target (inclusive)
+        for (let i = this.messages.length - 1; i >= targetIndex; i--) {
+            this.messages.splice(i, 1);
+        }
+
+        this.emitUpdate();
+
+        await this.sendMessage(newContent);
+    }
+
+
+    
+    // Create final comprehensive summary and save to characters
+    async finalizeConversation(): Promise<void> {
+        if (this.messages.length < 6) {
+            console.log('Not enough messages for final summarization');
+            this.end();
+            return;
+        }
+
+        console.log('Creating final conversation summary...');
+        
+        // Create comprehensive final summary using ALL messages + current rolling summary
+        const finalSummary = await this.createFinalSummary();
+        
+        if (finalSummary) {
+            // Save to game data (which will distribute to all participating characters)
+            this.gameData.saveCharactersSummaries(finalSummary);
+            console.log('Final conversation summary saved to all participants');
+        }
+
+        this.end();
+    }
+
+    //  Create final comprehensive summary using ALL messages
+    private async createFinalSummary(): Promise<string | null> {
+        const allMessages = this.getHistory();
+        const estimatedTokens = this.estimateTokenCount(allMessages);
+        const contextLimit = await llmManager.getCurrentContextLength() || 10000;
+
+        let summaryPrompt;
+
+        // Choose summary mode based on compression setting or token threshold
+        if (
+            // TODO: settingsRepository.compressSummarySetting ||
+            estimatedTokens > contextLimit * this.CONTEXT_LIMIT_PERCENTAGE
+        ) {
+            summaryPrompt = PromptBuilder.buildFinalSummary(
+                this.gameData,
+                allMessages,
+                this.currentSummary,
+                this.lastSummarizedMessageIndex
+            );
+        } else {
+            summaryPrompt = PromptBuilder.buildFinalSummary(this.gameData, allMessages);
+        }
+
+        try {
+            const result = await llmManager.sendChatRequest(summaryPrompt, undefined, true);
+
+            if (result && typeof result === 'object' && 'content' in result) {
+                const finalSummary = result.content as string;
+                return finalSummary;
+            }
+
+            console.error('Invalid response format for final summary');
+            return null;
+        } catch (error) {
+            console.error('Failed to create final summary:', error);
+            return null;
+        }
     }
 
     // Get conversation history
@@ -196,12 +485,10 @@ You should respond as this character would, taking into account their personalit
         );
     }
 
-    // Clear conversation history
     clearHistory(): void {
         this.messages = [];
     }
 
-    // End conversation
     end(): void {
         this.isActive = false;
         this.clearHistory();

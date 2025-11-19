@@ -1,5 +1,4 @@
 import { Conversation } from "./Conversation";
-import { Character } from "../gameData/Character";
 import { ILLMStreamChunk } from "../llmProviders/types";
 import { EventEmitter } from "events";
 
@@ -129,27 +128,11 @@ export class ConversationManager {
     }
 
     /**
-     * Get conversation history (legacy method)
-     */
-    getConversationHistory(): { role: string, content: string, datetime: Date }[] {
-        if (!this.currentConversation) {
-            return [];
-        }
-
-        return this.currentConversation.getHistory().map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            datetime: msg.datetime,
-            ...(msg.name && { name: msg.name })
-        }));
-    }
-
-    /**
      * End current conversation
      */
     endCurrentConversation(): void {
         if (this.currentConversation) {
-            this.currentConversation.end();
+            this.currentConversation.finalizeConversation();
             console.log('Conversation ended');
         }
         this.currentConversation = null;
@@ -172,13 +155,34 @@ export class ConversationManager {
     }
 
     /**
-     * Get current NPC information (first character for demo purposes)
+     * Pause the current conversation
      */
-    getPlayer(): Character | null {
-        if (!this.currentConversation) return null;
+    pauseConversation(): void {
+        if (this.currentConversation) {
+            this.currentConversation.pauseConversation();
+        }
+    }
 
-        const player = this.currentConversation.gameData.characters.get(this.currentConversation.gameData.playerID);
-        return player ?? null;
+    /**
+     * Resume the current conversation
+     */
+    resumeConversation(): void {
+        if (this.currentConversation) {
+            this.currentConversation.resumeConversation();
+        }
+    }
+
+    /**
+     * Get conversation state (paused, queue length)
+     */
+    getConversationState(): { isPaused: boolean; queueLength: number } {
+        if (!this.currentConversation) {
+            return { isPaused: false, queueLength: 0 };
+        }
+        return {
+            isPaused: this.currentConversation.isPaused,
+            queueLength: this.currentConversation.npcQueue.length
+        };
     }
 
     /**

@@ -9,16 +9,30 @@ interface ChatProps {
 function Chat({ onToggleConfig }: ChatProps) {
   const [inputValue, setInputValue] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
+  const [conversationState, setConversationState] = useState({ isPaused: false, queueLength: 0 });
 
   const { entries, sendMessage } = useConversationEntries();
   const { handleChatBoxMouseEnter, handleChatBoxMouseLeave, handleLeave } = useWindowEvents();
-  const { messagesEndRef, scrollToBottom } = useAutoScroll();
+const { messagesEndRef, containerRef, scrollToBottom, handleScroll } = useAutoScroll();
 
   const isStreaming = entries.some(entry => entry.type === 'message' && entry.isStreaming);
 
   useEffect(() => {
     scrollToBottom();
   }, [entries, scrollToBottom]);
+
+  // Fetch conversation state on mount and when entries change
+  useEffect(() => {
+    const fetchState = async () => {
+      try {
+        const state = await window.conversationAPI.getConversationState();
+        setConversationState(state);
+      } catch (error) {
+        console.error('Failed to fetch conversation state:', error);
+      }
+    };
+    fetchState();
+  }, [entries]);
 
 
   const resetChat = () => {
@@ -44,20 +58,29 @@ function Chat({ onToggleConfig }: ChatProps) {
     }
   };
 
-  const handleNPCInfo = async () => {
-    const npcInfo = await window.conversationAPI.getPlayerInfo();
-    if (npcInfo) {
-      alert(`Current NPC: ${npcInfo.fullName}\n${npcInfo.personality}\nOpinion: ${npcInfo.opinion}/100`);
-    } else {
-      alert('No active conversation');
-    }
-  };
-
   const handleCancelStream = async () => {
     try {
       await window.conversationAPI.cancelStream();
     } catch (error) {
       console.error('Failed to cancel stream:', error);
+    }
+  };
+
+  const handlePauseConversation = async () => {
+    try {
+      await window.conversationAPI.pauseConversation();
+      // State will be updated via onConversationUpdate
+    } catch (error) {
+      console.error('Failed to pause conversation:', error);
+    }
+  };
+
+  const handleResumeConversation = async () => {
+    try {
+      await window.conversationAPI.resumeConversation();
+      // State will be updated via onConversationUpdate
+    } catch (error) {
+      console.error('Failed to resume conversation:', error);
     }
   };
 
@@ -95,7 +118,12 @@ function Chat({ onToggleConfig }: ChatProps) {
           className="chat-box"
           style={{ pointerEvents: 'auto' }}
         >
-          <MessageList entries={entries} scrollRef={messagesEndRef} />
+        <MessageList 
+          entries={entries} 
+          scrollRef={messagesEndRef}
+          containerRef={containerRef}
+          onScroll={handleScroll}
+        />
           <div className="chat-controls-container">
             <ChatInput
               value={inputValue}
@@ -106,10 +134,13 @@ function Chat({ onToggleConfig }: ChatProps) {
             />
             <ChatButtons
               onLeave={() => handleLeave(resetChat)}
-              onNPCInfo={handleNPCInfo}
               onToggleConfig={onToggleConfig}
               onCancel={handleCancelStream}
+              onPause={handlePauseConversation}
+              onResume={handleResumeConversation}
               isStreaming={isStreaming}
+              isPaused={conversationState.isPaused}
+              queueLength={conversationState.queueLength}
             />
           </div>
         </div>
