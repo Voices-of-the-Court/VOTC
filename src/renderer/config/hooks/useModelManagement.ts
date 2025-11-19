@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { LLMProviderConfig, ILLMModel } from '../../../main/llmProviders/types';
+import type { LLMProviderConfig, ILLMModel } from '@llmTypes';
 
 interface UseModelManagementProps {
     editingConfig: Partial<LLMProviderConfig>;

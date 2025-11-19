@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Chat from './chat/Chat';
 import ConfigPanel from './config/ConfigPanel';
 

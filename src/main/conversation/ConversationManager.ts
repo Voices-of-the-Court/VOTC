@@ -73,27 +73,6 @@ export class ConversationManager {
     }
 
     /**
-     * Create a streaming message generator for real-time UI updates
-     */
-    async createStreamingGenerator(userMessage: string): Promise<AsyncGenerator<ILLMStreamChunk, any, undefined>> {
-        const generator = await this.sendMessage(userMessage, true);
-
-        if (generator && typeof generator[Symbol.asyncIterator] === 'function') {
-            return generator;
-        }
-
-        // Fallback to manual generator creation if type casting didn't work
-        async function* fallbackGenerator() {
-            // This should not happen with proper implementation, but provides fallback
-            const result = await this.sendMessage(userMessage, false);
-            yield { delta: { content: result?.content || '' } };
-        }
-
-        console.warn('Using fallback generator - check type handling');
-        return fallbackGenerator.bind(this)();
-    }
-
-    /**
      * Get conversation history
      */
     getConversationHistory(): { role: string, content: string, datetime: Date }[] {
@@ -133,7 +112,8 @@ export class ConversationManager {
     getPlayer(): Character | null {
         if (!this.currentConversation) return null;
 
-        return this.currentConversation.gameData.characters.get(this.currentConversation.gameData.playerID);
+        const player = this.currentConversation.gameData.characters.get(this.currentConversation.gameData.playerID);
+        return player ?? null;
     }
 }
 

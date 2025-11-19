@@ -10,9 +10,6 @@ import { ClipboardListener } from './ClipboardListener'; // Add missing import
 let chatWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
-// Vite-specific environment variable for development server URL
-// const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']; // Handled by vite-plugin-electron
-
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -30,7 +27,7 @@ const createWindow = (): BrowserWindow => {
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    alwaysOnTop: true, // Keep window on top
+    alwaysOnTop: false, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
     fullscreen: true,
     webPreferences: {
@@ -42,19 +39,20 @@ const createWindow = (): BrowserWindow => {
   });
 
   // Make the window initially click-through
-  chatWindow.setAlwaysOnTop(true, 'screen-saver');
+  // chatWindow.setAlwaysOnTop(true, 'screen-saver');
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Set fullscreen (optional, might conflict with alwaysOnTop/transparency goals depending on OS/WM)
   // mainWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
 
   // and load the index.html of the app.
-  if (process.env.VITE_DEV_SERVER_URL) {
-    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/app.html`);
-  } else {
-    // Load your file
-    chatWindow.loadFile(path.join(__dirname, '../../renderer/src/renderer/app.html'));
-  }
+if (process.env.VITE_DEV_SERVER_URL) {
+  chatWindow.loadURL(process.env.VITE_DEV_SERVER_URL); 
+} else {
+  chatWindow.loadFile(
+    path.join(__dirname, '../renderer/index.html') // see below for prod
+  );
+}
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
@@ -199,7 +197,7 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('conversation:reset', () => {
     console.log('IPC received conversation:reset');
-    conversationManager.endCurrentConversation();
+    // conversationManager.endCurrentConversation();
     conversationManager.createConversation();
     return true;
   });
@@ -237,7 +235,7 @@ const setupIpcHandlers = () => {
         // The promise returned by this handler will resolve when the stream is complete.
         (async () => {
           try {
-            let finalAggregatedResponse: ILLMCompletionResponse | void;
+            // let finalAggregatedResponse: ILLMCompletionResponse | void;
             for await (const chunk of response as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined>) {
               event.sender.send('llm:chatChunk', { requestId, chunk });
             }
@@ -300,11 +298,12 @@ const setupIpcHandlers = () => {
 };
 
 app.on('ready', () => {
+  console.log(app.getPath('userData'));
   setupIpcHandlers(); // Setup handlers first
   chatWindow = createWindow(); // Create the main chat window and assign to global
 
   // Create system tray
-  let iconPath = path.join(app.getAppPath(), 'src/renderer/assets/icon.ico');
+  const iconPath = path.join(app.getAppPath(), 'src/renderer/assets/icon.ico');
 
   console.log('Current __dirname:', __dirname);
   console.log('Process resources:', process.resourcesPath);
@@ -380,6 +379,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  tray?.destroy();
 });
 
 app.on('activate', () => {

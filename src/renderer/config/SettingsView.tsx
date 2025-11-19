@@ -1,5 +1,5 @@
 import React, { ChangeEvent } from 'react';
-import type { AppSettings } from '../../main/llmProviders/types';
+import type { AppSettings } from '@llmTypes';
 
 interface SettingsViewProps {
     appSettings: AppSettings | null;

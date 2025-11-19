@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LLMProviderConfig } from '../../../main/llmProviders/types';
+import type { LLMProviderConfig } from '@llmTypes';
 import FormGroupInput from './FormGroupInput'; // Assuming FormGroupInput is used
 
 // Define ChangeHandler type (if not globally available or imported from a common types file)

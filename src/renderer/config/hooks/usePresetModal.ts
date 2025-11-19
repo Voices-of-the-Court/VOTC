@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { AppSettings, LLMProviderConfig, ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
+import type { AppSettings, LLMProviderConfig, ProviderType as ConfigProviderType } from '@llmTypes';
 
 const DEFAULT_PARAMETERS_PRESET_MODAL = { temperature: 0.7, max_tokens: 2048 };
 

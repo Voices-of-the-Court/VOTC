@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { AppSettings, LLMProviderConfig, ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
+import type { AppSettings, LLMProviderConfig, ProviderType as ConfigProviderType } from '@llmTypes';
 
 const DEFAULT_PARAMETERS_HOOK = { temperature: 0.7, max_tokens: 2048 };
 

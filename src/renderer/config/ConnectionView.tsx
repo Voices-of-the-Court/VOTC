@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { AppSettings, LLMProviderConfig, ProviderType as ConfigProviderType, ILLMModel } from '../../main/llmProviders/types';
+import type { AppSettings, LLMProviderConfig } from '@llmTypes';
 // Removed uuid import as it's handled in usePresetModal
 
 // Import hooks
@@ -156,7 +156,8 @@ const ConnectionView: React.FC<{
             defaultModel: editingConfig.defaultModel ||
                           (editingConfig.providerType === 'ollama' && availableModels.length > 0 ? availableModels[0].id : 'openrouter/auto'),
             defaultParameters: editingConfig.defaultParameters || DEFAULT_PARAMETERS_CV,
-        };
+        } as LLMProviderConfig;
+        
         const result = await window.llmConfigAPI.testConnection(configToTest);
         setTestResult(result);
     };
@@ -172,8 +173,8 @@ const ConnectionView: React.FC<{
                 onSelectProviderType={selectProviderType} // from useProviderSelectionManagement
                 onSelectPreset={selectPreset}             // from useProviderSelectionManagement
                 onDeletePreset={openConfirmDeleteModal}   // from useConfirmDeleteModal
-                selectedProviderType={selectedProviderTypeForEditing}
-                selectedPresetId={selectedPresetIdForEditing}
+                selectedProviderTypeForEditing={selectedProviderTypeForEditing}
+                selectedPresetIdForEditing={selectedPresetIdForEditing}
             />
             <ProviderConfigPanel
                 key={selectedPresetIdForEditing || selectedProviderTypeForEditing || 'panel-placeholder'}

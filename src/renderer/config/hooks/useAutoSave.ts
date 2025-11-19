@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { AppSettings, LLMProviderConfig } from '../../../main/llmProviders/types';
+import type { AppSettings, LLMProviderConfig } from '@llmTypes';
 
 const DEFAULT_PARAMETERS_AUTOSAVE = { temperature: 0.7, max_tokens: 2048 };
 
@@ -30,8 +30,8 @@ export const useAutoSave = ({
         const handler = setTimeout(async () => {
             console.log('Auto-saving config (changed):', editingConfig);
             const configToSave: LLMProviderConfig = {
-                instanceId: editingConfig.instanceId,
-                providerType: editingConfig.providerType,
+                instanceId: editingConfig.instanceId!,
+                providerType: editingConfig.providerType!,
                 customName: editingConfig.customName,
                 apiKey: editingConfig.apiKey || '',
                 baseUrl: editingConfig.baseUrl || '',

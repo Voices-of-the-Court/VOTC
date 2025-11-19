@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatMessage } from '../components/MessageItem';
 
@@ -38,7 +38,10 @@ const useChatStreaming = (): ChatStreaming => {
       }
     });
 
-    const cleanupChatStreamComplete = window.conversationAPI.onChatStreamComplete(({ requestId: resRequestId, finalResponse }) => {
+    const cleanupChatStreamComplete = window.conversationAPI.onChatStreamComplete(({ 
+      requestId: resRequestId, 
+      // finalResponse
+     }) => {
       if (resRequestId === requestId) {
         setMessages(prev =>
           prev.map(msg => {
