@@ -1,14 +1,14 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import ChatApp from './ChatApp';
-import './chat.css'; // Import existing CSS
+import App from './App';
+import './app.scss'; // Import existing CSS
 
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
   root.render(
     <React.StrictMode>
-      <ChatApp />
+      <App />
     </React.StrictMode>
   );
 } else {

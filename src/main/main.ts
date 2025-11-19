@@ -1,12 +1,14 @@
-import { app, BrowserWindow, screen, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { llmManager } from './LLMManager';
+import { conversationManager } from './conversation/ConversationManager';
 import { LLMProviderConfig, ILLMCompletionRequest, ILLMStreamChunk, ILLMCompletionResponse } from './llmProviders/types'; // Added more types
 import { ClipboardListener } from './ClipboardListener'; // Add missing import
 
 // Keep a reference to the config window, managed globally
 let chatWindow: BrowserWindow | null = null;
-let configWindowInstance: BrowserWindow | null = null;
+let tray: Tray | null = null;
 
 // Vite-specific environment variable for development server URL
 // const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']; // Handled by vite-plugin-electron
@@ -25,11 +27,12 @@ const createWindow = (): BrowserWindow => {
   const chatWindow = new BrowserWindow({
     width,
     height,
-    show: false, // Start hidden
+    show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
     alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
+    fullscreen: true,
     webPreferences: {
       partition: 'persist:chat',
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
@@ -47,10 +50,10 @@ const createWindow = (): BrowserWindow => {
 
   // and load the index.html of the app.
   if (process.env.VITE_DEV_SERVER_URL) {
-    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/chatWindow/chat.html`);
+    chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/app.html`);
   } else {
     // Load your file
-    chatWindow.loadFile(path.join(__dirname, '../../renderer/chat.html'));
+    chatWindow.loadFile(path.join(__dirname, '../../renderer/src/renderer/app.html'));
   }
 
   // Open the DevTools.
@@ -66,51 +69,17 @@ const createWindow = (): BrowserWindow => {
 
   return chatWindow;
 };
-const createConfigWindow = (): void => {
-  // Create the config browser window.
-  // Assign to the global instance variable
-  configWindowInstance = new BrowserWindow({
-    width: 800, // Standard size for a config window
-    height: 600,
-    show: false, // Initially hide the window
-    webPreferences: {
-      partition: 'persist:config',
-      preload: path.join(__dirname, '../preload/preload.js'), // Use common preload, adjusted path
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
-
-  // Load the config.html of the app.
-  if (process.env.VITE_DEV_SERVER_URL) {
-    configWindowInstance.loadURL(`${process.env.VITE_DEV_SERVER_URL}src/renderer/configWindow/config.html`);
-  } else {
-    configWindowInstance.loadFile(path.join(__dirname, '../../renderer/config.html'));
-  }
-
-  // Open the DevTools (optional)
-  // configWindowInstance.webContents.openDevTools();
-
-  configWindowInstance.once('ready-to-show', () => {
-    configWindowInstance?.show();
-  });
-
-  // Handle window closed event
-  configWindowInstance.on('closed', () => {
-    configWindowInstance = null;
-  });
-};
 
 
 // --- IPC Handlers for LLMManager and Dialogs ---
 const setupIpcHandlers = () => {
-  // Moved 'open-config-window' handler here
-  ipcMain.handle('open-config-window', () => {
-    if (configWindowInstance && !configWindowInstance.isDestroyed()) {
-      configWindowInstance.focus();
-    } else {
-      createConfigWindow(); // This will assign to configWindowInstance
+  // TODO:
+  ipcMain.handle('toggle-config-panel', () => {
+    // Send toggle settings event to renderer
+    if (chatWindow) {
+      chatWindow.webContents.send('toggle-settings');
     }
+    return true;
   });
 
   ipcMain.handle('llm:getAppSettings', () => {
@@ -163,6 +132,93 @@ const setupIpcHandlers = () => {
     llmManager.saveGlobalStreamSetting(enabled);
     // Consider returning a status
   });
+
+  console.log('Setting up conversation IPC handlers...');
+
+  // --- Conversation Management IPC Handlers ---
+
+  ipcMain.handle('conversation:sendMessage', async (event, requestArgs: {
+    message: string,
+    streaming?: boolean,
+    requestId?: string // For correlating stream chunks when streaming
+  }) => {
+    const { message, streaming = false, requestId } = requestArgs;
+    console.log('IPC received conversation:sendMessage with:', message, 'streaming:', streaming);
+
+    try {
+      if (streaming) {
+        // Handle streaming response
+        const generator = await conversationManager.sendMessage(message, true);
+        if (generator && typeof generator[Symbol.asyncIterator] === 'function') {
+          // Fire and forget pattern for streaming
+          (async () => {
+            try {
+              for await (const chunk of generator as AsyncGenerator<ILLMStreamChunk, any, undefined>) {
+                console.log('Sending conversation chat chunk:', requestId);
+                event.sender.send('conversation:chatChunk', {
+                  requestId: requestId || 'default',
+                  chunk
+                });
+              }
+
+              // After generator completes, the final message has been added to conversation
+              console.log('Conversation streaming completed for request:', requestId);
+              event.sender.send('conversation:chatStreamComplete', {
+                requestId: requestId || 'default',
+                finalResponse: { success: true }
+              });
+            } catch (streamError: any) {
+              console.error('Error during conversation stream:', streamError);
+              event.sender.send('conversation:chatError', {
+                requestId: requestId || 'default',
+                error: streamError.message || 'Unknown streaming error'
+              });
+            }
+          })();
+
+          return { streamStarted: true, requestId: requestId || 'default' };
+        } else {
+          throw new Error('Expected streaming response but got non-streaming');
+        }
+      } else {
+        // Handle synchronous response
+        const result = await conversationManager.sendMessage(message, false);
+        console.log('Conversation sendMessage returned:', result);
+        return { message: result };
+      }
+    } catch (error: any) {
+      console.error('IPC conversation:sendMessage error:', error);
+      return { error: error.message || 'Failed to send message' };
+    }
+  });
+
+  ipcMain.handle('conversation:getHistory', () => {
+    console.log('IPC received conversation:getHistory');
+    return conversationManager.getConversationHistory();
+  });
+
+  ipcMain.handle('conversation:reset', () => {
+    console.log('IPC received conversation:reset');
+    conversationManager.endCurrentConversation();
+    conversationManager.createConversation();
+    return true;
+  });
+
+  ipcMain.handle('conversation:getPlayerInfo', () => {
+    console.log('IPC received conversation:getPlayerInfo');
+    const player = conversationManager.getPlayer();
+    return player ? {
+      name: player.shortName,
+      fullName: player.fullName,
+      title: player.primaryTitle,
+      personality: player.personality,
+      opinion: player.opinionOfPlayer,
+      culture: player.culture,
+      faith: player.faith
+    } : null;
+  });
+
+  console.log('Conversation IPC handlers registered successfully');
 
   ipcMain.handle('llm:sendChat', async (event, requestArgs: {
     messages: ILLMCompletionRequest['messages'],
@@ -245,28 +301,77 @@ const setupIpcHandlers = () => {
 
 app.on('ready', () => {
   setupIpcHandlers(); // Setup handlers first
-  createWindow(); // Create the main chat window
-  createConfigWindow(); // Create config window on startup
+  chatWindow = createWindow(); // Create the main chat window and assign to global
+
+  // Create system tray
+  let iconPath = path.join(app.getAppPath(), 'src/renderer/assets/icon.ico');
+
+  console.log('Current __dirname:', __dirname);
+  console.log('Process resources:', process.resourcesPath);
+  console.log('App path:', app.getAppPath());
+  console.log(`Checking path: ${iconPath}, exists: ${fs.existsSync(iconPath)}`);
+
+  if (!fs.existsSync(iconPath)) {
+    console.error('Tray icon not found in any expected location');
+    // Fallback to a basic icon or skip tray creation
+    return;
+  }
+
+  try {
+    tray = new Tray(iconPath);
+    console.log('Tray created successfully');
+  } catch (error) {
+    console.error('Error creating tray:', error);
+    return;
+  }
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Open Settings',
+      click: () => {
+        // Send toggle settings event to renderer
+        if (chatWindow) {
+          chatWindow.webContents.send('toggle-settings');
+        }
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => {
+        app.quit();
+      }
+    }
+  ]);
+
+  tray.setToolTip('VOTC Overlay');
+  tray.setContextMenu(contextMenu);
 
   // Create and start clipboard listener
   const clipboardListener = new ClipboardListener();
   clipboardListener.start();
   
   clipboardListener.on('VOTC:IN', () => {
+    console.log('VOTC:IN triggered - showing chat interface');
+
+    // Ensure window exists
     if (!chatWindow || chatWindow.isDestroyed()) {
+      console.log('Creating new chat window');
       chatWindow = createWindow();
     }
-    
-    // Show window and reset chat state
+
+    conversationManager.createConversation();
+
+    // Show window (it might be hidden) and send events to renderer
     chatWindow.show();
     chatWindow.focus();
-    chatWindow.webContents.send('chat-reset');
+    chatWindow.webContents.send('chat-reset'); // This will trigger showChat in App.tsx
   });
   
-  // Add IPC handler for hiding window
+  // Add IPC handler for hiding chat UI (not window - window stays persistent)
   ipcMain.on('chat-hide', () => {
+    // Send event to renderer to hide both chat and config panels
     if (chatWindow && !chatWindow.isDestroyed()) {
-      chatWindow.hide();
+      chatWindow.webContents.send('chat-hide');
     }
   });
 });
@@ -279,7 +384,5 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-    createConfigWindow();
-  }
+    createWindow();  }
 });

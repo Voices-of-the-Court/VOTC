@@ -23,7 +23,7 @@ const ConnectionView: React.FC<{
 }> = ({ appSettings, setAppSettings }) => {
     const configPanelRef = useRef<HTMLDivElement>(null);
     const [testResult, setTestResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
-    
+
     // Centralized handler for setting active provider (passed to hooks)
     const handleSetActiveProvider = useCallback(async (instanceId: string | null) => {
         if (!appSettings) return;
@@ -37,7 +37,7 @@ const ConnectionView: React.FC<{
         });
         // Optional: User feedback for active provider change (can be annoying)
         // if (instanceId) {
-        //     const activeConf = appSettings.llmSettings.providers.find(p => p.instanceId === instanceId) || 
+        //     const activeConf = appSettings.llmSettings.providers.find(p => p.instanceId === instanceId) ||
         //                        appSettings.llmSettings.presets.find(p => p.instanceId === instanceId);
         //     console.log(`Provider "${activeConf?.customName || activeConf?.providerType}" is now active.`);
         // }
@@ -82,7 +82,7 @@ const ConnectionView: React.FC<{
         setSelectedProviderTypeForEditing,
         onSetActiveProvider: handleSetActiveProvider,
     });
-    
+
     const restoreFocusToPanel = useCallback(() => {
         configPanelRef.current?.focus();
     }, []);
@@ -125,7 +125,7 @@ const ConnectionView: React.FC<{
             } else if (type === 'checkbox') {
                 newConfig = { ...newConfig, [name]: checked };
             } else if (type === 'number') {
-                 newConfig = { ...newConfig, [name]: parseFloat(value) };
+                  newConfig = { ...newConfig, [name]: parseFloat(value) };
             } else {
                 newConfig = { ...newConfig, [name]: value };
             }
@@ -137,7 +137,7 @@ const ConnectionView: React.FC<{
             return newConfig;
         });
     };
-    
+
     const handleModelSuggestionClick = (modelId: string) => {
         setEditingConfig(prev => ({ ...prev, defaultModel: modelId }));
         setModelSearchText(modelId); // Update search text
@@ -153,14 +153,14 @@ const ConnectionView: React.FC<{
             customName: editingConfig.customName,
             apiKey: editingConfig.apiKey,
             baseUrl: editingConfig.baseUrl,
-            defaultModel: editingConfig.defaultModel || 
+            defaultModel: editingConfig.defaultModel ||
                           (editingConfig.providerType === 'ollama' && availableModels.length > 0 ? availableModels[0].id : 'openrouter/auto'),
             defaultParameters: editingConfig.defaultParameters || DEFAULT_PARAMETERS_CV,
         };
         const result = await window.llmConfigAPI.testConnection(configToTest);
         setTestResult(result);
     };
-    
+
     return (
         <div
             ref={configPanelRef}

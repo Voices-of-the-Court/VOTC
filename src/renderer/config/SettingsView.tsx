@@ -46,11 +46,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ appSettings, setAppSettings
             <div className="form-group">
                 <h4>CK3 User Folder</h4>
                 <label htmlFor="ck3UserFolderPath">Current Path:</label>
-                <input 
-                    type="text" 
-                    id="ck3UserFolderPath" 
-                    value={appSettings.ck3UserFolderPath || ''} 
-                    readOnly 
+                <input
+                    type="text"
+                    id="ck3UserFolderPath"
+                    value={appSettings.ck3UserFolderPath || ''}
+                    readOnly
                 />
                 <button type="button" onClick={handleSelectCK3Folder}>Select Folder</button>
             </div>

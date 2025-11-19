@@ -37,8 +37,7 @@ export default defineConfig({
     outDir: 'dist/renderer', // Base output directory for renderer assets
     rollupOptions: {
       input: {
-        chat: path.resolve(__dirname, 'src/renderer/chatWindow/chat.html'),
-        config: path.resolve(__dirname, 'src/renderer/configWindow/config.html'),
+        app: path.resolve(__dirname, 'src/renderer/app.html'),
       },
     },
   },

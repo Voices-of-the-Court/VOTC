@@ -1,12 +1,17 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import type { AppSettings, LLMProviderConfig, ILLMModel, ProviderType as ConfigProviderType } from '../../main/llmProviders/types'; // Renamed ProviderType to avoid conflict
+import type { AppSettings, LLMProviderConfig, ILLMModel, ProviderType as ConfigProviderType } from '../../main/llmProviders/types'; // Adjusted path
 import { v4 as uuidv4 } from 'uuid'; // For presets
-import ConnectionView from './ConnectionView'; // Assuming ConnectionView will be the actual component
-import SettingsView from './SettingsView';   // Import the actual SettingsView component
+import './configPanel.scss'; // Import local styles
+import ConnectionView from './ConnectionView'; // Adjusted path
+import SettingsView from './SettingsView';   // Adjusted path
 
 type CurrentTab = 'connection' | 'settings';
 
-function ConfigApp() {
+interface ConfigPanelProps {
+  onClose: () => void; // Add close callback prop
+}
+
+function ConfigPanel({ onClose }: ConfigPanelProps) {
   const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
   const [currentTab, setCurrentTab] = useState<CurrentTab>('connection');
 
@@ -33,7 +38,7 @@ function ConfigApp() {
           settingsChangedInInit = true;
         }
       });
-      
+
       currentLLMSettings.providers = baseProviders;
       if (!currentLLMSettings.presets) {
         currentLLMSettings.presets = [];
@@ -47,9 +52,9 @@ function ConfigApp() {
       }
       if (appSettingsToStore.ck3UserFolderPath === undefined) {
         appSettingsToStore.ck3UserFolderPath = null;
-         settingsChangedInInit = true;
+          settingsChangedInInit = true;
       }
-      
+
       setAppSettings(appSettingsToStore);
 
       // If settings were modified during init, save them back
@@ -60,7 +65,7 @@ function ConfigApp() {
         providerTypes.forEach(type => {
             const newBaseConfig = appSettingsToStore.llmSettings.providers.find(p => p.instanceId === type);
             if (newBaseConfig && !settings.llmSettings.providers.some(op => op.instanceId === type)) {
-                 window.llmConfigAPI.saveProviderConfig(newBaseConfig);
+                  window.llmConfigAPI.saveProviderConfig(newBaseConfig);
             }
         });
         // Also persist globalStreamEnabled and ck3UserFolderPath if they were initialized
@@ -76,16 +81,30 @@ function ConfigApp() {
     return <div>Loading settings...</div>;
   }
 
+  const handleMouseEnter = () => {
+    window.electronAPI?.setIgnoreMouseEvents(false);
+  };
+
+  const handleMouseLeave = () => {
+    window.electronAPI?.setIgnoreMouseEvents(true);
+  };
+
   return (
-    <div className="config-app-container">
+    <div
+      className="config-panel-container"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{ pointerEvents: 'auto' }}
+    >
       <header className="config-header">
-        <button 
+        <button className="config-close-button" onClick={onClose}>✕</button>
+        <button
           onClick={() => setCurrentTab('connection')}
           className={currentTab === 'connection' ? 'active' : ''}
         >
           Connection
         </button>
-        <button 
+        <button
           onClick={() => setCurrentTab('settings')}
           className={currentTab === 'settings' ? 'active' : ''}
         >
@@ -100,4 +119,4 @@ function ConfigApp() {
   );
 }
 
-export default ConfigApp;
+export default ConfigPanel;

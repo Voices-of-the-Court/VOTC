@@ -1,5 +1,6 @@
 import Store, { Schema } from 'electron-store';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs for provider configs
+import path from 'path';
 import {
   AppSettings,
   LLMSettings,
@@ -169,6 +170,11 @@ export class LLMManager {
 
   getCK3UserFolderPath(): string | null | undefined {
      return this.store.get('ck3UserFolderPath');
+  }
+
+  getCK3DebugLogPath(): string | null {
+     const ck3Folder = this.getCK3UserFolderPath();
+     return ck3Folder ? path.join(ck3Folder, 'logs', 'debug.log') : null;
   }
 
   setCK3UserFolderPath(path: string | null): void {

@@ -12,7 +12,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    // asar: true,
     // The 'main' field in package.json will point to Vite's main process output.
     // Electron Forge will use that. HTML loading will be handled in src/main/main.ts
     // based on Vite's dev server or production build paths.
@@ -20,7 +20,7 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
   plugins: [
-    new AutoUnpackNativesPlugin({}),
+    // new AutoUnpackNativesPlugin({}),
     // WebpackPlugin configuration removed.
     // Vite will handle the build process. Electron Forge will package the output.
     // The main process (src/main/main.ts) will be responsible for loading the
@@ -34,8 +34,8 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableCookieEncryption]: true,
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+      // [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      // [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
 };

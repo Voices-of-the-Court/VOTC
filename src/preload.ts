@@ -9,11 +9,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setIgnoreMouseEvents: (ignore: boolean): void => {
     ipcRenderer.send('set-ignore-mouse-events', ignore);
   },
-  openConfigWindow: (): Promise<void> => ipcRenderer.invoke('open-config-window'),
+  toggleConfigPanel: (): Promise<void> => ipcRenderer.invoke('toggle-config-panel'),
   hideWindow: (): void => ipcRenderer.send('chat-hide'),
   onChatReset: (callback: () => void) => {
     ipcRenderer.on('chat-reset', callback);
     return () => ipcRenderer.removeListener('chat-reset', callback);
+  },
+  onToggleSettings: (callback: () => void) => {
+    ipcRenderer.on('toggle-settings', callback);
+    return () => ipcRenderer.removeListener('toggle-settings', callback);
+  },
+  onHideChat: (callback: () => void) => {
+    ipcRenderer.on('chat-hide', callback);
+    return () => ipcRenderer.removeListener('chat-hide', callback);
   },
 });
 
@@ -52,16 +60,62 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   }
 });
 
+contextBridge.exposeInMainWorld('conversationAPI', {
+  sendMessage: (userMessage: string, streaming = false, requestId?: string): Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}> => {
+    console.log('Calling conversation:sendMessage with:', userMessage, 'streaming:', streaming);
+    return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage, streaming, requestId });
+  },
+  getHistory: (): Promise<any[]> => {
+    console.log('Calling conversation:getHistory');
+    return ipcRenderer.invoke('conversation:getHistory');
+  },
+  reset: (): Promise<boolean> => {
+    console.log('Calling conversation:reset');
+    return ipcRenderer.invoke('conversation:reset');
+  },
+  getPlayerInfo: (): Promise<any> => {
+    console.log('Calling conversation:getPlayerInfo');
+    return ipcRenderer.invoke('conversation:getPlayerInfo');
+  },
+
+  // Streaming listeners
+  onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => {
+    const handler = (_event: any, args: { requestId: string, chunk: any }) => callback(args);
+    ipcRenderer.on('conversation:chatChunk', handler);
+    return () => ipcRenderer.removeListener('conversation:chatChunk', handler);
+  },
+  onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any }) => void) => {
+    const handler = (_event: any, args: { requestId: string, finalResponse?: any }) => callback(args);
+    ipcRenderer.on('conversation:chatStreamComplete', handler);
+    return () => ipcRenderer.removeListener('conversation:chatStreamComplete', handler);
+  },
+  onChatError: (callback: (args: { requestId: string, error: string }) => void) => {
+    const handler = (_event: any, args: { requestId: string, error: string }) => callback(args);
+    ipcRenderer.on('conversation:chatError', handler);
+    return () => ipcRenderer.removeListener('conversation:chatError', handler);
+  },
+});
 
 // It's good practice to declare the types for the exposed API
 // for TypeScript usage in the renderer process.
 declare global {
   interface Window {
+    conversationAPI: {
+      sendMessage: (userMessage: string, streaming?: boolean, requestId?: string) => Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}>;
+      getHistory: () => Promise<any[]>;
+      reset: () => Promise<boolean>;
+      getPlayerInfo: () => Promise<any>;
+      onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => () => void;
+      onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any }) => void) => () => void;
+      onChatError: (callback: (args: { requestId: string, error: string }) => void) => () => void;
+    };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
-      openConfigWindow: () => Promise<void>;
+      toggleConfigPanel: () => Promise<void>;
       hideWindow: () => void;
       onChatReset: (callback: () => void) => () => void;
+      onToggleSettings: (callback: () => void) => () => void;
+      onHideChat: (callback: () => void) => () => void;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;
