@@ -56,8 +56,11 @@ export class PromptBuilder {
 ## Current Scene:
 ${gameData.scene}
 
+## Current date:
+${gameData.date}
+
 ## Character Background:
-- Name: ${char.shortName}
+- Name: ${char.fullName}
 - Age: ${char.age} years old
 - Personality: ${char.personality}
 - Culture: ${char.culture}, Faith: ${char.faith}
@@ -146,7 +149,7 @@ If any message has /OOC prefix, you should follow every instruction in that mess
         // Add instruction
         llmMessages.push({
             role: 'user',
-            content: `[Write next reply only as ${char.shortName}]`
+            content: `[Write next reply only as ${char.fullName}]`
         });
         
         return llmMessages;
@@ -155,7 +158,7 @@ If any message has /OOC prefix, you should follow every instruction in that mess
         /**
      * Build context from character's past conversation summaries
      */
-    private static buildPastSummariesContext(char: Character, gameData: GameData): string | null {
+    static buildPastSummariesContext(char: Character, gameData: GameData): string | null {
         if (!char.conversationSummaries || char.conversationSummaries.length === 0) {
             return null;
         }

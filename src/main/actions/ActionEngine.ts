@@ -134,7 +134,7 @@ export class ActionEngine {
     const targetId = inv.targetCharacterId ?? null;
     const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
 
-    console.log("Running action:", inv.actionId, { source: npc.id, target: targetId });
+    console.log("Running action:", inv.actionId, { source: npc.id, target: targetId, args: inv.args });
     const runGameEffect = (effectBody: string) => {
       ActionEffectWriter.writeEffect(
         conv.gameData,

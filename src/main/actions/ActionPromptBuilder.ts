@@ -1,4 +1,5 @@
 import { Conversation } from "../conversation/Conversation";
+import { PromptBuilder } from "../conversation/PromptBuilder";
 import { Character } from "../gameData/Character";
 import { ILLMMessage } from "../llmProviders/types";
 import type { SchemaBuildInput } from "./jsonSchema";
@@ -36,14 +37,17 @@ export class ActionPromptBuilder {
     const idsInOrder = Array.from(conv.gameData.characters.keys());
     idsInOrder.forEach((id, index) => {
       const c = conv.gameData.characters.get(id)!;
-      characterRosterLines.push(`${index}: ${c.shortName} (id=${c.id})`);
+      characterRosterLines.push(`${index}: ${c.fullName} (id=${c.id})`);
     });
 
     const rosterBlock =
 `Characters in this conversation (order matches CK3 global list):
 ${characterRosterLines.join("\n")}
 
-You MUST select which actions should be executed for ${npc.shortName}.`;
+You MUST select which actions should be executed for ${npc.fullName}.
+
+${PromptBuilder.buildPastSummariesContext(npc, conv.gameData)}
+`;
 
     messages.push({ role: "system", content: rosterBlock });
 

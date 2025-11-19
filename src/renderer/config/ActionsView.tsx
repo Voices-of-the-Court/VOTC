@@ -125,7 +125,7 @@ const ActionsView: React.FC = () => {
       {error && <div className="error">{error}</div>}
 
       {!isLoading && !error && (
-        <div className="actions-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="actions-list" style={{ display: 'flex', flexDirection: 'column', gap: 8, color: 'white' }}>
           {visibleActions.map((a) => {
             const mutedStyle = a.disabled ? { opacity: 0.5 } : undefined;
             const validationIcon = a.validation.valid ? '✅' : '⚠️';
@@ -186,13 +186,5 @@ const ActionsView: React.FC = () => {
     </div>
   );
 };
-
-function renderNumberBounds(arg: any) {
-  const parts: string[] = [];
-  if (typeof arg.min === 'number') parts.push(`min=${arg.min}`);
-  if (typeof arg.max === 'number') parts.push(`max=${arg.max}`);
-  if (typeof arg.step === 'number') parts.push(`step=${arg.step}`);
-  return parts.length ? <> — [{parts.join(', ')}]</> : null;
-}
 
 export default ActionsView;
