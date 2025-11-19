@@ -1,17 +1,18 @@
 import React, { RefObject } from 'react';
-import MessageItem, { ChatMessage } from './MessageItem';
+import MessageItem from './MessageItem';
+import { ChatEntry } from '../types';
 
 interface MessageListProps {
-  messages: ChatMessage[];
+  entries: ChatEntry[];
   scrollRef: RefObject<HTMLDivElement>;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, scrollRef }) => {
+const MessageList: React.FC<MessageListProps> = ({ entries, scrollRef }) => {
   return (
     <div className="messages-container">
       <div className="messages">
-        {messages.map(msg => (
-          <MessageItem key={msg.id} message={msg} />
+        {entries.map(entry => (
+          <MessageItem key={entry.id} entry={entry} />
         ))}
         <div ref={scrollRef} />
       </div>

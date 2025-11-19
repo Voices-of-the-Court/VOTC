@@ -32,6 +32,7 @@ export interface ILLMCompletionRequest {
   top_p?: number;
   presence_penalty?: number;
   frequency_penalty?: number;
+  signal?: AbortSignal; // For cancelling requests
   // Provider-specific parameters can be handled within each implementation
   // or by adding an optional 'options?: Record<string, any>' field
 }
@@ -76,6 +77,9 @@ export interface ILLMCompletionResponse {
   };
 }
 
+// Unified type for LLM outputs, whether streamed or non-streamed
+export type ILLMOutput = Promise<ILLMCompletionResponse> | AsyncGenerator<ILLMStreamChunk>;
+
 export interface ILLMProvider {
   readonly providerId: string; // e.g., 'openrouter', 'openai-compatible', 'ollama'
   readonly name: string; // User-friendly name, e.g., "OpenRouter", "Custom OpenAI API", "Ollama"
@@ -83,7 +87,7 @@ export interface ILLMProvider {
   chatCompletion(
     request: ILLMCompletionRequest,
     config: LLMProviderConfig
-  ): AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void, undefined> | Promise<ILLMCompletionResponse>;
+  ): ILLMOutput;
 
   listModels?(config: LLMProviderConfig): Promise<ILLMModel[]>;
 
@@ -125,4 +129,38 @@ export interface AppSettings {
   llmSettings: LLMSettings;
   ck3UserFolderPath?: string | null;
   globalStreamEnabled?: boolean; // Global toggle for streaming
+}
+
+
+//////////
+
+export type OpenRouterErrorResponse = {
+	error: {
+		message: string
+		code: number
+		metadata?: OpenRouterProviderErrorMetadata | OpenRouterModerationErrorMetadata | Record<string, unknown>
+	}
+}
+
+export type OpenRouterProviderErrorMetadata = {
+	provider_name: string // The name of the provider that encountered the error
+	raw: unknown // The raw error from the provider
+}
+
+export type OpenRouterModerationErrorMetadata = {
+	reasons: string[] // Why your input was flagged
+	flagged_input: string // The text segment that was flagged, limited to 100 characters. If the flagged input is longer than 100 characters, it will be truncated in the middle and replaced with ...
+	provider_name: string // The name of the provider that requested moderation
+	model_slug: string
+}
+
+export function isOpenRouterErrorResponse(e: unknown): e is OpenRouterErrorResponse {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "error" in e &&
+    typeof (e as any).error === "object" &&
+    typeof (e as any).error.message === "string" &&
+    typeof (e as any).error.code === "number"
+  )
 }

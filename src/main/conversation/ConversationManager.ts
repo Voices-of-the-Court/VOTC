@@ -1,18 +1,36 @@
 import { Conversation } from "./Conversation";
 import { Character } from "../gameData/Character";
 import { ILLMStreamChunk } from "../llmProviders/types";
+import { EventEmitter } from "events";
 
 export class ConversationManager {
     private static instance: ConversationManager;
     private currentConversation: Conversation | null = null;
+    private eventEmitter: EventEmitter;
 
-    private constructor() {}
+    private constructor() {
+        this.eventEmitter = new EventEmitter();
+    }
 
     static getInstance(): ConversationManager {
         if (!ConversationManager.instance) {
             ConversationManager.instance = new ConversationManager();
         }
         return ConversationManager.instance;
+    }
+
+    private setupConversationListeners(): void {
+        if (this.currentConversation) {
+            this.currentConversation.onConversationUpdate((entries) => {
+                // Forward conversation updates to ConversationManager listeners
+                this.eventEmitter.emit('conversation-updated', entries);
+            });
+        }
+    }
+
+    private emitConversationUpdate(): void {
+        const entries = this.getConversationEntries();
+        this.eventEmitter.emit('conversation-updated', entries);
     }
 
     /**
@@ -22,6 +40,7 @@ export class ConversationManager {
         try {
             this.endCurrentConversation();
             this.currentConversation = new Conversation();
+            this.setupConversationListeners();
             return this.currentConversation;
         } catch (error) {
             console.error('Failed to create conversation:', error);
@@ -55,7 +74,7 @@ export class ConversationManager {
         }
 
         try {
-            const result = await this.currentConversation.sendMessage(userMessage, streaming);
+            const result = await this.currentConversation.sendMessage(userMessage);
             console.log('Conversation sendMessage returned type:', typeof result);
 
             // Type guard for async generator
@@ -64,16 +83,53 @@ export class ConversationManager {
                 return result as AsyncGenerator<ILLMStreamChunk, any>;
             } else {
                 console.log('Conversation sendMessage returned:', result);
+                // Emit update for non-streaming responses
+                this.emitConversationUpdate();
                 return result;
             }
         } catch (error) {
             console.error('Error in ConversationManager.sendMessage:', error);
+            // Emit update even on error
+            this.emitConversationUpdate();
             throw error;
         }
     }
 
     /**
-     * Get conversation history
+     * Get all conversation entries (messages and errors)
+     */
+    getConversationEntries(): any[] {
+        if (!this.currentConversation) {
+            return [];
+        }
+
+        return this.currentConversation.messages.map(entry => {
+            if ('role' in entry) {
+                // Message entry
+                return {
+                    type: 'message',
+                    id: entry.id,
+                    role: entry.role,
+                    content: entry.content,
+                    datetime: entry.datetime,
+                    name: entry.name,
+                    isStreaming: entry.isStreaming
+                };
+            } else {
+                // Error entry
+                return {
+                    type: 'error',
+                    id: entry.id,
+                    content: entry.content,
+                    datetime: entry.datetime,
+                    details: entry.details
+                };
+            }
+        });
+    }
+
+    /**
+     * Get conversation history (legacy method)
      */
     getConversationHistory(): { role: string, content: string, datetime: Date }[] {
         if (!this.currentConversation) {
@@ -100,6 +156,15 @@ export class ConversationManager {
     }
 
     /**
+     * Cancel the current stream in the active conversation
+     */
+    cancelCurrentStream(): void {
+        if (this.currentConversation) {
+            this.currentConversation.cancelCurrentStream();
+        }
+    }
+
+    /**
      * Check if there's an active conversation
      */
     hasActiveConversation(): boolean {
@@ -114,6 +179,20 @@ export class ConversationManager {
 
         const player = this.currentConversation.gameData.characters.get(this.currentConversation.gameData.playerID);
         return player ?? null;
+    }
+
+    /**
+     * Subscribe to conversation updates
+     */
+    onConversationUpdate(callback: (entries: any[]) => void): void {
+        this.eventEmitter.on('conversation-updated', callback);
+    }
+
+    /**
+     * Unsubscribe from conversation updates
+     */
+    offConversationUpdate(callback: (entries: any[]) => void): void {
+        this.eventEmitter.off('conversation-updated', callback);
     }
 }
 

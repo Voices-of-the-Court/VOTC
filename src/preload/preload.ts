@@ -23,6 +23,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('chat-hide', callback);
     return () => ipcRenderer.removeListener('chat-hide', callback);
   },
+  onToggleMinimize: (callback: () => void) => {
+    ipcRenderer.on('toggle-minimize', callback);
+    return () => ipcRenderer.removeListener('toggle-minimize', callback);
+  },
 });
 
 contextBridge.exposeInMainWorld('llmConfigAPI', {
@@ -35,35 +39,12 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setCK3Folder: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setCK3Folder', path),
   selectFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:selectFolder'),
   saveGlobalStreamSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGlobalStreamSetting', enabled),
-  sendChat: (requestArgs: {
-    messages: any[], // Should match ILLMCompletionRequest['messages']
-    params?: any, // Should match optional params type
-    forceStream?: boolean,
-    requestId: string 
-  }): Promise<{ streamStarted: boolean, requestId: string, data?: any, error?: string }> => ipcRenderer.invoke('llm:sendChat', requestArgs),
-  
-  // Listeners for chat stream
-  onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => {
-    const handler = (_event: any, args: { requestId: string, chunk: any }) => callback(args);
-    ipcRenderer.on('llm:chatChunk', handler);
-    return () => ipcRenderer.removeListener('llm:chatChunk', handler); // Return a cleanup function
-  },
-  onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any /* ILLMCompletionResponse */ }) => void) => {
-    const handler = (_event: any, args: { requestId: string, finalResponse?: any }) => callback(args);
-    ipcRenderer.on('llm:chatStreamComplete', handler);
-    return () => ipcRenderer.removeListener('llm:chatStreamComplete', handler);
-  },
-  onChatError: (callback: (args: { requestId: string, error: string }) => void) => {
-    const handler = (_event: any, args: { requestId: string, error: string }) => callback(args);
-    ipcRenderer.on('llm:chatError', handler);
-    return () => ipcRenderer.removeListener('llm:chatError', handler);
-  }
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {
-  sendMessage: (userMessage: string, streaming = false, requestId?: string): Promise<{streamStarted?: boolean, requestId?: string, message?: any, error?: string}> => {
-    console.log('Calling conversation:sendMessage with:', userMessage, 'streaming:', streaming);
-    return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage, streaming, requestId });
+  sendMessage: (userMessage: string): Promise<{streamStarted?: boolean, message?: any, error?: string}> => {
+    console.log('Calling conversation:sendMessage with:', userMessage);
+    return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage });
   },
   getHistory: (): Promise<any[]> => {
     console.log('Calling conversation:getHistory');
@@ -77,21 +58,17 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     console.log('Calling conversation:getPlayerInfo');
     return ipcRenderer.invoke('conversation:getPlayerInfo');
   },
-
-  // Streaming listeners
-  onChatChunk: (callback: (args: { requestId: string, chunk: any }) => void) => {
-    const handler = (_event: any, args: { requestId: string, chunk: any }) => callback(args);
-    ipcRenderer.on('conversation:chatChunk', handler);
-    return () => ipcRenderer.removeListener('conversation:chatChunk', handler);
+  getConversationEntries: (): Promise<any[]> => {
+    console.log('Calling conversation:getEntries');
+    return ipcRenderer.invoke('conversation:getEntries');
   },
-  onChatStreamComplete: (callback: (args: { requestId: string, finalResponse?: any }) => void) => {
-    const handler = (_event: any, args: { requestId: string, finalResponse?: any }) => callback(args);
-    ipcRenderer.on('conversation:chatStreamComplete', handler);
-    return () => ipcRenderer.removeListener('conversation:chatStreamComplete', handler);
+  onConversationUpdate: (callback: (entries: any[]) => void) => {
+    const handler = (_event: any, entries: any[]) => callback(entries);
+    ipcRenderer.on('conversation:updated', handler);
+    return () => ipcRenderer.removeListener('conversation:updated', handler);
   },
-  onChatError: (callback: (args: { requestId: string, error: string }) => void) => {
-    const handler = (_event: any, args: { requestId: string, error: string }) => callback(args);
-    ipcRenderer.on('conversation:chatError', handler);
-    return () => ipcRenderer.removeListener('conversation:chatError', handler);
+  cancelStream: (): Promise<void> => {
+    console.log('Calling conversation:cancelStream');
+    return ipcRenderer.invoke('conversation:cancelStream');
   },
 });

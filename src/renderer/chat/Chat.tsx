@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MessageList, ChatInput, ChatButtons, ChatMessage } from './components';
-import { useChatStreaming, useWindowEvents, useAutoScroll } from './hooks';
+import { MessageList, ChatInput, ChatButtons } from './components';
+import { useWindowEvents, useAutoScroll, useConversationEntries } from './hooks';
 
 interface ChatProps {
   onToggleConfig: () => void;
@@ -8,15 +8,20 @@ interface ChatProps {
 
 function Chat({ onToggleConfig }: ChatProps) {
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isMinimized, setIsMinimized] = useState(false);
-  
-  const { sendMessage } = useChatStreaming();
+
+  const { entries, sendMessage } = useConversationEntries();
   const { handleChatBoxMouseEnter, handleChatBoxMouseLeave, handleLeave } = useWindowEvents();
-  const { messagesEndRef } = useAutoScroll();
+  const { messagesEndRef, scrollToBottom } = useAutoScroll();
+
+  const isStreaming = entries.some(entry => entry.type === 'message' && entry.isStreaming);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [entries, scrollToBottom]);
+
 
   const resetChat = () => {
-    setMessages([]);
     setInputValue('');
   };
 
@@ -26,13 +31,14 @@ function Chat({ onToggleConfig }: ChatProps) {
     window.electronAPI?.setIgnoreMouseEvents(false);
   };
 
-  const handleSend = async () => {
-    await sendMessage(inputValue, setMessages);
+  const handleSend = () => {
+    const message = inputValue;
     setInputValue('');
+    sendMessage(message)
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault();
       handleSend();
     }
@@ -47,6 +53,14 @@ function Chat({ onToggleConfig }: ChatProps) {
     }
   };
 
+  const handleCancelStream = async () => {
+    try {
+      await window.conversationAPI.cancelStream();
+    } catch (error) {
+      console.error('Failed to cancel stream:', error);
+    }
+  };
+
   // Listen for reset event from main process
   useEffect(() => {
     const cleanupReset = window.electronAPI.onChatReset(resetChat);
@@ -54,6 +68,14 @@ function Chat({ onToggleConfig }: ChatProps) {
       cleanupReset();
     };
   }, []);
+
+  // Listen for toggle-minimize event from main process (global shortcut)
+  useEffect(() => {
+    const cleanupToggleMinimize = window.electronAPI.onToggleMinimize(toggleMinimize);
+    return () => {
+      cleanupToggleMinimize();
+    };
+  }, [toggleMinimize]);
 
   return (
     <div style={{ pointerEvents: 'none', height: '100%', width: '100%' }}>
@@ -73,18 +95,21 @@ function Chat({ onToggleConfig }: ChatProps) {
           className="chat-box"
           style={{ pointerEvents: 'auto' }}
         >
-          <MessageList messages={messages} scrollRef={messagesEndRef} />
+          <MessageList entries={entries} scrollRef={messagesEndRef} />
           <div className="chat-controls-container">
             <ChatInput
               value={inputValue}
               onChange={setInputValue}
               onKeyPress={handleKeyPress}
               placeholder="Write a message..."
+              disabled={isStreaming}
             />
             <ChatButtons
               onLeave={() => handleLeave(resetChat)}
               onNPCInfo={handleNPCInfo}
               onToggleConfig={onToggleConfig}
+              onCancel={handleCancelStream}
+              isStreaming={isStreaming}
             />
           </div>
         </div>

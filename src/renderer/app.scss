@@ -31,24 +31,37 @@
   -webkit-box-sizing: border-box;
 }
 
-.messages-container{
-  overflow-y: scroll;
+.messages-container {
+  overflow-y: auto;
   overflow-x: hidden;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 10px;
   border: 1px solid #EFB16A;
   padding: 10px;
+  padding-right: 0px;
 
+  // ===== Custom scrollbar =====
   &::-webkit-scrollbar {
     width: 10px;
-    background-color: none;
+    background: transparent; // no heavy track
   }
-  
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(233, 233, 233, 0.2);
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #EFB16A 0%, #c87d30 100%);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ffc97a 0%, #e08d3d 100%);
+    border-color: rgba(0, 0, 0, 0.35);
   }
 }
 
@@ -89,36 +102,52 @@
   margin-left: 10px;
 }
 
-.chat-input{
+.chat-input {
   width: 100%;
   height: 100%;
   resize: none;
   padding: 10px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   color: rgb(209, 209, 209);
   border: 1px solid #EFB16A;
   border-radius: 10px;
   font-family: Gitan;
   font-size: 1rem;
   box-sizing: border-box;
-  transition: border-color 0.3s;
   cursor: url('assets/cursor.png'), none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 
-  &:focus{
+  &:focus {
     outline: none;
   }
-  
-  &::-webkit-scrollbar{
+
+  // === Hover state (only if not disabled) ===
+  &:hover:not(:disabled):not(.disabled) {
+    border-color: #ffc97a;
+    box-shadow: 0 0 8px rgba(239, 177, 106, 0.6);
+  }
+
+  // === Disabled ===
+  &:disabled,
+  &.disabled {
+    opacity: 0.6;
+    border-color: #EFB16A;
+    box-shadow: none;
+  }
+
+  &::-webkit-scrollbar {
     width: 10px;
   }
 
-  &::-webkit-scrollbar-thumb{
+  &::-webkit-scrollbar-thumb {
     background-color: rgba(233, 233, 233, 0.2);
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
-  
 }
+
 
 button{
   background-image: 
