@@ -145,7 +145,7 @@ export function buildActionInvocationSchema(
       .object({
         actionId: z.literal(action.signature),
         targetCharacterId: targetSchema,
-        args: argsObjectSchema.default({} as ActionArgumentValues),
+        args: argsObjectSchema.optional().default({} as ActionArgumentValues),
       })
       .strict();
 

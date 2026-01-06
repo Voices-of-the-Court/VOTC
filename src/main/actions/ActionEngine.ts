@@ -7,6 +7,7 @@ import { llmManager } from "../LLMManager";
 import { ActionEffectWriter } from "./ActionEffectWriter";
 import { ActionArgumentValues, ActionInvocation, StructuredActionResponse } from "./types";
 import { ActionPromptBuilder } from "./ActionPromptBuilder";
+import { healJsonResponseWithLogging } from "./responseHealing";
 import type { SchemaBuildInput } from "./jsonSchema";
 
 export class ActionEngine {
@@ -72,6 +73,12 @@ export class ActionEngine {
 
       // 2) Build messages and schema for LLM structured output
       const messages = ActionPromptBuilder.buildActionMessages(conv, npc, available);
+      console.log("[ActionEngine] Available actions for LLM:", available.map(a => ({
+        id: a.signature,
+        requiresTarget: a.requiresTarget,
+        validTargets: a.validTargetCharacterIds?.length ?? 0,
+        args: a.args.map(arg => `${arg.name}:${arg.type}`)
+      })));
 
       // Primary schema (JSON Schema for provider)
       const jsonSchema = buildStructuredResponseJsonSchema({
@@ -84,6 +91,8 @@ export class ActionEngine {
       });
 
       // 3) Request LLM with native structured output
+      console.log("[ActionEngine] Requesting structured output with schema:", JSON.stringify(jsonSchema, null, 2));
+      
       const output = await llmManager.sendStructuredJsonRequest(
         messages,
         "votc_actions",
@@ -92,21 +101,47 @@ export class ActionEngine {
 
       // Handle non-stream result
       const result = await output as any; // ILLMCompletionResponse
+      console.log("[ActionEngine] Raw LLM result:", JSON.stringify(result, null, 2));
+      
       const content = (result && typeof result === "object") ? result.content : null;
+      console.log("[ActionEngine] Extracted content:", content);
 
       if (!content || typeof content !== "string") {
         // In some providers content may be null/empty despite schema. Fail gracefully.
+        console.log("[ActionEngine] No valid content received from LLM");
         return;
       }
 
-      // 4) Parse and validate JSON
+      // 4) Parse and validate JSON with healing
       let parsed: StructuredActionResponse | undefined;
       try {
-        const maybeJson = JSON.parse(content);
+        // First attempt: Try healing the JSON response
+        const maybeJson = healJsonResponseWithLogging(content, "ActionEngine");
+        
+        if (!maybeJson) {
+          console.error("[ActionEngine] Failed to heal JSON response");
+          console.error("[ActionEngine] Error details:", {
+            receivedContent: content,
+            expectedFormat: "{ actions: [{ actionId: string, targetCharacterId?: number, args: {} }] }",
+            availableActionIds: available.map(a => a.signature)
+          });
+          return;
+        }
+        
+        console.log("[ActionEngine] Healed JSON from LLM:", JSON.stringify(maybeJson, null, 2));
+        console.log("[ActionEngine] Expected structure: { actions: [{ actionId, targetCharacterId?, args }] }");
+        
         const validated = zodSchema.parse(maybeJson);
         parsed = validated;
+        console.log("[ActionEngine] Successfully validated against schema");
       } catch (err) {
-        // If parsing/validation fails, do not run any actions
+        // If validation fails, do not run any actions
+        console.error("[ActionEngine] Validation error:", err);
+        console.error("[ActionEngine] Error details:", {
+          receivedContent: content,
+          expectedFormat: "{ actions: [{ actionId: string, targetCharacterId?: number, args: {} }] }",
+          availableActionIds: available.map(a => a.signature)
+        });
         return;
       }
 
