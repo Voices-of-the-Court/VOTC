@@ -289,42 +289,102 @@ button{
 }
 
 .legacy-data-import {
-.import-result {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  
-  &.success {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
+  .import-result {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    
+    &.success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    
+    &.error {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
   }
-  
-  &.error {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
+
+  .error-list {
+    margin-top: 0.5rem;
+    
+    ul {
+      margin: 0.5rem 0 0 1.5rem;
+      padding: 0;
+    }
+  }
+
+  .help-text {
+    font-size: 1rem;
+    color: #fff;
+    margin-bottom: 0.5rem;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 }
 
-.error-list {
-  margin-top: 0.5rem;
-  
-  ul {
-    margin: 0.5rem 0 0 1.5rem;
-    padding: 0;
-  }
-}
-
-.help-text {
-  font-size: 1rem;
+// Action Feedback Styles - Minimalistic
+.action-feedback-container {
+  margin: 4px 10px 4px 30px; // Indent to show it's a sub-item
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 2px solid #EFB16A;
+  border-radius: 5px;
+  font-size: 0.9em;
   color: #fff;
-  margin-bottom: 0.5rem;
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.action-feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
+
+.action-feedback-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 3px 5px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+  
+  // Positive sentiment - green/success tones
+  &.positive {
+    color: rgba(150, 255, 150, 0.95);
+    background: rgba(40, 167, 69, 0.1);
+  }
+  
+  // Negative sentiment - red/warning tones
+  &.negative {
+    color: rgba(255, 180, 150, 0.95);
+    background: rgba(220, 53, 69, 0.1);
+  }
+  
+  // Neutral sentiment - golden/theme tones
+  &.neutral {
+    color: rgba(239, 177, 106, 0.95);
+    background: rgba(239, 177, 106, 0.05);
+  }
+  
+  // Error state (failed action)
+  &.error {
+    color: rgba(255, 150, 150, 0.95);
+    background: rgba(220, 53, 69, 0.15);
+    border-left: 2px solid #dc3545;
+    padding-left: 6px;
+  }
+  
+  &:hover {
+    background-color: transparent;
+  }
+}
+
+.action-feedback-message {
+  flex: 1;
+  line-height: 1.3;
 }

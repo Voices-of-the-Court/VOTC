@@ -18,6 +18,17 @@ export interface ErrorEntry extends BaseEntry {
     details?: string;
 }
 
+export interface ActionFeedbackEntry extends BaseEntry {
+    type: 'action-feedback';
+    associatedMessageId: number;
+    feedbacks: Array<{
+        actionId: string;
+        success: boolean;
+        message: string;
+        sentiment: 'positive' | 'negative' | 'neutral';
+    }>;
+}
+
 export function createMessage(input: Omit<Message, 'type' |'datetime'>): Message {
     return {
         ...input,
@@ -34,4 +45,12 @@ export function createError(input: Omit<ErrorEntry, 'type' | 'datetime'>): Error
     };
 }
 
-export type ConversationEntry = Message | ErrorEntry;
+export function createActionFeedback(input: Omit<ActionFeedbackEntry, 'type' | 'datetime'>): ActionFeedbackEntry {
+    return {
+        ...input,
+        type: 'action-feedback',
+        datetime: new Date()
+    };
+}
+
+export type ConversationEntry = Message | ErrorEntry | ActionFeedbackEntry;

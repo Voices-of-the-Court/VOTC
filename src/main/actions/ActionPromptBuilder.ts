@@ -121,6 +121,7 @@ Return JSON only. No extra text.`;
 `
 Given the above, select the actions (if any) that should be executed ONLY for ${npc.shortName} (id=${npc.id}) now only from listed actions.
 Expected structure: { actions: [{ actionId, targetCharacterId?, args }] }
+You must respect action argument types and constraints.
 `;
     messages.push({ role: "user", content: outroBlock });
 

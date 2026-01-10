@@ -5,6 +5,55 @@
  */
 
 /**
+ * Recursively fixes type errors in parsed JSON objects
+ * - Converts string numbers to actual numbers (e.g., "123" -> 123)
+ * - Converts string booleans to actual booleans (e.g., "true" -> true)
+ * - Handles nested objects and arrays
+ */
+function fixTypingErrors(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => fixTypingErrors(item));
+  }
+
+  // Handle objects
+  if (typeof obj === 'object') {
+    const fixed: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      fixed[key] = fixTypingErrors(value);
+    }
+    return fixed;
+  }
+
+  // Handle string values that should be numbers
+  if (typeof obj === 'string') {
+    // Check if it's a valid number string
+    const trimmed = obj.trim();
+    if (trimmed !== '' && !isNaN(Number(trimmed))) {
+      // Check if it looks like a number (not a string that happens to parse)
+      // e.g., "123" or "123.45" or "-123" but not "  " or ""
+      if (/^-?\d+\.?\d*$/.test(trimmed)) {
+        return Number(trimmed);
+      }
+    }
+    
+    // Check if it's a boolean string
+    if (trimmed.toLowerCase() === 'true') {
+      return true;
+    }
+    if (trimmed.toLowerCase() === 'false') {
+      return false;
+    }
+  }
+
+  return obj;
+}
+
+/**
  * Attempts to extract and repair JSON from potentially malformed content
  * @param content - The raw content from the LLM
  * @returns Parsed JSON object or null if unrepairable
@@ -16,7 +65,8 @@ export function healJsonResponse(content: string): any | null {
 
   // Step 1: Try direct parsing first
   try {
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    return fixTypingErrors(parsed);
   } catch {
     // Continue to healing attempts
   }
@@ -25,7 +75,8 @@ export function healJsonResponse(content: string): any | null {
   const markdownMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (markdownMatch) {
     try {
-      return JSON.parse(markdownMatch[1].trim());
+      const parsed = JSON.parse(markdownMatch[1].trim());
+      return fixTypingErrors(parsed);
     } catch {
       // Continue with the extracted content
       content = markdownMatch[1].trim();
@@ -46,7 +97,8 @@ export function healJsonResponse(content: string): any | null {
     if (jsonEnd > jsonStart) {
       const extracted = content.substring(jsonStart, jsonEnd + 1);
       try {
-        return JSON.parse(extracted);
+        const parsed = JSON.parse(extracted);
+        return fixTypingErrors(parsed);
       } catch {
         content = extracted;
       }
@@ -77,7 +129,9 @@ export function healJsonResponse(content: string): any | null {
 
   // Step 5: Try parsing the repaired content
   try {
-    return JSON.parse(repaired);
+    const parsed = JSON.parse(repaired);
+    // Step 6: Fix typing errors (e.g., numbers as strings)
+    return fixTypingErrors(parsed);
   } catch {
     // If all healing attempts fail, return null
     return null;

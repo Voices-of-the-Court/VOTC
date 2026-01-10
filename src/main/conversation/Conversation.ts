@@ -5,7 +5,7 @@ import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
-import { ConversationEntry, Message, createError, createMessage } from "./types";
+import { ConversationEntry, Message, createError, createMessage, createActionFeedback } from "./types";
 import { PromptBuilder } from "./PromptBuilder";
 import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
@@ -180,13 +180,19 @@ export class Conversation {
                     }
                 }
                 placeholder.isStreaming = false;
-                await ActionEngine.evaluateForCharacter(this, npc);
+                
+                // Execute actions and collect feedback
+                const actionResults = await ActionEngine.evaluateForCharacter(this, npc);
+                this.addActionFeedback(msgId, actionResults);
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
                 placeholder.content = result.content;
                 this.emitUpdate();
                 placeholder.isStreaming = false;
-                await ActionEngine.evaluateForCharacter(this, npc);
+                
+                // Execute actions and collect feedback
+                const actionResults = await ActionEngine.evaluateForCharacter(this, npc);
+                this.addActionFeedback(msgId, actionResults);
             } else {
                 throw new Error('Bad LLM response format');
             }
@@ -213,6 +219,37 @@ export class Conversation {
             // Clean up the AbortController
             this.emitUpdate();
             this.currentStreamController = null;
+        }
+    }
+
+    private addActionFeedback(associatedMessageId: number, actionResults: import("../actions/types").ActionExecutionResult[]): void {
+        console.log('[Conversation] addActionFeedback called with results:', actionResults);
+        
+        // Filter results that have feedback or errors
+        const feedbackItems = actionResults
+            .filter(r => r.feedback || r.error)
+            .map(r => ({
+                actionId: r.actionId,
+                success: r.success,
+                message: r.feedback?.message || r.error || 'Unknown error',
+                sentiment: (r.feedback?.sentiment || 'negative') as 'positive' | 'negative' | 'neutral'
+            }));
+
+        console.log('[Conversation] Filtered feedback items:', feedbackItems);
+
+        // Add feedback entry if any actions provided feedback
+        if (feedbackItems.length > 0) {
+            const feedbackEntry = createActionFeedback({
+                id: this.nextId++,
+                associatedMessageId,
+                feedbacks: feedbackItems
+            });
+            console.log('[Conversation] Creating feedback entry:', feedbackEntry);
+            this.messages.push(feedbackEntry);
+            this.emitUpdate();
+            console.log('[Conversation] Feedback entry added and update emitted');
+        } else {
+            console.log('[Conversation] No feedback items to display');
         }
     }
 

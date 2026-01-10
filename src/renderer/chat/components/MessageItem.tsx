@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import StreamingMarkdown from './StreamingMarkdown';
+import ActionFeedbackItem from './ActionFeedbackItem';
 import { ChatEntry } from '../types';
 
 
@@ -64,6 +65,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
         </div>
       </div>
     );
+  }
+
+  if (entry.type === 'action-feedback') {
+    return <ActionFeedbackItem entry={entry} />;
   }
 
   // Handle message entries

@@ -17,4 +17,15 @@ export interface ErrorEntry extends BaseEntry {
   details?: string;
 }
 
-export type ChatEntry = MessageEntry | ErrorEntry;
+export interface ActionFeedbackEntry extends BaseEntry {
+  type: 'action-feedback';
+  associatedMessageId: string;
+  feedbacks: Array<{
+    actionId: string;
+    success: boolean;
+    message: string;
+    sentiment: 'positive' | 'negative' | 'neutral';
+  }>;
+}
+
+export type ChatEntry = MessageEntry | ErrorEntry | ActionFeedbackEntry;

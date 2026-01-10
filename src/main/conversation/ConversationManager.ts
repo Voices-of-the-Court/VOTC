@@ -114,6 +114,20 @@ export class ConversationManager {
                     name: entry.name,
                     isStreaming: entry.isStreaming
                 };
+            } else if (entry.type === 'action-feedback') {
+                // Action feedback entry
+                return {
+                    type: 'action-feedback',
+                    id: entry.id,
+                    associatedMessageId: entry.associatedMessageId,
+                    feedbacks: entry.feedbacks.map(f => ({
+                        actionId: f.actionId,
+                        success: f.success,
+                        message: f.message,
+                        sentiment: f.sentiment
+                    })),
+                    datetime: entry.datetime
+                };
             } else {
                 // Error entry
                 return {

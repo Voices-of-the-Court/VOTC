@@ -49,7 +49,13 @@ module.exports = {
    * @param {Record<string, number|string|null>} params.args
    */
   run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
-    if (!targetCharacter) return;
+    if (!targetCharacter) {
+      return {
+        message: "Failed: No target character specified for truce",
+        sentiment: 'negative'
+      };
+    }
+    
     let years = 3;
     const raw = args?.years;
     if (typeof raw === "number" && Number.isFinite(raw)) {
@@ -64,5 +70,10 @@ global_var:votc_action_source = {
         override = yes
     }
 }`);
+
+    return {
+      message: `${sourceCharacter.shortName} and ${targetCharacter.shortName} agreed to a ${years}-year truce`,
+      sentiment: 'positive'
+    };
   },
 };

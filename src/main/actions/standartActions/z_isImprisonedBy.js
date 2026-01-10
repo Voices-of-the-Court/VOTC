@@ -49,7 +49,12 @@ module.exports = {
    * @param {Record<string, number|string|null>} params.args
    */
   run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
-    if (!targetCharacter) return;
+    if (!targetCharacter) {
+      return {
+        message: "Failed: No target character specified",
+        sentiment: 'negative'
+      };
+    }
 
     const raw = (args && typeof args.prisonType === "string") ? args.prisonType.trim().toLowerCase() : "default";
     const prisonType = ["default", "house_arrest", "dungeon"].includes(raw) ? raw : "default";
@@ -74,7 +79,10 @@ else = {
         IMPRISONER = global_var:votc_action_target
     }
 }`);
-      return;
+      return {
+        message: `${sourceCharacter.shortName} was placed under house arrest by ${targetCharacter.shortName}`,
+        sentiment: 'negative'
+      };
     }
 
     if (prisonType === "dungeon") {
@@ -103,7 +111,10 @@ else = {
         change_prison_type = dungeon
     }
 }`);
-      return;
+      return {
+        message: `${sourceCharacter.shortName} was thrown into the dungeon by ${targetCharacter.shortName}`,
+        sentiment: 'negative'
+      };
     }
 
     // default
@@ -126,5 +137,9 @@ else = {
         IMPRISONER = global_var:votc_action_target
     }
 }`);
+    return {
+      message: `${sourceCharacter.shortName} was imprisoned by ${targetCharacter.shortName}`,
+      sentiment: 'negative'
+    };
   },
 };

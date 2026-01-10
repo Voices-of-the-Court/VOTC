@@ -58,7 +58,12 @@ module.exports = {
    * @param {Record<string, number|string|null>} params.args
    */
   run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
-    if (!targetCharacter) return;
+    if (!targetCharacter) {
+      return {
+        message: "Failed: No partner specified",
+        sentiment: 'negative'
+      };
+    }
 
     runGameEffect(`
 global_var:votc_action_source = {
@@ -78,5 +83,10 @@ global_var:votc_action_source = {
     } catch (e) {
       // ignore
     }
+
+    return {
+      message: `${sourceCharacter.shortName} had intercourse with ${targetCharacter.shortName}`,
+      sentiment: 'neutral'
+    };
   },
 };
