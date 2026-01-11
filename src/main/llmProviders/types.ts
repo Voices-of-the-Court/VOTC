@@ -128,6 +128,10 @@ export interface LLMSettings {
   providers: LLMProviderConfig[]; // Stores the 3 base configurations (one for each providerType)
   presets: LLMProviderConfig[];   // Stores user-created presets
   activeProviderInstanceId?: string | null; // instanceId of the active base config or preset
+  
+  // Optional overrides for specific request types - if null/undefined, use activeProviderInstanceId
+  actionsProviderInstanceId?: string | null; // Provider override for Actions (structured JSON requests)
+  summaryProviderInstanceId?: string | null; // Provider override for Summaries (rolling & final)
 }
 
 export interface ActionValidationStatus {

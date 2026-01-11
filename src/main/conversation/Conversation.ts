@@ -103,7 +103,7 @@ export class Conversation {
         const summaryPrompt = PromptBuilder.buildResummarizePrompt(messagesToSummarize, this.currentSummary);
         
         try {
-            const result = await llmManager.sendChatRequest(summaryPrompt, undefined, true);
+            const result = await llmManager.sendSummaryRequest(summaryPrompt);
             
             if (result && typeof result === 'object' && 'content' in result) {
                 // Append to existing summary or create new one
@@ -505,7 +505,7 @@ export class Conversation {
         }
 
         try {
-            const result = await llmManager.sendChatRequest(summaryPrompt, undefined, true);
+            const result = await llmManager.sendSummaryRequest(summaryPrompt);
 
             if (result && typeof result === 'object' && 'content' in result) {
                 const finalSummary = result.content as string;

@@ -188,6 +188,23 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // --- Provider Override IPC Handlers ---
+  ipcMain.handle('llm:getActionsProviderId', () => {
+    return settingsRepository.getActionsProviderInstanceId();
+  });
+
+  ipcMain.handle('llm:setActionsProviderId', (_, instanceId: string | null) => {
+    settingsRepository.setActionsProviderInstanceId(instanceId);
+  });
+
+  ipcMain.handle('llm:getSummaryProviderId', () => {
+    return settingsRepository.getSummaryProviderInstanceId();
+  });
+
+  ipcMain.handle('llm:setSummaryProviderId', (_, instanceId: string | null) => {
+    settingsRepository.setSummaryProviderInstanceId(instanceId);
+  });
+
   ipcMain.handle('llm:importLegacySummaries', async () => {
   try {
     return await importLegacySummaries();

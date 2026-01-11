@@ -102,31 +102,32 @@ export class LLMManager {
 
     return await provider.chatCompletion(request, activeConfig);
   }
-  // Structured JSON (native) request helper for actions
-  // Pass a JSON Schema in response_format to providers that support it (OpenAI/OpenRouter).
-  async sendStructuredJsonRequest(
+
+  /**
+   * Send a structured JSON request for Actions.
+   * Uses the actions provider override if set, otherwise active provider.
+   */
+  async sendActionsRequest(
     messages: ILLMCompletionRequest['messages'],
     schemaName: string,
     jsonSchemaObject: object,
     signal?: AbortSignal
   ): Promise<ILLMOutput> {
-    const activeConfig = settingsRepository.getActiveProviderConfig();
-    if (!activeConfig) {
-      throw new Error('No active and enabled LLM provider configured.');
+    const config = settingsRepository.getActionsProviderConfig();
+    if (!config) {
+      throw new Error('No provider configured for Actions.');
     }
-    if (!activeConfig.defaultModel) {
-      throw new Error(`Active provider '${activeConfig.customName}' has no default model selected.`);
+    if (!config.defaultModel) {
+      throw new Error(`Provider '${config.customName || config.providerType}' has no default model selected.`);
     }
 
-    const provider = this.getProviderInstance(activeConfig);
-    const stream = false; // structured outputs should be non-streamed for reliability
+    const provider = this.getProviderInstance(config);
 
     const request: ILLMCompletionRequest = {
-      model: activeConfig.defaultModel,
+      model: config.defaultModel,
       messages,
-      stream,
-      // Merge default parameters from config with specific request params
-      ...activeConfig.defaultParameters,
+      stream: false, // structured outputs should be non-streamed
+      ...config.defaultParameters,
       signal,
       response_format: {
         type: 'json_schema',
@@ -138,7 +139,36 @@ export class LLMManager {
       }
     };
 
-    return await provider.chatCompletion(request, activeConfig);
+    return await provider.chatCompletion(request, config);
+  }
+
+  /**
+   * Send a request for Summaries (rolling or final).
+   * Uses the summary provider override if set, otherwise active provider.
+   */
+  async sendSummaryRequest(
+    messages: ILLMCompletionRequest['messages'],
+    signal?: AbortSignal
+  ): Promise<ILLMOutput> {
+    const config = settingsRepository.getSummaryProviderConfig();
+    if (!config) {
+      throw new Error('No provider configured for Summaries.');
+    }
+    if (!config.defaultModel) {
+      throw new Error(`Provider '${config.customName || config.providerType}' has no default model selected.`);
+    }
+
+    const provider = this.getProviderInstance(config);
+
+    const request: ILLMCompletionRequest = {
+      model: config.defaultModel,
+      messages,
+      stream: false, // summaries don't need streaming
+      ...config.defaultParameters,
+      signal,
+    };
+
+    return await provider.chatCompletion(request, config);
   }
 
   // Get current context length for the active provider

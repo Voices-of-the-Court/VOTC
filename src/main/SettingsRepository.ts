@@ -44,9 +44,17 @@ const schema: Schema<AppSettings> = {
         items: baseProviderConfigSchema
       },
 			activeProviderInstanceId: {
-        type: ['string', 'null'],
-        default: null
-      }
+			     type: ['string', 'null'],
+			     default: null
+			   },
+			   actionsProviderInstanceId: {
+			     type: ['string', 'null'],
+			     default: null
+			   },
+			   summaryProviderInstanceId: {
+			     type: ['string', 'null'],
+			     default: null
+			   }
 		}
 	},
   ck3UserFolderPath: {
@@ -269,6 +277,13 @@ export class SettingsRepository {
     if (settings.activeProviderInstanceId === presetInstanceId) {
       settings.activeProviderInstanceId = null; // Or set to a default base provider
     }
+    // Clear overrides if they reference this preset
+    if (settings.actionsProviderInstanceId === presetInstanceId) {
+      settings.actionsProviderInstanceId = null;
+    }
+    if (settings.summaryProviderInstanceId === presetInstanceId) {
+      settings.summaryProviderInstanceId = null;
+    }
     this.saveLLMSettings(settings);
   }
 
@@ -293,6 +308,69 @@ export class SettingsRepository {
     // Then check presets
     config = this.getLLMSettings().presets.find(p => p.instanceId === activeId);
     return config || null;
+  }
+
+  // --- Provider Override Management ---
+
+  /**
+   * Helper to get any provider config by instanceId (base or preset)
+   */
+  getProviderConfigById(instanceId: string): LLMProviderConfig | null {
+    const settings = this.getLLMSettings();
+    
+    // Check base providers first
+    let config = settings.providers.find(p => p.instanceId === instanceId);
+    if (config) return config;
+    
+    // Then check presets
+    config = settings.presets.find(p => p.instanceId === instanceId);
+    return config || null;
+  }
+
+  getActionsProviderInstanceId(): string | null {
+    return this.getLLMSettings().actionsProviderInstanceId ?? null;
+  }
+
+  getSummaryProviderInstanceId(): string | null {
+    return this.getLLMSettings().summaryProviderInstanceId ?? null;
+  }
+
+  /**
+   * Get the provider config for Actions.
+   * Returns the override if set, otherwise falls back to active provider.
+   */
+  getActionsProviderConfig(): LLMProviderConfig | null {
+    const overrideId = this.getActionsProviderInstanceId();
+    if (overrideId) {
+      return this.getProviderConfigById(overrideId);
+    }
+    return this.getActiveProviderConfig();
+  }
+
+  /**
+   * Get the provider config for Summaries.
+   * Returns the override if set, otherwise falls back to active provider.
+   */
+  getSummaryProviderConfig(): LLMProviderConfig | null {
+    const overrideId = this.getSummaryProviderInstanceId();
+    if (overrideId) {
+      return this.getProviderConfigById(overrideId);
+    }
+    return this.getActiveProviderConfig();
+  }
+
+  setActionsProviderInstanceId(instanceId: string | null): void {
+    const settings = this.getLLMSettings();
+    settings.actionsProviderInstanceId = instanceId;
+    this.saveLLMSettings(settings);
+    console.log('Actions provider override set:', instanceId);
+  }
+
+  setSummaryProviderInstanceId(instanceId: string | null): void {
+    const settings = this.getLLMSettings();
+    settings.summaryProviderInstanceId = instanceId;
+    this.saveLLMSettings(settings);
+    console.log('Summary provider override set:', instanceId);
   }
 }
 
