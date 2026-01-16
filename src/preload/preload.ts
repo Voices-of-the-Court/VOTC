@@ -46,6 +46,11 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setCustomContextLength: (contextLength: number): Promise<void> => ipcRenderer.invoke('llm:setCustomContextLength', contextLength),
   clearCustomContextLength: (): Promise<void> => ipcRenderer.invoke('llm:clearCustomContextLength'),
   importLegacySummaries: (): Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}> => ipcRenderer.invoke('llm:importLegacySummaries'),
+  // Provider override methods
+  getActionsProviderId: (): Promise<string | null> => ipcRenderer.invoke('llm:getActionsProviderId'),
+  setActionsProviderId: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setActionsProviderId', instanceId),
+  getSummaryProviderId: (): Promise<string | null> => ipcRenderer.invoke('llm:getSummaryProviderId'),
+  setSummaryProviderId: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setSummaryProviderId', instanceId),
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {

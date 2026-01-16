@@ -18,6 +18,10 @@ interface ConfigStore {
   editingConfig: Partial<LLMProviderConfig>;
   initialConfig: Partial<LLMProviderConfig>;
   
+  // Provider override state
+  actionsProviderInstanceId: string | null;
+  summaryProviderInstanceId: string | null;
+  
   // UI state
   testResult: { success: boolean; message?: string; error?: string } | null;
   
@@ -43,6 +47,10 @@ interface ConfigStore {
   
   createPreset: (name: string) => Promise<void>;
   deletePreset: (id: string) => Promise<void>;
+  
+  // Provider override actions
+  setActionsProvider: (instanceId: string | null) => Promise<void>;
+  setSummaryProvider: (instanceId: string | null) => Promise<void>;
 
   // Settings actions
   updateGlobalStreamSetting: (enabled: boolean) => Promise<void>;
@@ -72,13 +80,22 @@ export const useConfigStore = create<ConfigStore>()(
       selectedPresetId: null,
       editingConfig: {},
       initialConfig: {},
+      actionsProviderInstanceId: null,
+      summaryProviderInstanceId: null,
       testResult: null,
       autoSaveTimer: null,
 
       // Load settings from backend
       loadSettings: async () => {
         const settings = await window.llmConfigAPI.getAppSettings();
-        set({ appSettings: settings });
+        const actionsProviderId = await window.llmConfigAPI.getActionsProviderId();
+        const summaryProviderId = await window.llmConfigAPI.getSummaryProviderId();
+        
+        set({
+          appSettings: settings,
+          actionsProviderInstanceId: actionsProviderId,
+          summaryProviderInstanceId: summaryProviderId,
+        });
         
         // Initialize selection based on active provider
         const activeId = settings.llmSettings.activeProviderInstanceId;
@@ -449,6 +466,17 @@ export const useConfigStore = create<ConfigStore>()(
         }
         
         return result;
+      },
+      
+      // Provider override actions
+      setActionsProvider: async (instanceId) => {
+        await window.llmConfigAPI.setActionsProviderId(instanceId);
+        set({ actionsProviderInstanceId: instanceId });
+      },
+      
+      setSummaryProvider: async (instanceId) => {
+        await window.llmConfigAPI.setSummaryProviderId(instanceId);
+        set({ summaryProviderInstanceId: instanceId });
       },
     }),
     { name: 'ConfigStore' }

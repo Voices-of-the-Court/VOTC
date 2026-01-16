@@ -35,7 +35,12 @@ declare global {
       saveGlobalStreamSetting: (enabled: boolean) => Promise<void>;
       savePauseOnRegenerationSetting: (enabled: boolean) => Promise<void>;
       saveGenerateFollowingMessagesSetting: (enabled: boolean) => Promise<void>;
-      importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>
+      importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
+      // Provider override methods
+      getActionsProviderId: () => Promise<string | null>;
+      setActionsProviderId: (instanceId: string | null) => Promise<void>;
+      getSummaryProviderId: () => Promise<string | null>;
+      setSummaryProviderId: (instanceId: string | null) => Promise<void>;
     };
     actionsAPI: {
       reload: () => Promise<{ success: boolean; error?: string }>;

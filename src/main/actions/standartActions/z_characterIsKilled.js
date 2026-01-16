@@ -39,7 +39,12 @@ module.exports = {
    */
   run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect }) => {
     // If for some reason target wasn't provided, do nothing.
-    if (!targetCharacter) return;
+    if (!targetCharacter) {
+      return {
+        message: "Failed: No killer specified",
+        sentiment: 'negative'
+      };
+    }
 
     runGameEffect(`
 global_var:votc_action_source = {
@@ -48,5 +53,10 @@ global_var:votc_action_source = {
         killer = global_var:votc_action_target
     }
 }`);
+
+    return {
+      message: `${sourceCharacter.shortName} was killed by ${targetCharacter.shortName}`,
+      sentiment: 'negative'
+    };
   },
 };

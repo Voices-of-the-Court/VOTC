@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChatEntry, MessageEntry, ErrorEntry } from '../types';
+import { ChatEntry, MessageEntry, ErrorEntry, ActionFeedbackEntry } from '../types';
 
 interface UseConversationEntriesReturn {
   entries: ChatEntry[];
@@ -27,6 +27,14 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
               datetime: new Date(entry.datetime), // Ensure Date object
               isStreaming: entry.isStreaming
             } as MessageEntry;
+          } else if (entry.type === 'action-feedback') {
+            return {
+              id: entry.id.toString(),
+              type: entry.type,
+              associatedMessageId: entry.associatedMessageId.toString(),
+              feedbacks: entry.feedbacks,
+              datetime: new Date(entry.datetime)
+            } as ActionFeedbackEntry;
           } else {
             return {
               id: entry.id.toString(),
@@ -62,6 +70,14 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
             datetime: new Date(entry.datetime), // Ensure Date object
             isStreaming: entry.isStreaming
           } as MessageEntry;
+        } else if (entry.type === 'action-feedback') {
+          return {
+            id: entry.id.toString(),
+            type: entry.type,
+            associatedMessageId: entry.associatedMessageId.toString(),
+            feedbacks: entry.feedbacks,
+            datetime: new Date(entry.datetime)
+          } as ActionFeedbackEntry;
         } else {
           return {
             id: entry.id.toString(),

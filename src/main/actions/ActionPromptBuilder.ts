@@ -32,6 +32,16 @@ export class ActionPromptBuilder {
 `;
     messages.push({ role: "system", content: systemIntro });
 
+    // 1.1) History context: recent conversation history (last N messages)
+    const history = conv.getHistory();
+    const recent = history.slice(Math.max(0, history.length - historyWindow));
+    const historyLines = recent.map(m => `${m.name ?? m.role}: ${m.content}`).join("\n");
+    const historyBlock =
+`Recent messages:
+${historyLines}
+`;
+    messages.push({ role: "system", content: historyBlock });
+
     // 2) Context: Character roster with indices and ids (order is CK3 order)
     const characterRosterLines: string[] = [];
     const idsInOrder = Array.from(conv.gameData.characters.keys());
@@ -105,16 +115,15 @@ ${actionLines.join("\n")}
 Return JSON only. No extra text.`;
     messages.push({ role: "system", content: actionsBlock });
 
-    // 4) Recent conversation history (last N messages)
-    const history = conv.getHistory();
-    const recent = history.slice(Math.max(0, history.length - historyWindow));
-    const historyLines = recent.map(m => `${m.name ?? m.role}: ${m.content}`).join("\n");
-    const historyBlock =
-`Recent messages:
-${historyLines}
 
-Given the above, select the actions (if any) that should be executed ONLY for ${npc.shortName} (id=${npc.id}) would execute now.`;
-    messages.push({ role: "user", content: historyBlock });
+    // 4) User role: instruction to select actions for this NPC now
+    const outroBlock =
+`
+Given the above, select the actions (if any) that should be executed ONLY for ${npc.shortName} (id=${npc.id}) now only from listed actions.
+Expected structure: { actions: [{ actionId, targetCharacterId?, args }] }
+You must respect action argument types and constraints.
+`;
+    messages.push({ role: "user", content: outroBlock });
 
     return messages;
   }

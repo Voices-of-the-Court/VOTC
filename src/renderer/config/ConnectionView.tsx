@@ -19,6 +19,11 @@ const ConnectionView: React.FC = () => {
   const createPreset = useConfigStore((state) => state.createPreset);
   const deletePreset = useConfigStore((state) => state.deletePreset);
   
+  const actionsProviderInstanceId = useConfigStore((state) => state.actionsProviderInstanceId);
+  const summaryProviderInstanceId = useConfigStore((state) => state.summaryProviderInstanceId);
+  const setActionsProvider = useConfigStore((state) => state.setActionsProvider);
+  const setSummaryProvider = useConfigStore((state) => state.setSummaryProvider);
+  
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [presetToDelete, setPresetToDelete] = useState<{ id: string; name?: string } | null>(null);
@@ -82,6 +87,10 @@ const ConnectionView: React.FC = () => {
         onDeletePreset={handleDeletePreset}
         selectedProviderTypeForEditing={selectedProviderType}
         selectedPresetIdForEditing={selectedPresetId}
+        actionsProviderInstanceId={actionsProviderInstanceId}
+        summaryProviderInstanceId={summaryProviderInstanceId}
+        onSetActionsProvider={setActionsProvider}
+        onSetSummaryProvider={setSummaryProvider}
       />
       
       <ProviderConfigPanel

@@ -32,10 +32,10 @@ module.exports = {
    */
   check: ({ gameData, sourceCharacter }) => {
     const allIds = Array.from(gameData.characters.keys());
-    const validTargets = allIds.filter((id) => id !== gameData.playerID);
+    // const validTargets = allIds.filter((id) => id !== gameData.playerID);
     return {
       canExecute: true,
-      validTargetCharacterIds: validTargets
+      validTargetCharacterIds: allIds,
     };
   },
 

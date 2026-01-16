@@ -126,12 +126,12 @@ hr {
   list-style-type: none;
   padding: 0;
   margin: 0;
-  border: 1px solid #ccc;
   border-top: none;
   max-height: 150px;
   overflow-y: auto;
   position: absolute;
-  background-color: white;
+  color: #fff;
+  background-color: #1a1a1a;
   width: 380px; /* Match input width, adjust if needed */
   box-sizing: border-box;
   z-index: 1000;
@@ -142,7 +142,7 @@ hr {
     padding: 8px;
     cursor: pointer;
     &:hover {
-      background-color: #ed0101;
+      background-color: #222;
     }
   }
 }
@@ -174,18 +174,33 @@ hr {
 }
 
 .provider-sidebar {
-    width: 180px; /* Fixed width for sidebar */
-    // padding-right: 15px;
+    width: 180px;
     margin-right: 15px;
     border-right: 1px solid #EFB16A;
     height: 100%;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     color: white;
+    overflow: hidden;
 
     h4 {
         margin-top: 10px;
+        flex-shrink: 0;
         &:first-child {
             margin-top: 0;
+        }
+    }
+
+    .providers-presets-container {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        margin-right: -10px;
+        padding-right: 10px;
+        
+        scrollbar-width: none;
+        &::-webkit-scrollbar {
+            display: none;
         }
     }
 
@@ -200,10 +215,16 @@ hr {
             border-radius: 4px;
             margin-bottom: 5px;
             margin-right: 8px;
-            border: 1px solid transparent; // for consistent spacing
+            border: 1px solid transparent;
             transition: background-color 0.2s ease, border-color 0.2s ease;
+            position: relative;
+            
             &:hover {
                 background-color: rgba(128, 128, 128, 0.2);
+                
+                .delete-preset-btn {
+                    opacity: 1;
+                }
             }
             &.active {
                 background-color: rgba(128, 128, 128, 0.2);
@@ -216,21 +237,32 @@ hr {
             }
         }
     }
+    
     .preset-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding-right: 30px;
+        
         .preset-name {
             flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .preset-type {
             font-size: 0.8em;
             color: #555;
+            white-space: nowrap;
         }
-         &.active .preset-type {
+        &.active .preset-type {
             color: #EFB16A;
         }
         .delete-preset-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
             background: none;
             border: none;
             color: #dc3545;
@@ -238,6 +270,10 @@ hr {
             font-size: 1.6em;
             margin: 0;
             line-height: 1;
+            padding: 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            
             &:hover {
                 color: #ff3448;
                 background-image: radial-gradient(circle, rgba(255, 0, 0, 0.2), rgba(0, 0, 0, 0.0));
@@ -245,6 +281,74 @@ hr {
             }
         }
     }
+}
+
+// Assignment visual indicators on provider/preset items
+.provider-list li,
+.preset-list li {
+  &.assigned-actions {
+    box-shadow: inset 3px 0 0 #4CAF50;
+  }
+  
+  &.assigned-summary {
+    box-shadow: inset 3px 0 0 #2196F3;
+  }
+  
+  &.assigned-both {
+    box-shadow: inset 3px 0 0 #4CAF50, inset 6px 0 0 #2196F3;
+  }
+  
+  // Don't apply assignment styling to active items to avoid confusion
+  &.active {
+    &.assigned-actions,
+    &.assigned-summary,
+    &.assigned-both {
+      box-shadow: 0 0 5px #EFB16A; // Keep only active styling
+    }
+  }
+}
+
+// Override section styling - pinned at bottom
+.override-section {
+  flex-shrink: 0; // Don't shrink
+  padding: 10px 4px 0 4px;
+  margin-top: auto; // Push to bottom
+  border-top: 1px solid #EFB16A;
+  margin-right: 4px;
+  // background-color: rgba(0, 0, 0, 0.3); // Slight background to distinguish
+  
+  .override-item {
+    margin-bottom: 10px;
+    
+    label {
+      display: block;
+      font-size: 0.9em;
+      margin-bottom: 4px;
+      color: #EFB16A;
+      font-weight: normal;
+    }
+    
+    select {
+      width: 100%;
+      padding: 6px 8px;
+      background-color: rgba(0, 0, 0, 0.4);
+      border: 1px solid #EFB16A;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.9em;
+      cursor: pointer;
+      
+      &:focus {
+        outline: none;
+        border-color: #FFA500;
+      }
+      
+      option {
+        background-color: #1a1a1a;
+        color: #fff;
+      }
+    }
+  }
 }
 
 .provider-config-panel {

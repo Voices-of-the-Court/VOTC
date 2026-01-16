@@ -60,13 +60,30 @@ export interface ActionRunContext {
   args: ActionArgumentValues;
 }
 
+export type ActionFeedbackSentiment = 'positive' | 'negative' | 'neutral';
+
+export interface ActionFeedback {
+  message: string;
+  sentiment?: ActionFeedbackSentiment;
+}
+
 export interface ActionDefinition {
   signature: string;
   title?: string;
   description: string | DynamicDescriptionFunction;
   args: ActionArgumentDefinition[] | DynamicArgsFunction;
   check: (context: ActionCheckContext) => Promise<ActionCheckResult> | ActionCheckResult;
-  run: (context: ActionRunContext) => Promise<void> | void;
+  run: (context: ActionRunContext) => Promise<string | ActionFeedback | void> | string | ActionFeedback | void;
+}
+
+export interface ActionExecutionResult {
+  actionId: string;
+  success: boolean;
+  feedback?: {
+    message: string;
+    sentiment: ActionFeedbackSentiment;
+  };
+  error?: string;
 }
 
 export interface ActionInvocation {
