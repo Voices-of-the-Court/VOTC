@@ -103,8 +103,6 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                 )}
             </div>
             
-            
-            
             {/* Override For Section */}
             <div className="override-section">
                 <div className="override-item">

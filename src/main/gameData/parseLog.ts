@@ -96,7 +96,8 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 case "new_relations":
                 var tmpTargetId = Number(data[1])
                 if(line.split('#')[1] !== ''){
-                    
+                    console.log("Adding new relation for char "+rootID+" towards "+tmpTargetId+": "+removeTooltip(line.split('#')[1]))
+                    console.log(gameData!.characters)
                     gameData!.characters.get(rootID)!.relationsToCharacters.push({id: tmpTargetId, relations: [removeTooltip(line.split('#')[1])]})
                     //gameData!.characters.get(rootID)!.relationsToPlayer = [removeTooltip(line.split('#')[1])]
                 }
@@ -182,4 +183,23 @@ export function removeTooltip(str: string): string{
     })
 
     return newWords.join(' ').replace(/ +(?= )/g,'').trim();
+}
+
+export async function cleanLogFile(filePath: string) {
+    const fileContent = await fs.promises.readFile(filePath, 'utf-8');
+    const lines = fileContent.split('\n');
+    const stringsToRemove = [
+        'Running console command: run votc.txt',
+        'console_failure: Effect is empty. Check error log',
+        'Running console command: gui.createwidget gui/custom_gui/talk_window_v2.gui talk_window_counter',
+        'console_success: Executing effect',
+        'Trying to trigger an animation with glow_alpha for a widget which has no glow',
+        'No sound alias named \'river_node\' configured! Please check you sound alias database'
+    ];
+  
+  const cleaned = lines.filter(line => {
+    return !stringsToRemove.some(str => line.includes(str));
+  });
+  
+  await fs.promises.writeFile(filePath, cleaned.join('\n'), 'utf-8');
 }

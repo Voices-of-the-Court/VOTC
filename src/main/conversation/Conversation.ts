@@ -1,6 +1,6 @@
 import { GameData } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
-import { parseLog } from "../gameData/parseLog";
+import { parseLog, cleanLogFile } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
@@ -534,6 +534,7 @@ export class Conversation {
     end(): void {
         this.isActive = false;
         this.clearHistory();
+        cleanLogFile(settingsRepository.getCK3DebugLogPath()!);
     }
 
     // Emit conversation update event
