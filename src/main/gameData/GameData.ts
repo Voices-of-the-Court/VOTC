@@ -46,6 +46,7 @@ export type Secret = {
     name: string,
     desc: string,
     category: string,
+    type: string,
     isCriminal: boolean,
     isShunned: boolean,
     target?: SecretTarget,
@@ -56,6 +57,7 @@ export type KnownSecret = {
     name: string,
     desc: string,
     category: string,
+    type: string,
     ownerId: number,
     ownerName: string,
     isCriminal: boolean,
@@ -64,6 +66,27 @@ export type KnownSecret = {
     isSpent: boolean,
     canBeExposed: boolean,
     knowers: SecretKnower[]
+}
+
+export type Modifier = {
+    id: string,
+    name: string,
+    description: string
+}
+
+export type Stress = {
+    value: number,
+    level: number,
+    progress: number
+}
+
+export type Legitimacy = {
+    value: number,
+    level: number,
+    type: string,
+    avgPowerfulVassalExpectation: number,
+    avgVassalExpectation: number,
+    liegeExpectation: number
 }
 
 /** 

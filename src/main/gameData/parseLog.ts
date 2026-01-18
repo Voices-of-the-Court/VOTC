@@ -1,4 +1,4 @@
-import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower} from "./GameData";
+import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower, Modifier, Stress, Legitimacy} from "./GameData";
 import { Character } from "./Character";
 const fs = require('fs');
 const readline = require('readline');
@@ -87,8 +87,8 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 case "secret_target":
                     if (currentSecret) {
                         currentSecret.target = {
-                            id: Number(data[2]),
-                            name: data[3]
+                            id: Number(data[1]),
+                            name: data[2]
                         };
                     }
                 break;
@@ -123,6 +123,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                             name: currentSecret.name || '',
                             desc: currentSecret.desc || '',
                             category: currentSecret.category || '',
+                            type: currentSecret.type || '',
                             isCriminal: currentSecret.isCriminal || false,
                             isShunned: currentSecret.isShunned || false,
                             target: currentSecret.target,
@@ -183,6 +184,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                             name: currentKnownSecret.name || '',
                             desc: currentKnownSecret.desc || '',
                             category: currentKnownSecret.category || '',
+                            type: currentKnownSecret.type || '',
                             ownerId: currentKnownSecret.ownerId || 0,
                             ownerName: currentKnownSecret.ownerName || '',
                             isCriminal: currentKnownSecret.isCriminal || false,
@@ -194,6 +196,38 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                         };
                         gameData!.characters.get(rootID)!.knownSecrets.push(knownSecret);
                         currentKnownSecret = null;
+                    }
+                break;
+                case "modifier":
+                    const modifier: Modifier = {
+                        id: data[1],
+                        name: data[2],
+                        description: data[3]
+                    };
+                    gameData!.characters.get(rootID)!.modifiers.push(modifier);
+                break;
+                case "stress":
+                    const stress: Stress = {
+                        value: Number(data[1]),
+                        level: Number(data[2]),
+                        progress: Number(data[3])
+                    };
+                    gameData!.characters.get(rootID)!.stress = stress;
+                break;
+                case "legitimacy":
+                    if (data[1] === 'no') {
+                        // Character has no legitimacy
+                        gameData!.characters.get(rootID)!.legitimacy = undefined;
+                    } else {
+                        const legitimacy: Legitimacy = {
+                            value: Number(data[1]),
+                            level: Number(data[2]),
+                            type: data[3],
+                            avgPowerfulVassalExpectation: Number(data[4]),
+                            avgVassalExpectation: Number(data[5]),
+                            liegeExpectation: Number(data[6])
+                        };
+                        gameData!.characters.get(rootID)!.legitimacy = legitimacy;
                     }
                 break;
                 case "trait":
@@ -261,6 +295,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
             name: data[1],
             desc: data[2],
             category: data[3],
+            type: data[4] || '',
             isCriminal: false,
             isShunned: false,
             knowers: []
@@ -272,6 +307,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
             name: data[1],
             desc: data[2],
             category: data[3],
+            type: data[4] || '',
             isCriminal: false,
             isShunned: false,
             isSpent: false,
