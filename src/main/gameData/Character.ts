@@ -1,4 +1,4 @@
-import {Memory, Trait, OpinionModifier, Secret} from "./GameData"
+import {Memory, Trait, OpinionModifier, Secret, KnownSecret} from "./GameData"
 import fs from 'fs';
 
 // Simple replacement for removeTooltip since parseLog.ts doesn't exist
@@ -39,6 +39,7 @@ export class Character {
     titleRankConcept: string;
 
     secrets: Secret[];
+    knownSecrets: KnownSecret[];
     memories: Memory[];
     traits: Trait[];
     relationsToPlayer: string[];
@@ -79,6 +80,7 @@ export class Character {
             this.heldCourtAndCouncilPositions = data[25],
             this.titleRankConcept = data[26],
             this.secrets = [],
+            this.knownSecrets = [],
             this.memories = [],
             this.traits = [],
             this.relationsToPlayer = [],

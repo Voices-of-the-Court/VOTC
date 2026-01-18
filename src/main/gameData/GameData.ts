@@ -30,10 +30,40 @@ export type OpinionModifier = {
     value: number,
 }
 
+export type SecretTarget = {
+    id: number,
+    name: string
+}
+
+export type SecretKnower = {
+    id: number,
+    name: string,
+    isSpent: boolean,
+    canBeExposed: boolean
+}
+
 export type Secret = {
     name: string,
     desc: string,
-    category: string
+    category: string,
+    isCriminal: boolean,
+    isShunned: boolean,
+    target?: SecretTarget,
+    knowers: SecretKnower[]
+}
+
+export type KnownSecret = {
+    name: string,
+    desc: string,
+    category: string,
+    ownerId: number,
+    ownerName: string,
+    isCriminal: boolean,
+    isShunned: boolean,
+    target?: SecretTarget,
+    isSpent: boolean,
+    canBeExposed: boolean,
+    knowers: SecretKnower[]
 }
 
 /** 
