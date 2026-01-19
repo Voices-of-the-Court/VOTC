@@ -1,4 +1,4 @@
-import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law} from "./GameData";
+import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd} from "./GameData";
 import { Character } from "./Character";
 const fs = require('fs');
 const readline = require('readline');
@@ -9,7 +9,8 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
     //some data are passed through multiple lines
     let multiLineTempStorage: any[] = [];
     let isWaitingForMultiLine: boolean = false;
-    let multiLineType: string = ""; //relation or opinionModifier
+    let multiLineType: string = ""; //relation, opinionModifier, income, treasury, influence, or herd
+    let currentRootID: number = 0; // Store current rootID for multiline processing
     
     // Temporary storage for secret parsing
     let currentSecret: Partial<Secret> | null = null;
@@ -43,9 +44,28 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 case "opinionBreakdown":
                         multiLineTempStorage.push(parseOpinionModifier(value));
                 break;
+                case "income":
+                case "treasury":
+                case "influence":
+                case "herd":
+                    multiLineTempStorage.push(removeTooltip(value))
+                break;
             }
 
-            if(line.includes('#ENDMULTILINE')){         
+            if(line.includes('#ENDMULTILINE')){
+                // Join all multiline content and assign to the appropriate field
+                const fullContent = multiLineTempStorage.join('\n');
+                
+                if (multiLineType === "income" && gameData!.characters.get(currentRootID)!.income) {
+                    gameData!.characters.get(currentRootID)!.income!.balanceBreakdown = fullContent;
+                } else if (multiLineType === "treasury" && gameData!.characters.get(currentRootID)!.treasury) {
+                    gameData!.characters.get(currentRootID)!.treasury!.tooltip = fullContent;
+                } else if (multiLineType === "influence" && gameData!.characters.get(currentRootID)!.influence) {
+                    gameData!.characters.get(currentRootID)!.influence!.tooltip = fullContent;
+                } else if (multiLineType === "herd" && gameData!.characters.get(currentRootID)!.herd) {
+                    gameData!.characters.get(currentRootID)!.herd!.breakdown = fullContent;
+                }
+                
                 isWaitingForMultiLine = false;
             }
            continue;
@@ -61,6 +81,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
             data.splice(0,2)
 
             const rootID = Number(data[0]);
+            currentRootID = rootID; // Store for multiline processing
 
             for(let i=0;i<data.length;i++){
                 data[i] = removeTooltip(data[i])
@@ -319,6 +340,67 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                         };
                         gameData!.characters.get(rootID)!.troops = troops;
                         currentTroops = null;
+                    }
+                break;
+                case "income":
+                    if(line.split('#')[1] !== ''){
+                        const income: Income = {
+                            gold: Number(data[1]),
+                            balance: Number(data[2]),
+                            balanceBreakdown: removeTooltip(line.split('#')[1])
+                        };
+                        gameData!.characters.get(rootID)!.income = income;
+                    }
+                    
+                    if(!line.includes("#ENDMULTILINE")){
+                        multiLineTempStorage = [gameData!.characters.get(rootID)!.income!.balanceBreakdown];
+                        isWaitingForMultiLine = true;
+                        multiLineType = "income";
+                    }
+                break;
+                case "treasury":
+                    if(line.split('#')[1] !== ''){
+                        const treasury: Treasury = {
+                            amount: Number(data[1]),
+                            tooltip: removeTooltip(line.split('#')[1])
+                        };
+                        gameData!.characters.get(rootID)!.treasury = treasury;
+                    }
+                    
+                    if(!line.includes("#ENDMULTILINE")){
+                        multiLineTempStorage = [gameData!.characters.get(rootID)!.treasury!.tooltip];
+                        isWaitingForMultiLine = true;
+                        multiLineType = "treasury";
+                    }
+                break;
+                case "influence":
+                    if(line.split('#')[1] !== ''){
+                        const influence: Influence = {
+                            amount: Number(data[1]),
+                            tooltip: removeTooltip(line.split('#')[1])
+                        };
+                        gameData!.characters.get(rootID)!.influence = influence;
+                    }
+                    
+                    if(!line.includes("#ENDMULTILINE")){
+                        multiLineTempStorage = [gameData!.characters.get(rootID)!.influence!.tooltip];
+                        isWaitingForMultiLine = true;
+                        multiLineType = "influence";
+                    }
+                break;
+                case "herd":
+                    if(line.split('#')[1] !== ''){
+                        const herd: Herd = {
+                            amount: Number(data[1]),
+                            breakdown: removeTooltip(line.split('#')[1])
+                        };
+                        gameData!.characters.get(rootID)!.herd = herd;
+                    }
+                    
+                    if(!line.includes("#ENDMULTILINE")){
+                        multiLineTempStorage = [gameData!.characters.get(rootID)!.herd!.breakdown];
+                        isWaitingForMultiLine = true;
+                        multiLineType = "herd";
                     }
                 break;
                 case "trait":

@@ -108,6 +108,27 @@ export type Law = {
     name: string
 }
 
+export type Income = {
+    gold: number,
+    balance: number,
+    balanceBreakdown: string
+}
+
+export type Treasury = {
+    amount: number,
+    tooltip: string
+}
+
+export type Influence = {
+    amount: number,
+    tooltip: string
+}
+
+export type Herd = {
+    amount: number,
+    breakdown: string
+}
+
 /** 
  * @class
 */
