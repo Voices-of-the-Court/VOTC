@@ -1,4 +1,4 @@
-import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower, Modifier, Stress, Legitimacy} from "./GameData";
+import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law} from "./GameData";
 import { Character } from "./Character";
 const fs = require('fs');
 const readline = require('readline');
@@ -14,6 +14,9 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
     // Temporary storage for secret parsing
     let currentSecret: Partial<Secret> | null = null;
     let currentKnownSecret: Partial<KnownSecret> | null = null;
+    
+    // Temporary storage for troops parsing
+    let currentTroops: Partial<Troops> | null = null;
 
     const fileStream = fs.createReadStream(debugLogPath);
 
@@ -228,6 +231,94 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                             liegeExpectation: Number(data[6])
                         };
                         gameData!.characters.get(rootID)!.legitimacy = legitimacy;
+                    }
+                break;
+                case "levies_vassals":
+                    if (!currentTroops) {
+                        currentTroops = {
+                            leviesVassals: 0,
+                            leviesDomain: [],
+                            leviesTheocratic: 0,
+                            maaRegiments: []
+                        };
+                    }
+                    currentTroops.leviesVassals = Number(data[1]);
+                break;
+                case "levies_dom":
+                    if (!currentTroops) {
+                        currentTroops = {
+                            leviesVassals: 0,
+                            leviesDomain: [],
+                            leviesTheocratic: 0,
+                            maaRegiments: []
+                        };
+                    }
+                    if (!currentTroops.leviesDomain) {
+                        currentTroops.leviesDomain = [];
+                    }
+                    currentTroops.leviesDomain.push(Number(data[1]));
+                break;
+                case "levies_theo":
+                    if (!currentTroops) {
+                        currentTroops = {
+                            leviesVassals: 0,
+                            leviesDomain: [],
+                            leviesTheocratic: 0,
+                            maaRegiments: []
+                        };
+                    }
+                    currentTroops.leviesTheocratic = Number(data[1]);
+                break;
+                case "maa":
+                    if (!currentTroops) {
+                        currentTroops = {
+                            leviesVassals: 0,
+                            leviesDomain: [],
+                            leviesTheocratic: 0,
+                            maaRegiments: []
+                        };
+                    }
+                    if (!currentTroops.maaRegiments) {
+                        currentTroops.maaRegiments = [];
+                    }
+                    const regiment: MAARegiment = {
+                        name: data[1],
+                        isPersonal: data[2] === '1',
+                        menAlive: Number(data[3])
+                    };
+                    currentTroops.maaRegiments.push(regiment);
+                break;
+                case "laws":
+                    if (data[1] === '') {
+                        break; // Skip if no law name provided
+                    }
+                    const law: Law = {
+                        name: data[1]
+                    };
+                    gameData!.characters.get(rootID)!.laws.push(law);
+                break;
+                case "troops_eob":
+                    if (currentTroops) {
+                        // Calculate sum of domain levies
+                        const leviesDomainSum = (currentTroops.leviesDomain || []).reduce((sum, val) => sum + val, 0);
+                        
+                        // Calculate total owned troops (all levies + only personal MAA)
+                        const personalMAATotal = (currentTroops.maaRegiments || [])
+                            .filter(regiment => regiment.isPersonal)
+                            .reduce((sum, regiment) => sum + regiment.menAlive, 0);
+                        
+                        const totalOwnedTroops = leviesDomainSum + (currentTroops.leviesTheocratic || 0) + personalMAATotal;
+                        
+                        const troops: Troops = {
+                            leviesVassals: currentTroops.leviesVassals || 0,
+                            leviesDomain: currentTroops.leviesDomain || [],
+                            leviesDomainSum: leviesDomainSum,
+                            leviesTheocratic: currentTroops.leviesTheocratic || 0,
+                            maaRegiments: currentTroops.maaRegiments || [],
+                            totalOwnedTroops: totalOwnedTroops
+                        };
+                        gameData!.characters.get(rootID)!.troops = troops;
+                        currentTroops = null;
                     }
                 break;
                 case "trait":

@@ -89,6 +89,25 @@ export type Legitimacy = {
     liegeExpectation: number
 }
 
+export type MAARegiment = {
+    name: string,
+    isPersonal: boolean,
+    menAlive: number
+}
+
+export type Troops = {
+    leviesVassals: number,
+    leviesDomain: number[],
+    leviesDomainSum: number,
+    leviesTheocratic: number,
+    maaRegiments: MAARegiment[],
+    totalOwnedTroops: number
+}
+
+export type Law = {
+    name: string
+}
+
 /** 
  * @class
 */
