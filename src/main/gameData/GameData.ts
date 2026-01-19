@@ -30,10 +30,103 @@ export type OpinionModifier = {
     value: number,
 }
 
+export type SecretTarget = {
+    id: number,
+    name: string
+}
+
+export type SecretKnower = {
+    id: number,
+    name: string,
+    isSpent: boolean,
+    canBeExposed: boolean
+}
+
 export type Secret = {
     name: string,
     desc: string,
-    category: string
+    category: string,
+    type: string,
+    isCriminal: boolean,
+    isShunned: boolean,
+    target?: SecretTarget,
+    knowers: SecretKnower[]
+}
+
+export type KnownSecret = {
+    name: string,
+    desc: string,
+    category: string,
+    type: string,
+    ownerId: number,
+    ownerName: string,
+    isCriminal: boolean,
+    isShunned: boolean,
+    target?: SecretTarget,
+    isSpent: boolean,
+    canBeExposed: boolean,
+    knowers: SecretKnower[]
+}
+
+export type Modifier = {
+    id: string,
+    name: string,
+    description: string
+}
+
+export type Stress = {
+    value: number,
+    level: number,
+    progress: number
+}
+
+export type Legitimacy = {
+    value: number,
+    level: number,
+    type: string,
+    avgPowerfulVassalExpectation: number,
+    avgVassalExpectation: number,
+    liegeExpectation: number
+}
+
+export type MAARegiment = {
+    name: string,
+    isPersonal: boolean,
+    menAlive: number
+}
+
+export type Troops = {
+    leviesVassals: number,
+    leviesDomain: number[],
+    leviesDomainSum: number,
+    leviesTheocratic: number,
+    maaRegiments: MAARegiment[],
+    totalOwnedTroops: number
+}
+
+export type Law = {
+    name: string
+}
+
+export type Income = {
+    gold: number,
+    balance: number,
+    balanceBreakdown: string
+}
+
+export type Treasury = {
+    amount: number,
+    tooltip: string
+}
+
+export type Influence = {
+    amount: number,
+    tooltip: string
+}
+
+export type Herd = {
+    amount: number,
+    breakdown: string
 }
 
 /** 

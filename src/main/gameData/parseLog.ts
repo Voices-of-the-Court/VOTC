@@ -1,4 +1,4 @@
-import { GameData, Memory, Trait, OpinionModifier, Secret} from "./GameData";
+import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd} from "./GameData";
 import { Character } from "./Character";
 const fs = require('fs');
 const readline = require('readline');
@@ -9,7 +9,15 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
     //some data are passed through multiple lines
     let multiLineTempStorage: any[] = [];
     let isWaitingForMultiLine: boolean = false;
-    let multiLineType: string = ""; //relation or opinionModifier
+    let multiLineType: string = ""; //relation, opinionModifier, income, treasury, influence, or herd
+    let currentRootID: number = 0; // Store current rootID for multiline processing
+    
+    // Temporary storage for secret parsing
+    let currentSecret: Partial<Secret> | null = null;
+    let currentKnownSecret: Partial<KnownSecret> | null = null;
+    
+    // Temporary storage for troops parsing
+    let currentTroops: Partial<Troops> | null = null;
 
     const fileStream = fs.createReadStream(debugLogPath);
 
@@ -36,9 +44,28 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 case "opinionBreakdown":
                         multiLineTempStorage.push(parseOpinionModifier(value));
                 break;
+                case "income":
+                case "treasury":
+                case "influence":
+                case "herd":
+                    multiLineTempStorage.push(removeTooltip(value))
+                break;
             }
 
-            if(line.includes('#ENDMULTILINE')){         
+            if(line.includes('#ENDMULTILINE')){
+                // Join all multiline content and assign to the appropriate field
+                const fullContent = multiLineTempStorage.join('\n');
+                
+                if (multiLineType === "income" && gameData!.characters.get(currentRootID)!.income) {
+                    gameData!.characters.get(currentRootID)!.income!.balanceBreakdown = fullContent;
+                } else if (multiLineType === "treasury" && gameData!.characters.get(currentRootID)!.treasury) {
+                    gameData!.characters.get(currentRootID)!.treasury!.tooltip = fullContent;
+                } else if (multiLineType === "influence" && gameData!.characters.get(currentRootID)!.influence) {
+                    gameData!.characters.get(currentRootID)!.influence!.tooltip = fullContent;
+                } else if (multiLineType === "herd" && gameData!.characters.get(currentRootID)!.herd) {
+                    gameData!.characters.get(currentRootID)!.herd!.breakdown = fullContent;
+                }
+                
                 isWaitingForMultiLine = false;
             }
            continue;
@@ -54,6 +81,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
             data.splice(0,2)
 
             const rootID = Number(data[0]);
+            currentRootID = rootID; // Store for multiline processing
 
             for(let i=0;i<data.length;i++){
                 data[i] = removeTooltip(data[i])
@@ -71,9 +99,309 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                     let memory = parseMemory(data)
                     gameData!.characters.get(rootID)!.memories.push(memory);
                 break;
-                case "secret": 
-                    let secret = parseSecret(data)
-                    gameData!.characters.get(rootID)!.secrets.push(secret);
+                case "secret":
+                    currentSecret = parseSecretStart(data);
+                break;
+                case "secret_is_criminal":
+                    if (currentSecret) currentSecret.isCriminal = true;
+                break;
+                case "secret_is_shunned":
+                    if (currentSecret) currentSecret.isShunned = true;
+                break;
+                case "secret_target":
+                    if (currentSecret) {
+                        currentSecret.target = {
+                            id: Number(data[1]),
+                            name: data[2]
+                        };
+                    }
+                break;
+                case "secret_knower":
+                    if (currentSecret) {
+                        if (!currentSecret.knowers) currentSecret.knowers = [];
+                        // Store knower info temporarily, will be updated with spent/exposed info
+                        currentSecret.knowers.push({
+                            id: Number(data[2]),
+                            name: data[3],
+                            isSpent: false,
+                            canBeExposed: false
+                        });
+                    }
+                break;
+                case "secret_spent":
+                    if (currentSecret && currentSecret.knowers && currentSecret.knowers.length > 0) {
+                        const lastKnower = currentSecret.knowers[currentSecret.knowers.length - 1];
+                        lastKnower.isSpent = data[1] === 'yes';
+                    }
+                break;
+                case "secret_can_be_exposed":
+                    if (currentSecret && currentSecret.knowers && currentSecret.knowers.length > 0) {
+                        const lastKnower = currentSecret.knowers[currentSecret.knowers.length - 1];
+                        lastKnower.canBeExposed = data[1] === 'yes';
+                    }
+                break;
+                case "secret_eob":
+                    if (currentSecret) {
+                        // Ensure all required fields have default values
+                        const secret: Secret = {
+                            name: currentSecret.name || '',
+                            desc: currentSecret.desc || '',
+                            category: currentSecret.category || '',
+                            type: currentSecret.type || '',
+                            isCriminal: currentSecret.isCriminal || false,
+                            isShunned: currentSecret.isShunned || false,
+                            target: currentSecret.target,
+                            knowers: currentSecret.knowers || []
+                        };
+                        gameData!.characters.get(rootID)!.secrets.push(secret);
+                        currentSecret = null;
+                    }
+                break;
+                case "k_secret":
+                    currentKnownSecret = parseKnownSecretStart(data);
+                break;
+                case "k_secret_owner":
+                    if (currentKnownSecret) {
+                        currentKnownSecret.ownerId = Number(data[1]);
+                        currentKnownSecret.ownerName = data[2];
+                    }
+                break;
+                case "k_secret_is_criminal":
+                    if (currentKnownSecret) currentKnownSecret.isCriminal = true;
+                break;
+                case "k_secret_is_shunned":
+                    if (currentKnownSecret) currentKnownSecret.isShunned = true;
+                break;
+                case "k_secret_target":
+                    if (currentKnownSecret) {
+                        currentKnownSecret.target = {
+                            id: Number(data[1]),
+                            name: data[2]
+                        };
+                    }
+                break;
+                case "k_secret_spent":
+                    if (currentKnownSecret) {
+                        currentKnownSecret.isSpent = data[1] === 'yes';
+                    }
+                break;
+                case "k_secret_can_be_exposed":
+                    if (currentKnownSecret) {
+                        currentKnownSecret.canBeExposed = data[1] === 'yes';
+                    }
+                break;
+                case "k_secret_knower":
+                    if (currentKnownSecret) {
+                        if (!currentKnownSecret.knowers) currentKnownSecret.knowers = [];
+                        currentKnownSecret.knowers.push({
+                            id: Number(data[2]),
+                            name: data[3],
+                            isSpent: false, // Not applicable for known secrets
+                            canBeExposed: false // Not applicable for known secrets
+                        });
+                    }
+                break;
+                case "k_secret_eob":
+                    if (currentKnownSecret) {
+                        // Ensure all required fields have default values
+                        const knownSecret: KnownSecret = {
+                            name: currentKnownSecret.name || '',
+                            desc: currentKnownSecret.desc || '',
+                            category: currentKnownSecret.category || '',
+                            type: currentKnownSecret.type || '',
+                            ownerId: currentKnownSecret.ownerId || 0,
+                            ownerName: currentKnownSecret.ownerName || '',
+                            isCriminal: currentKnownSecret.isCriminal || false,
+                            isShunned: currentKnownSecret.isShunned || false,
+                            target: currentKnownSecret.target,
+                            isSpent: currentKnownSecret.isSpent || false,
+                            canBeExposed: currentKnownSecret.canBeExposed || false,
+                            knowers: currentKnownSecret.knowers || []
+                        };
+                        gameData!.characters.get(rootID)!.knownSecrets.push(knownSecret);
+                        currentKnownSecret = null;
+                    }
+                break;
+                case "modifier":
+                    const modifier: Modifier = {
+                        id: data[1],
+                        name: data[2],
+                        description: data[3]
+                    };
+                    gameData!.characters.get(rootID)!.modifiers.push(modifier);
+                break;
+                case "stress":
+                    const stress: Stress = {
+                        value: Number(data[1]),
+                        level: Number(data[2]),
+                        progress: Number(data[3])
+                    };
+                    gameData!.characters.get(rootID)!.stress = stress;
+                break;
+                case "legitimacy":
+                    if (data[1] === 'no') {
+                        // Character has no legitimacy
+                        gameData!.characters.get(rootID)!.legitimacy = undefined;
+                    } else {
+                        const legitimacy: Legitimacy = {
+                            value: Number(data[1]),
+                            level: Number(data[2]),
+                            type: data[3],
+                            avgPowerfulVassalExpectation: Number(data[4]),
+                            avgVassalExpectation: Number(data[5]),
+                            liegeExpectation: Number(data[6])
+                        };
+                        gameData!.characters.get(rootID)!.legitimacy = legitimacy;
+                    }
+                break;
+                case "levies_vassals":
+                    if (!currentTroops) {
+                        currentTroops = {
+                            leviesVassals: 0,
+                            leviesDomain: [],
+                            leviesTheocratic: 0,
+                            maaRegiments: []
+                        };
+                    }
+                    currentTroops.leviesVassals = Number(data[1]);
+                break;
+                case "levies_dom":
+                    if (!currentTroops) {
+                        currentTroops = {
+                            leviesVassals: 0,
+                            leviesDomain: [],
+                            leviesTheocratic: 0,
+                            maaRegiments: []
+                        };
+                    }
+                    if (!currentTroops.leviesDomain) {
+                        currentTroops.leviesDomain = [];
+                    }
+                    currentTroops.leviesDomain.push(Number(data[1]));
+                break;
+                case "levies_theo":
+                    if (!currentTroops) {
+                        currentTroops = {
+                            leviesVassals: 0,
+                            leviesDomain: [],
+                            leviesTheocratic: 0,
+                            maaRegiments: []
+                        };
+                    }
+                    currentTroops.leviesTheocratic = Number(data[1]);
+                break;
+                case "maa":
+                    if (!currentTroops) {
+                        currentTroops = {
+                            leviesVassals: 0,
+                            leviesDomain: [],
+                            leviesTheocratic: 0,
+                            maaRegiments: []
+                        };
+                    }
+                    if (!currentTroops.maaRegiments) {
+                        currentTroops.maaRegiments = [];
+                    }
+                    const regiment: MAARegiment = {
+                        name: data[1],
+                        isPersonal: data[2] === '1',
+                        menAlive: Number(data[3])
+                    };
+                    currentTroops.maaRegiments.push(regiment);
+                break;
+                case "laws":
+                    if (data[1] === '') {
+                        break; // Skip if no law name provided
+                    }
+                    const law: Law = {
+                        name: data[1]
+                    };
+                    gameData!.characters.get(rootID)!.laws.push(law);
+                break;
+                case "troops_eob":
+                    if (currentTroops) {
+                        // Calculate sum of domain levies
+                        const leviesDomainSum = (currentTroops.leviesDomain || []).reduce((sum, val) => sum + val, 0);
+                        
+                        // Calculate total owned troops (all levies + only personal MAA)
+                        const personalMAATotal = (currentTroops.maaRegiments || [])
+                            .filter(regiment => regiment.isPersonal)
+                            .reduce((sum, regiment) => sum + regiment.menAlive, 0);
+                        
+                        const totalOwnedTroops = leviesDomainSum + (currentTroops.leviesTheocratic || 0) + personalMAATotal;
+                        
+                        const troops: Troops = {
+                            leviesVassals: currentTroops.leviesVassals || 0,
+                            leviesDomain: currentTroops.leviesDomain || [],
+                            leviesDomainSum: leviesDomainSum,
+                            leviesTheocratic: currentTroops.leviesTheocratic || 0,
+                            maaRegiments: currentTroops.maaRegiments || [],
+                            totalOwnedTroops: totalOwnedTroops
+                        };
+                        gameData!.characters.get(rootID)!.troops = troops;
+                        currentTroops = null;
+                    }
+                break;
+                case "income":
+                    if(line.split('#')[1] !== ''){
+                        const income: Income = {
+                            gold: Number(data[1]),
+                            balance: Number(data[2]),
+                            balanceBreakdown: removeTooltip(line.split('#')[1])
+                        };
+                        gameData!.characters.get(rootID)!.income = income;
+                    }
+                    
+                    if(!line.includes("#ENDMULTILINE")){
+                        multiLineTempStorage = [gameData!.characters.get(rootID)!.income!.balanceBreakdown];
+                        isWaitingForMultiLine = true;
+                        multiLineType = "income";
+                    }
+                break;
+                case "treasury":
+                    if(line.split('#')[1] !== ''){
+                        const treasury: Treasury = {
+                            amount: Number(data[1]),
+                            tooltip: removeTooltip(line.split('#')[1])
+                        };
+                        gameData!.characters.get(rootID)!.treasury = treasury;
+                    }
+                    
+                    if(!line.includes("#ENDMULTILINE")){
+                        multiLineTempStorage = [gameData!.characters.get(rootID)!.treasury!.tooltip];
+                        isWaitingForMultiLine = true;
+                        multiLineType = "treasury";
+                    }
+                break;
+                case "influence":
+                    if(line.split('#')[1] !== ''){
+                        const influence: Influence = {
+                            amount: Number(data[1]),
+                            tooltip: removeTooltip(line.split('#')[1])
+                        };
+                        gameData!.characters.get(rootID)!.influence = influence;
+                    }
+                    
+                    if(!line.includes("#ENDMULTILINE")){
+                        multiLineTempStorage = [gameData!.characters.get(rootID)!.influence!.tooltip];
+                        isWaitingForMultiLine = true;
+                        multiLineType = "influence";
+                    }
+                break;
+                case "herd":
+                    if(line.split('#')[1] !== ''){
+                        const herd: Herd = {
+                            amount: Number(data[1]),
+                            breakdown: removeTooltip(line.split('#')[1])
+                        };
+                        gameData!.characters.get(rootID)!.herd = herd;
+                    }
+                    
+                    if(!line.includes("#ENDMULTILINE")){
+                        multiLineTempStorage = [gameData!.characters.get(rootID)!.herd!.breakdown];
+                        isWaitingForMultiLine = true;
+                        multiLineType = "herd";
+                    }
                 break;
                 case "trait":
                     gameData!.characters.get(rootID)!.traits.push(parseTrait(data));
@@ -135,11 +463,29 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
         return memory
     }
 
-    function parseSecret(data: string[]): Secret{
+    function parseSecretStart(data: string[]): Partial<Secret>{
         return {
             name: data[1],
             desc: data[2],
             category: data[3],
+            type: data[4] || '',
+            isCriminal: false,
+            isShunned: false,
+            knowers: []
+        }
+    }
+
+    function parseKnownSecretStart(data: string[]): Partial<KnownSecret>{
+        return {
+            name: data[1],
+            desc: data[2],
+            category: data[3],
+            type: data[4] || '',
+            isCriminal: false,
+            isShunned: false,
+            isSpent: false,
+            canBeExposed: false,
+            knowers: []
         }
     }
 

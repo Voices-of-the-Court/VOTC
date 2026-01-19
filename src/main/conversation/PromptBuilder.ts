@@ -84,8 +84,8 @@ ${char.relationsToPlayer.map(rel => `- ${rel}`).join('\n') || 'None noted'}
 Other characters in this conversation:
 ${Array.from(gameData.characters.values()).map(c => `- ${c.shortName}`).filter(c => c !== char.shortName).join('\n')}
 
-You should respond as this character would, taking into account their personality, traits, and opinions. Be politically minded, strategic, and true to medieval courtly behavior and feudal relationships.
-Characters should include phrases in their native language besides English, to make conversation more realistic.
+You should respond as this character would, taking into account their personality, traits, and opinions. Be politically minded, strategic, and faithful to medieval power structures, elite norms, and systems of loyalty and authority, following your character persona, and interacting with other character as this character would in real life.
+Characters should include phrases in their native language besides English, to add cultural flavour to conversation. Always do Romanization if language doesn't use Latin script base.
 Respond to other character's replica only if is addressed to you, alas your character would retort.
 If any message has /OOC prefix, you should follow every instruction in that message.
 `;
