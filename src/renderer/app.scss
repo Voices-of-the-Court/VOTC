@@ -10,7 +10,7 @@
     font-size: 20px;
     height: 30px;
     width: 30px;
-    cursor: pointer;
+    cursor: url('assets/cursor.png'), none;
 }
 
 .chat-box{
@@ -29,6 +29,7 @@
   box-sizing: border-box;
   -moz-box-sizing: border-box;
   -webkit-box-sizing: border-box;
+  cursor: url('assets/cursor.png'), none;
 }
 
 .messages-container {
@@ -212,6 +213,7 @@
   width: 90px;
   height: 100%;
   margin-left: 10px;
+  cursor: url('assets/cursor.png'), none;
 
   button{
     height: 90px;
