@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: revoices-of-the-court
+appId: com.mrandropc.revoices-of-the-court
+productName: reVOTC
 directories:
   buildResources: build
 asar: false

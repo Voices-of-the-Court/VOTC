@@ -5,7 +5,7 @@ import { buildStructuredResponseJsonSchema } from "./jsonSchema";
 import { buildStructuredResponseSchema } from "./schema";
 import { llmManager } from "../LLMManager";
 import { ActionEffectWriter } from "./ActionEffectWriter";
-import { ActionArgumentValues, ActionInvocation, StructuredActionResponse, ActionExecutionResult, ActionFeedback } from "./types";
+import { ActionArgumentValues, ActionInvocation, StructuredActionResponse, ActionExecutionResult } from "./types";
 import { ActionPromptBuilder } from "./ActionPromptBuilder";
 import { healJsonResponseWithLogging } from "./responseHealing";
 import type { SchemaBuildInput } from "./jsonSchema";

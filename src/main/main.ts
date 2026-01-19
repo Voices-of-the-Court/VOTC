@@ -3,8 +3,8 @@ import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
 import { conversationManager } from './conversation/ConversationManager';
-import { LLMProviderConfig } from './llmProviders/types'; // Added more types
-import { ClipboardListener } from './ClipboardListener'; // Add missing import
+import { LLMProviderConfig } from './llmProviders/types';
+import { ClipboardListener } from './ClipboardListener';
 import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
 import { VOTC_ACTIONS_DIR } from './utils/paths';
@@ -38,7 +38,7 @@ const createWindow = (): BrowserWindow => {
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    // alwaysOnTop: true, // Keep window on top
+    alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
     fullscreen: true,
     webPreferences: {
@@ -50,7 +50,7 @@ const createWindow = (): BrowserWindow => {
   });
 
   // Make the window initially click-through
-  // chatWindow.setAlwaysOnTop(true, 'screen-saver');
+  chatWindow.setAlwaysOnTop(true, 'screen-saver');
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Set fullscreen (optional, might conflict with alwaysOnTop/transparency goals depending on OS/WM)
@@ -65,10 +65,10 @@ if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   );
 }
 
-  // Open the DevTools.
-  chatWindow.webContents.openDevTools(
-    { mode: 'detach' }
-  );
+  // // Open the DevTools.
+  // chatWindow.webContents.openDevTools(
+  //   { mode: 'detach' }
+  // );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {

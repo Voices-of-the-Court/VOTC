@@ -1,4 +1,4 @@
-import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd} from "./GameData";
+import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd} from "./GameData";
 import { Character } from "./Character";
 const fs = require('fs');
 const readline = require('readline');
