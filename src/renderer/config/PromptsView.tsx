@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useConfigStore } from './store/useConfigStore';
 import type { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
 
@@ -22,6 +22,8 @@ const PromptsView: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [presetName, setPresetName] = useState<string>('');
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadPromptSettings();
@@ -35,6 +37,15 @@ const PromptsView: React.FC = () => {
     }
   }, [promptSettings]);
 
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+    };
+  }, []);
+
   const selectedPreset = useMemo(
     () => promptPresets.find((p) => p.id === selectedPresetId) || null,
     [promptPresets, selectedPresetId]
@@ -44,9 +55,19 @@ const PromptsView: React.FC = () => {
     return <div>Loading prompt configuration...</div>;
   }
 
-  const persist = (next: PromptSettings) => {
+  const persist = (next: PromptSettings, immediate = false) => {
     setLocalSettings(next);
-    savePromptSettings(next);
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+    if (immediate) {
+      savePromptSettings(next);
+      return;
+    }
+    saveTimer.current = setTimeout(() => {
+      savePromptSettings(next);
+      saveTimer.current = null;
+    }, 400);
   };
 
   const updateBlock = (id: string, updater: BlockUpdater) => {
@@ -102,18 +123,14 @@ const PromptsView: React.FC = () => {
   };
 
   const handleApplyPreset = (preset: PromptPreset) => {
-    persist({ ...preset.settings });
+    persist({ ...preset.settings }, true);
     setSelectedPresetId(preset.id);
+    setPresetName(preset.name || '');
   };
 
   const handleSavePreset = async (mode: 'new' | 'update') => {
     if (!localSettings) return;
-    let name = selectedPreset?.name || 'Prompt Preset';
-    if (mode === 'new' || !selectedPreset) {
-      const requested = window.prompt('Preset name', name);
-      if (!requested) return;
-      name = requested;
-    }
+    const name = presetName?.trim() || selectedPreset?.name || 'Prompt Preset';
 
     const preset: PromptPreset = {
       id: mode === 'update' && selectedPreset ? selectedPreset.id : '',
@@ -125,6 +142,7 @@ const PromptsView: React.FC = () => {
 
     const saved = await savePromptPreset(preset);
     setSelectedPresetId(saved.id);
+    setPresetName(saved.name || '');
   };
 
   const handleDeletePreset = async () => {
@@ -133,6 +151,7 @@ const PromptsView: React.FC = () => {
     if (!confirm) return;
     await deletePromptPreset(selectedPresetId);
     setSelectedPresetId(null);
+    setPresetName('');
   };
 
   const handleExport = async () => {
@@ -366,16 +385,29 @@ const PromptsView: React.FC = () => {
           <label>Presets</label>
           <select
             value={selectedPresetId || ''}
-            onChange={(e) => setSelectedPresetId(e.target.value || null)}
+            onChange={(e) => {
+              const id = e.target.value || null;
+              const preset = promptPresets.find((p) => p.id === id);
+              setSelectedPresetId(id);
+              setPresetName(preset?.name || '');
+              if (preset) {
+                handleApplyPreset(preset);
+              }
+            }}
           >
             <option value="">Select preset...</option>
             {promptPresets.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
+          <input
+            type="text"
+            placeholder="Preset name"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+          />
         </div>
         <div className="mini-buttons">
-          {selectedPreset && <button onClick={() => handleApplyPreset(selectedPreset)}>Apply</button>}
           <button onClick={() => handleSavePreset(selectedPreset ? 'update' : 'new')}>
             {selectedPreset ? 'Update preset' : 'Save preset'}
           </button>
