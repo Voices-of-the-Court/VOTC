@@ -27,7 +27,7 @@
   button {
     padding: 10px 10px;
     background-color: rgba(0, 0, 0, 0.5);
-    color: #EFB16A;
+    color: white;
     border: 1px solid #EFB16A;
     border-radius: 10px;
     font-size: 14px;
@@ -36,7 +36,8 @@
 
     &.active {
       background-color: #EFB16A;
-      color: black;
+      color: white;
+      box-shadow: 0 0 5px #EFB16A;
     }
 
     &:hover {
