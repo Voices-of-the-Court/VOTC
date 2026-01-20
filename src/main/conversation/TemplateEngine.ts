@@ -82,15 +82,21 @@ export class TemplateEngine {
     this.ensureHelpers();
     const resolved = path.resolve(templatePath);
     const content = fs.readFileSync(resolved, 'utf-8');
+    return this.renderTemplateString(content, context);
+  }
+
+  renderTemplateString(content: string, context: Partial<TemplateContext> & Record<string, any>): string {
+    this.ensureHelpers();
     const template = Handlebars.compile(content);
 
     // current character should be the main scope, while keeping nested access via `character`
     const rootContext = {
-      ...context.character,
+      ...(context.character || {}),
       character: context.character,
       gameData: context.gameData,
       description: context.description,
       examples: context.examples,
+      ...context,
     };
 
     return template(rootContext, {

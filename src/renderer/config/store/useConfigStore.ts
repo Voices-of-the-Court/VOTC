@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings } from '@llmTypes';
+import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset } from '@llmTypes';
 
 const DEFAULT_PARAMETERS = { temperature: 0.7, max_tokens: 2048 };
 
@@ -35,6 +35,7 @@ interface ConfigStore {
     descriptions: string[];
     examples: string[];
   };
+  promptPresets: PromptPreset[];
   
   // Actions
   loadSettings: () => Promise<void>;
@@ -74,6 +75,12 @@ interface ConfigStore {
   refreshPromptFiles: () => Promise<void>;
   readPromptFile: (relativePath: string) => Promise<string>;
   savePromptFile: (relativePath: string, content: string) => Promise<void>;
+  loadPromptPresets: () => Promise<void>;
+  savePromptPreset: (preset: PromptPreset) => Promise<PromptPreset>;
+  deletePromptPreset: (id: string) => Promise<void>;
+  exportPromptsZip: (settings?: PromptSettings) => Promise<{ success?: boolean; cancelled?: boolean; path?: string }>;
+  openPromptsFolder: () => Promise<void>;
+  openPromptFile: (relativePath: string) => Promise<void>;
 }
 
 const getCacheKey = (config: Partial<LLMProviderConfig>): string => {
@@ -101,6 +108,7 @@ export const useConfigStore = create<ConfigStore>()(
       autoSaveTimer: null,
       promptSettings: null,
       promptFiles: { system: [], descriptions: [], examples: [] },
+      promptPresets: [],
 
       // Load settings from backend
       loadSettings: async () => {
@@ -111,6 +119,7 @@ export const useConfigStore = create<ConfigStore>()(
         const systemFiles = await window.promptsAPI.listFiles('system');
         const descFiles = await window.promptsAPI.listFiles('character_description');
         const exampleFiles = await window.promptsAPI.listFiles('example_messages');
+        const promptPresets = await window.promptsAPI.listPresets();
         
         set({
           appSettings: settings,
@@ -121,7 +130,8 @@ export const useConfigStore = create<ConfigStore>()(
             system: systemFiles,
             descriptions: descFiles,
             examples: exampleFiles,
-          }
+          },
+          promptPresets,
         });
         
         // Initialize selection based on active provider
@@ -501,7 +511,8 @@ export const useConfigStore = create<ConfigStore>()(
         const systemFiles = await window.promptsAPI.listFiles('system');
         const descFiles = await window.promptsAPI.listFiles('character_description');
         const exampleFiles = await window.promptsAPI.listFiles('example_messages');
-        set({ promptSettings, promptFiles: { system: systemFiles, descriptions: descFiles, examples: exampleFiles } });
+        const promptPresets = await window.promptsAPI.listPresets();
+        set({ promptSettings, promptFiles: { system: systemFiles, descriptions: descFiles, examples: exampleFiles }, promptPresets });
       },
       savePromptSettings: async (settings) => {
         await window.promptsAPI.saveSettings(settings);
@@ -519,6 +530,28 @@ export const useConfigStore = create<ConfigStore>()(
       savePromptFile: async (relativePath, content) => {
         await window.promptsAPI.saveFile(relativePath, content);
         await get().refreshPromptFiles();
+      },
+      loadPromptPresets: async () => {
+        const promptPresets = await window.promptsAPI.listPresets();
+        set({ promptPresets });
+      },
+      savePromptPreset: async (preset) => {
+        const saved = await window.promptsAPI.savePreset(preset);
+        await get().loadPromptPresets();
+        return saved;
+      },
+      deletePromptPreset: async (id) => {
+        await window.promptsAPI.deletePreset(id);
+        await get().loadPromptPresets();
+      },
+      exportPromptsZip: async (settings) => {
+        return window.promptsAPI.exportZip({ settings });
+      },
+      openPromptsFolder: async () => {
+        await window.promptsAPI.openPromptsFolder();
+      },
+      openPromptFile: async (relativePath) => {
+        await window.promptsAPI.openPromptFile(relativePath);
       },
       
       // Provider override actions

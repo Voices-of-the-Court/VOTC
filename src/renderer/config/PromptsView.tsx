@@ -1,161 +1,423 @@
-import { useEffect, useState } from 'react';
-import TemplateEditorModal from './components/TemplateEditorModal';
+import { useEffect, useMemo, useState } from 'react';
 import { useConfigStore } from './store/useConfigStore';
-import type { PromptSettings } from '@llmTypes';
+import type { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
+
+type BlockUpdater = (block: PromptBlock) => PromptBlock;
 
 const PromptsView: React.FC = () => {
   const promptSettings = useConfigStore((state) => state.promptSettings);
   const promptFiles = useConfigStore((state) => state.promptFiles);
+  const promptPresets = useConfigStore((state) => state.promptPresets);
   const loadPromptSettings = useConfigStore((state) => state.loadPromptSettings);
   const savePromptSettings = useConfigStore((state) => state.savePromptSettings);
   const refreshPromptFiles = useConfigStore((state) => state.refreshPromptFiles);
-  const readPromptFile = useConfigStore((state) => state.readPromptFile);
-  const savePromptFile = useConfigStore((state) => state.savePromptFile);
+  const loadPromptPresets = useConfigStore((state) => state.loadPromptPresets);
+  const savePromptPreset = useConfigStore((state) => state.savePromptPreset);
+  const deletePromptPreset = useConfigStore((state) => state.deletePromptPreset);
+  const exportPromptsZip = useConfigStore((state) => state.exportPromptsZip);
+  const openPromptsFolder = useConfigStore((state) => state.openPromptsFolder);
+  const openPromptFile = useConfigStore((state) => state.openPromptFile);
 
-  const [editingPath, setEditingPath] = useState<string | null>(null);
-  const [editorContent, setEditorContent] = useState<string>('');
+  const [localSettings, setLocalSettings] = useState<PromptSettings | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadPromptSettings();
+    loadPromptPresets();
     // run once on mount
   }, []);
 
-  if (!promptSettings) {
+  useEffect(() => {
+    if (promptSettings) {
+      setLocalSettings(promptSettings);
+    }
+  }, [promptSettings]);
+
+  const selectedPreset = useMemo(
+    () => promptPresets.find((p) => p.id === selectedPresetId) || null,
+    [promptPresets, selectedPresetId]
+  );
+
+  if (!localSettings) {
     return <div>Loading prompt configuration...</div>;
   }
 
-  const updateSettings = (updates: Partial<PromptSettings>) => {
-    savePromptSettings({ ...promptSettings, ...updates });
+  const persist = (next: PromptSettings) => {
+    setLocalSettings(next);
+    savePromptSettings(next);
   };
 
-  const handleEdit = async (path: string) => {
-    const content = await readPromptFile(path);
-    setEditingPath(path);
-    setEditorContent(content);
+  const updateBlock = (id: string, updater: BlockUpdater) => {
+    const blocks = localSettings.blocks.map((b) => (b.id === id ? updater(b) : b));
+    persist({ ...localSettings, blocks });
   };
 
-  const handleCreate = async (category: 'system' | 'character_description' | 'example_messages') => {
-    const name = window.prompt('Enter new file name (e.g. custom/myTemplate.hbs or custom/myScript.js)');
-    if (!name) return;
-    const relative = `${category === 'system' ? 'system' : category}/${name}`.replace(/\\/g, '/');
-    await savePromptFile(relative, '');
-    await refreshPromptFiles();
-    await handleEdit(relative);
+  const removeBlock = (id: string) => {
+    const blocks = localSettings.blocks.filter((b) => b.id !== id);
+    persist({ ...localSettings, blocks });
   };
 
-  const onSaveEditor = async (content: string) => {
-    if (!editingPath) return;
-    await savePromptFile(editingPath, content);
-    setEditingPath(null);
-    setEditorContent('');
+  const moveBlock = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const blocks = [...localSettings.blocks];
+    const fromIndex = blocks.findIndex((b) => b.id === fromId);
+    const toIndex = blocks.findIndex((b) => b.id === toId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const [moved] = blocks.splice(fromIndex, 1);
+    blocks.splice(toIndex, 0, moved);
+    persist({ ...localSettings, blocks });
+  };
+
+  const moveBlockBy = (id: string, delta: number) => {
+    const blocks = [...localSettings.blocks];
+    const index = blocks.findIndex((b) => b.id === id);
+    if (index === -1) return;
+    const target = index + delta;
+    if (target < 0 || target >= blocks.length) return;
+    const [moved] = blocks.splice(index, 1);
+    blocks.splice(target, 0, moved);
+    persist({ ...localSettings, blocks });
+  };
+
+  const addCustomBlock = () => {
+    const newBlock: PromptBlock = {
+      id: `custom-${Date.now()}`,
+      type: 'custom',
+      label: 'Custom Text Block',
+      enabled: true,
+      role: 'system',
+      template: '',
+    };
+    persist({ ...localSettings, blocks: [...localSettings.blocks, newBlock] });
+    setExpandedId(newBlock.id);
+  };
+
+  const handleResetMain = async () => {
+    const confirm = window.confirm('Reset main prompt to default template? This will replace current text.');
+    if (!confirm) return;
+    const defaultMain = await window.promptsAPI.getDefaultMain();
+    persist({ ...localSettings, mainTemplate: defaultMain });
+  };
+
+  const handleApplyPreset = (preset: PromptPreset) => {
+    persist({ ...preset.settings });
+    setSelectedPresetId(preset.id);
+  };
+
+  const handleSavePreset = async (mode: 'new' | 'update') => {
+    if (!localSettings) return;
+    let name = selectedPreset?.name || 'Prompt Preset';
+    if (mode === 'new' || !selectedPreset) {
+      const requested = window.prompt('Preset name', name);
+      if (!requested) return;
+      name = requested;
+    }
+
+    const preset: PromptPreset = {
+      id: mode === 'update' && selectedPreset ? selectedPreset.id : '',
+      name,
+      settings: localSettings,
+      createdAt: selectedPreset?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const saved = await savePromptPreset(preset);
+    setSelectedPresetId(saved.id);
+  };
+
+  const handleDeletePreset = async () => {
+    if (!selectedPresetId) return;
+    const confirm = window.confirm('Delete this preset?');
+    if (!confirm) return;
+    await deletePromptPreset(selectedPresetId);
+    setSelectedPresetId(null);
+  };
+
+  const handleExport = async () => {
+    const result = await exportPromptsZip(localSettings);
+    if (result?.cancelled) return;
+    if (result?.success) {
+      alert(`Exported to ${result.path}`);
+    } else {
+      alert('Failed to export prompts.');
+    }
+  };
+
+  const handleScriptSelect = (blockId: string, scriptPath: string) => {
+    updateBlock(blockId, (b) => ({ ...b, scriptPath }));
+  };
+
+  const renderBlockContent = (block: PromptBlock) => {
+    switch (block.type) {
+      case 'description':
+        return (
+          <div className="field-row compact">
+            <select
+              value={block.scriptPath || ''}
+              onChange={(e) => handleScriptSelect(block.id, e.target.value)}
+            >
+              {promptFiles.descriptions.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            <div className="mini-buttons">
+              <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
+              <button onClick={openPromptsFolder}>Folder</button>
+            </div>
+          </div>
+        );
+      case 'examples':
+        return (
+          <div className="field-row compact">
+            <select
+              value={block.scriptPath || ''}
+              onChange={(e) => handleScriptSelect(block.id, e.target.value)}
+            >
+              {promptFiles.examples.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            <div className="mini-buttons">
+              <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
+              <button onClick={openPromptsFolder}>Folder</button>
+            </div>
+          </div>
+        );
+      case 'memories':
+        return (
+          <>
+            <label>Memories pretext (Handlebars)</label>
+            <textarea
+              value={block.template || ''}
+              rows={3}
+              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+            />
+            <label>Memories to include</label>
+            <input
+              type="number"
+              min={1}
+              value={block.limit ?? 5}
+              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, limit: Number(e.target.value) || 1 }))}
+            />
+          </>
+        );
+      case 'rolling_summary':
+        return (
+          <>
+            <label>Rolling summary pretext (Handlebars)</label>
+            <textarea
+              value={block.template || ''}
+              rows={3}
+              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+            />
+          </>
+        );
+      case 'past_summaries':
+        return (
+          <>
+            <label>Past summaries pretext (Handlebars)</label>
+            <textarea
+              value={block.template || ''}
+              rows={3}
+              placeholder="Leave empty to use default text"
+              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+            />
+          </>
+        );
+      case 'instruction':
+        return (
+          <>
+            <label>Main instruction (Handlebars)</label>
+            <textarea
+              value={block.template || ''}
+              rows={3}
+              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+            />
+            <div className="field-row compact">
+              <label>Role</label>
+              <select
+                value={block.role || 'user'}
+                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, role: e.target.value as any }))}
+              >
+                <option value="user">user</option>
+                <option value="system">system</option>
+                <option value="assistant">assistant</option>
+              </select>
+            </div>
+          </>
+        );
+      case 'custom':
+        return (
+          <>
+            <label>Label</label>
+            <input
+              type="text"
+              value={block.label || ''}
+              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, label: e.target.value }))}
+            />
+            <div className="field-row compact">
+              <label>Role</label>
+              <select
+                value={block.role || 'system'}
+                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, role: e.target.value as any }))}
+              >
+                <option value="system">system</option>
+                <option value="user">user</option>
+                <option value="assistant">assistant</option>
+              </select>
+            </div>
+            <label>Template (Handlebars)</label>
+            <textarea
+              value={block.template || ''}
+              rows={4}
+              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+            />
+            <div className="mini-buttons spaced">
+              <button onClick={() => removeBlock(block.id)}>Delete block</button>
+            </div>
+          </>
+        );
+      case 'main':
+      case 'history':
+        return <p className="muted-text">This block uses the main prompt text or conversation history.</p>;
+      default:
+        return null;
+    }
+  };
+
+  const renderBlock = (block: PromptBlock, index: number) => {
+    const isExpanded = expandedId === block.id;
+    return (
+      <div
+        key={block.id}
+        className={`prompt-block ${block.enabled ? '' : 'disabled'} ${draggingId === block.id ? 'dragging' : ''}`}
+        draggable
+        onDragStart={() => setDraggingId(block.id)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (draggingId && draggingId !== block.id) {
+            moveBlock(draggingId, block.id);
+          }
+        }}
+        onDragEnd={() => setDraggingId(null)}
+      >
+        <div className="block-header">
+          <div className="block-title">
+            <span className="drag-handle">↕</span>
+            <strong>{index + 1}. {block.label}</strong>
+            <span className="badge">{block.type}</span>
+            {block.pinned && <span className="badge pinned">pinned</span>}
+          </div>
+          <div className="block-actions">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={block.enabled}
+                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, enabled: e.target.checked }))}
+              />
+              <span>Enabled</span>
+            </label>
+            <button onClick={() => moveBlockBy(block.id, -1)}>↑</button>
+            <button onClick={() => moveBlockBy(block.id, 1)}>↓</button>
+            <button onClick={() => setExpandedId(isExpanded ? null : block.id)}>{isExpanded ? 'Hide' : 'Edit'}</button>
+          </div>
+        </div>
+        {isExpanded && (
+          <div className="block-body">
+            {renderBlockContent(block)}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="prompts-view">
-      <h3>Prompt Configuration</h3>
-
-      <div className="form-group">
-        <label>System Prompt Template</label>
-        <select
-          value={promptSettings.systemPromptTemplate}
-          onChange={(e) => updateSettings({ systemPromptTemplate: e.target.value })}
-        >
-          {promptFiles.system.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <div className="button-row">
-          <button onClick={() => handleEdit(promptSettings.systemPromptTemplate)}>Edit</button>
-          <button onClick={() => handleCreate('system')}>New</button>
+      <div className="header-row">
+        <div>
+          <h3>Prompt Builder</h3>
+          <p className="muted-text">Reorder, toggle, and edit blocks that compose the prompt.</p>
+        </div>
+        <div className="header-actions">
+          <button onClick={openPromptsFolder}>Open prompts folder</button>
+          <button onClick={() => refreshPromptFiles()}>Refresh files</button>
+          <button onClick={handleExport}>Export ZIP</button>
         </div>
       </div>
 
-      <div className="form-group">
-        <label>Character Description Script</label>
-        <select
-          value={promptSettings.characterDescriptionScript}
-          onChange={(e) => updateSettings({ characterDescriptionScript: e.target.value })}
-        >
-          {promptFiles.descriptions.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <div className="button-row">
-          <button onClick={() => handleEdit(promptSettings.characterDescriptionScript)}>Edit</button>
-          <button onClick={() => handleCreate('character_description')}>New</button>
+      <div className="main-prompt-card">
+        <div className="card-header">
+          <h4>Main prompt (Handlebars)</h4>
+          <div className="mini-buttons">
+            <button onClick={handleResetMain}>Reset to default</button>
+          </div>
+        </div>
+        <textarea
+          value={localSettings.mainTemplate}
+          rows={8}
+          onChange={(e) => persist({ ...localSettings, mainTemplate: e.target.value })}
+        />
+      </div>
+
+      <div className="presets-bar">
+        <div className="field-row">
+          <label>Presets</label>
+          <select
+            value={selectedPresetId || ''}
+            onChange={(e) => setSelectedPresetId(e.target.value || null)}
+          >
+            <option value="">Select preset...</option>
+            {promptPresets.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="mini-buttons">
+          {selectedPreset && <button onClick={() => handleApplyPreset(selectedPreset)}>Apply</button>}
+          <button onClick={() => handleSavePreset(selectedPreset ? 'update' : 'new')}>
+            {selectedPreset ? 'Update preset' : 'Save preset'}
+          </button>
+          <button onClick={() => handleSavePreset('new')}>Save as new</button>
+          <button disabled={!selectedPresetId} onClick={handleDeletePreset}>Delete</button>
         </div>
       </div>
 
-      <div className="form-group">
-        <label>Example Messages Script</label>
-        <select
-          value={promptSettings.exampleMessagesScript}
-          onChange={(e) => updateSettings({ exampleMessagesScript: e.target.value })}
-        >
-          {promptFiles.examples.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <div className="button-row">
-          <button onClick={() => handleEdit(promptSettings.exampleMessagesScript)}>Edit</button>
-          <button onClick={() => handleCreate('example_messages')}>New</button>
-        </div>
+      <div className="blocks-list">
+        {localSettings.blocks.map((block, idx) => renderBlock(block, idx))}
       </div>
 
-      <div className="form-group">
-        <h4>Advanced</h4>
-        <label>
-          <input
-            type="checkbox"
-            checked={promptSettings.enableSuffixPrompt}
-            onChange={(e) => updateSettings({ enableSuffixPrompt: e.target.checked })}
-          />
-          Enable Suffix Prompt
-        </label>
-        {promptSettings.enableSuffixPrompt && (
+      <div className="actions-row">
+        <button onClick={addCustomBlock}>Add custom block</button>
+      </div>
+
+      <div className="suffix-card">
+        <div className="card-header">
+          <h4>Suffix</h4>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={localSettings.suffix?.enabled || false}
+              onChange={(e) => persist({
+                ...localSettings,
+                suffix: { ...localSettings.suffix, enabled: e.target.checked }
+              })}
+            />
+            <span>Enabled</span>
+          </label>
+        </div>
+        {localSettings.suffix?.enabled && (
           <textarea
-            value={promptSettings.suffixPrompt}
-            onChange={(e) => updateSettings({ suffixPrompt: e.target.value })}
+            value={localSettings.suffix?.template || ''}
             rows={4}
-            style={{ width: '100%' }}
+            onChange={(e) => persist({
+              ...localSettings,
+              suffix: { ...localSettings.suffix, template: e.target.value }
+            })}
           />
         )}
       </div>
-
-      <div className="form-group">
-        <label>Memories Insert Depth</label>
-        <input
-          type="number"
-          value={promptSettings.memoriesInsertDepth}
-          onChange={(e) => updateSettings({ memoriesInsertDepth: Number(e.target.value) })}
-        />
-
-        <label>Summaries Insert Depth</label>
-        <input
-          type="number"
-          value={promptSettings.summariesInsertDepth}
-          onChange={(e) => updateSettings({ summariesInsertDepth: Number(e.target.value) })}
-        />
-
-        <label>Description Insert Depth</label>
-        <input
-          type="number"
-          value={promptSettings.descInsertDepth}
-          onChange={(e) => updateSettings({ descInsertDepth: Number(e.target.value) })}
-        />
-      </div>
-
-      <button onClick={() => refreshPromptFiles()}>Refresh Files</button>
-
-      {editingPath && (
-        <TemplateEditorModal
-          path={editingPath}
-          content={editorContent}
-          onChange={setEditorContent}
-          onSave={onSaveEditor}
-          onClose={() => setEditingPath(null)}
-        />
-      )}
     </div>
   );
 };

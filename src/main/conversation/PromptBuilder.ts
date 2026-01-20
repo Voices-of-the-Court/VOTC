@@ -5,6 +5,7 @@ import { TemplateEngine } from "./TemplateEngine";
 import { PromptScriptLoader } from "./PromptScriptLoader";
 import { settingsRepository } from "../SettingsRepository";
 import { promptConfigManager } from "./PromptConfigManager";
+import { PromptBlock, PromptSettings } from "../llmProviders/types";
 
 export class PromptBuilder {
         private static templateEngine = new TemplateEngine();
@@ -46,7 +47,7 @@ export class PromptBuilder {
      */
     static generateSystemPrompt(char: Character, gameData: GameData): string {
         const promptSettings = settingsRepository.getPromptSettings();
-        const templatePath = promptConfigManager.resolvePath(promptSettings.systemPromptTemplate);
+        const templatePath = promptConfigManager.resolvePath(promptSettings.defaultMainTemplatePath);
 
         if (gameData.characters.size === 0 || !char) {
             console.log('No characters or main character missing for system prompt');
@@ -86,99 +87,34 @@ export class PromptBuilder {
         gameData: GameData,
         currentSessionSummary?: string
     ): any[] {
-        const systemPrompt = this.generateSystemPrompt(char, gameData);
         const promptSettings = settingsRepository.getPromptSettings();
-        const descScriptPath = promptConfigManager.resolvePath(promptSettings.characterDescriptionScript);
-        const examplesScriptPath = promptConfigManager.resolvePath(promptSettings.exampleMessagesScript);
-        
-        console.log('Building messages for character', char.id, 'with system prompt:', systemPrompt);
-        let descriptionBlock = '';
-        let exampleMessages: any[] = [];
+        const blocks = promptSettings.blocks || [];
+        const llmMessages: any[] = [];
 
-        try {
-            descriptionBlock = this.scriptLoader.executeDescription(descScriptPath, gameData, char.id);
-        } catch (error) {
-            console.error('Failed to run description script:', error);
-        }
+        const context = {
+            character: char,
+            gameData,
+            summary: currentSessionSummary,
+        };
 
-        try {
-            exampleMessages = this.scriptLoader.executeExamples(examplesScriptPath, gameData, char.id);
-        } catch (error) {
-            console.error('Failed to run example script:', error);
-        }
-
-        const llmMessages: any[] = [
-            { role: 'system', content: systemPrompt }
-        ];
-
-        if (exampleMessages.length > 0) {
-            llmMessages.push(...exampleMessages);
-        }
-        
-        // Add character's past conversation summaries (long-term memory)
-        if (char.conversationSummaries && char.conversationSummaries.length > 0) {
-            const pastSummaries = this.buildPastSummariesContext(char, gameData);
-            if (pastSummaries) {
-                llmMessages.push({
-                    role: 'system',
-                    content: pastSummaries
-                });
-            }
-        }
-
-        const workingHistory: any[] = [
-            ...history.map(m => ({
+        const workingHistory: any[] = history
+            .map(m => ({
                 role: m.role,
                 name: m.name,
                 content: m.content
             }))
-        ];
+            .filter(m => !!m.content);
 
-        // Drop empty placeholders that are still streaming or blank
-        for (let i = workingHistory.length - 1; i >= 0; i--) {
-            const msg = workingHistory[i];
-            if (!msg.content) {
-                workingHistory.splice(i, 1);
-            }
+        for (const block of blocks) {
+            if (!block.enabled) continue;
+            this.applyBlock(block, llmMessages, workingHistory, context, promptSettings);
         }
 
-        // Insert description/persona
-        if (descriptionBlock) {
-            this.insertMessageAtDepth(workingHistory, { role: 'system', content: descriptionBlock }, promptSettings.descInsertDepth);
+        if (promptSettings.suffix?.enabled && promptSettings.suffix.template) {
+            const suffixContent = this.templateEngine.renderTemplateString(promptSettings.suffix.template, context);
+            llmMessages.push({ role: 'system', content: suffixContent });
         }
 
-        // Insert memories
-        const memoriesBlock = this.buildMemoriesBlock(gameData);
-        if (memoriesBlock) {
-            this.insertMessageAtDepth(workingHistory, { role: 'system', content: memoriesBlock }, promptSettings.memoriesInsertDepth);
-        }
-
-        // Insert rolling summary
-        if (currentSessionSummary) {
-            this.insertMessageAtDepth(workingHistory, { role: 'system', content: `Summary of earlier messages in this conversation:\n${currentSessionSummary}` }, promptSettings.summariesInsertDepth);
-        }
-
-        // Add recent message history
-        llmMessages.push(
-            ...workingHistory.map(m => ({ 
-                role: m.role, 
-                content: m.name ? `${m.name}: ${m.content}` : m.content
-            }))
-        );
-        
-        // Add instruction
-        llmMessages.push({
-            role: 'user',
-            content: `[Write next reply only as ${char.fullName}]`
-        });
-
-        if (promptSettings.enableSuffixPrompt && promptSettings.suffixPrompt) {
-            llmMessages.push({
-                role: 'system',
-                content: promptSettings.suffixPrompt
-            });
-        }
-        
         return llmMessages;
     }
 
@@ -290,15 +226,7 @@ Please summarize the conversation into only a single paragraph.`
         return `${Math.floor(timeDifference / 365)} years ago`;
     }
 
-    private static insertMessageAtDepth(messages: any[], messageToInsert: any, insertDepth: number): void {
-        if (messages.length < insertDepth) {
-            messages.splice(0, 0, messageToInsert);
-        } else {
-            messages.splice(messages.length - insertDepth + 1, 0, messageToInsert);
-        }
-    }
-
-    private static buildMemoriesBlock(gameData: GameData): string | null {
+    private static buildMemoriesBlock(gameData: GameData, limit = 5, template?: string, context: any = {}): string | null {
         const allMemories: Memory[] = [];
         gameData.characters.forEach((value) => {
             if (value?.memories) {
@@ -307,10 +235,99 @@ Please summarize the conversation into only a single paragraph.`
         });
         if (allMemories.length === 0) return null;
         const sorted = allMemories.sort((a, b) => (b.relevanceWeight ?? 0) - (a.relevanceWeight ?? 0));
-        const selected = sorted.slice(0, 5);
-        const lines = selected.map(m => `${m.creationDate}: ${m.desc}`);
-        return `Relevant memories:\n${lines.join('\n')}`;
+        const selected = sorted.slice(0, limit);
+        const tpl = template || 'Relevant memories:\n{{#each memories}}- {{this.creationDate}}: {{this.desc}}\n{{/each}}';
+        return this.templateEngine.renderTemplateString(tpl, { ...context, memories: selected });
     }
 
-
+    private static applyBlock(block: PromptBlock, messages: any[], history: any[], baseContext: any, promptSettings: PromptSettings): void {
+        const { character, gameData, summary } = baseContext;
+        switch (block.type) {
+            case 'main': {
+                const template = promptSettings.mainTemplate || promptConfigManager.getDefaultMainTemplateContent();
+                const content = this.templateEngine.renderTemplateString(template, baseContext);
+                if (content?.trim()) {
+                    messages.push({ role: block.role || 'system', content });
+                }
+                break;
+            }
+            case 'description': {
+                if (!block.scriptPath) break;
+                const descScriptPath = promptConfigManager.resolvePath(block.scriptPath);
+                try {
+                    const descriptionBlock = this.scriptLoader.executeDescription(descScriptPath, gameData, character.id);
+                    if (descriptionBlock) {
+                        messages.push({ role: 'system', content: descriptionBlock });
+                    }
+                } catch (error) {
+                    console.error('Failed to run description script:', error);
+                }
+                break;
+            }
+            case 'examples': {
+                if (!block.scriptPath) break;
+                const examplesScriptPath = promptConfigManager.resolvePath(block.scriptPath);
+                try {
+                    const exampleMessages = this.scriptLoader.executeExamples(examplesScriptPath, gameData, character.id);
+                    if (Array.isArray(exampleMessages) && exampleMessages.length > 0) {
+                        messages.push(...exampleMessages);
+                    }
+                } catch (error) {
+                    console.error('Failed to run example script:', error);
+                }
+                break;
+            }
+            case 'memories': {
+                const memoriesBlock = this.buildMemoriesBlock(gameData, block.limit ?? 5, block.template, baseContext);
+                if (memoriesBlock) {
+                    messages.push({ role: block.role || 'system', content: memoriesBlock });
+                }
+                break;
+            }
+            case 'past_summaries': {
+                const pastSummaries = this.buildPastSummariesContext(character, gameData);
+                if (pastSummaries) {
+                    const content = block.template
+                        ? this.templateEngine.renderTemplateString(block.template, { ...baseContext, pastSummaries })
+                        : pastSummaries;
+                    messages.push({ role: block.role || 'system', content });
+                }
+                break;
+            }
+            case 'rolling_summary': {
+                if (summary) {
+                    const tpl = block.template || 'Summary of earlier messages in this conversation:\n{{summary}}';
+                    const content = this.templateEngine.renderTemplateString(tpl, { ...baseContext, summary });
+                    messages.push({ role: block.role || 'system', content });
+                }
+                break;
+            }
+            case 'history': {
+                messages.push(
+                    ...history.map(m => ({
+                        role: m.role,
+                        content: m.name ? `${m.name}: ${m.content}` : m.content
+                    }))
+                );
+                break;
+            }
+            case 'instruction': {
+                const tpl = block.template || '[Write next reply only as {{character.fullName}}]';
+                const content = this.templateEngine.renderTemplateString(tpl, baseContext);
+                messages.push({
+                    role: block.role || 'user',
+                    content
+                });
+                break;
+            }
+            case 'custom': {
+                if (!block.template) break;
+                const content = this.templateEngine.renderTemplateString(block.template, baseContext);
+                messages.push({ role: block.role || 'system', content });
+                break;
+            }
+            default:
+                break;
+        }
+    }
 }

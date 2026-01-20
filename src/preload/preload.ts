@@ -61,6 +61,14 @@ contextBridge.exposeInMainWorld('promptsAPI', {
   readFile: (relativePath: string): Promise<string> => ipcRenderer.invoke('prompts:readFile', relativePath),
   saveFile: (relativePath: string, content: string): Promise<void> =>
     ipcRenderer.invoke('prompts:saveFile', relativePath, content),
+  getDefaultMain: (): Promise<string> => ipcRenderer.invoke('prompts:getDefaultMain'),
+  listPresets: (): Promise<any[]> => ipcRenderer.invoke('prompts:listPresets'),
+  savePreset: (preset: any): Promise<any> => ipcRenderer.invoke('prompts:savePreset', preset),
+  deletePreset: (id: string): Promise<void> => ipcRenderer.invoke('prompts:deletePreset', id),
+  openPromptsFolder: (): Promise<void> => ipcRenderer.invoke('prompts:openPromptsFolder'),
+  openPromptFile: (relativePath: string): Promise<void> => ipcRenderer.invoke('prompts:openPromptFile', relativePath),
+  exportZip: (payload: { settings?: any, path?: string }): Promise<{ success?: boolean; cancelled?: boolean; path?: string }> =>
+    ipcRenderer.invoke('prompts:exportZip', payload),
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {

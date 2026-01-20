@@ -452,3 +452,164 @@ hr {
     }
 }
 
+/* Prompt builder UI */
+.prompts-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #fff;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.header-actions button {
+  margin-left: 6px;
+}
+
+.main-prompt-card,
+.suffix-card,
+.prompt-block,
+.presets-bar {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #EFB16A;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.prompt-block.disabled {
+  opacity: 0.6;
+}
+
+.block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.block-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #EFB16A;
+}
+
+.badge {
+  padding: 2px 6px;
+  border: 1px solid #EFB16A;
+  border-radius: 6px;
+  font-size: 0.8em;
+  color: #EFB16A;
+}
+
+.badge.pinned {
+  border-color: #5cb85c;
+  color: #5cb85c;
+}
+
+.block-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.block-body {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blocks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.mini-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.mini-buttons.spaced {
+  margin-top: 6px;
+}
+
+.presets-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-row.compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-row select {
+  flex: 1;
+}
+
+.muted-text {
+  color: #bfbfbf;
+  margin: 0;
+}
+
+.actions-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.prompts-view textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  border: 1px solid #EFB16A;
+  border-radius: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.prompts-view input[type="text"],
+.prompts-view input[type="number"],
+.prompts-view select {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  border: 1px solid #EFB16A;
+  border-radius: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #EFB16A;
+}
+

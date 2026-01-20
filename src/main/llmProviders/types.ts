@@ -144,16 +144,49 @@ export interface ActionSettings {
   validation: Record<string, ActionValidationStatus>;
 }
 
+export type PromptBlockType =
+  | 'main'
+  | 'description'
+  | 'examples'
+  | 'memories'
+  | 'rolling_summary'
+  | 'past_summaries'
+  | 'history'
+  | 'instruction'
+  | 'custom';
+
+export interface PromptBlock {
+  id: string;
+  type: PromptBlockType;
+  label: string;
+  enabled: boolean;
+  role?: 'system' | 'user' | 'assistant';
+  template?: string; // Handlebars template for text-based blocks
+  scriptPath?: string; // For description/examples blocks
+  limit?: number; // For capped list blocks (e.g., memories)
+  pinned?: boolean; // UI hint for non-removable blocks like history
+}
+
+export interface SuffixConfig {
+  enabled: boolean;
+  template: string; // Handlebars template appended at the end
+  label?: string;
+}
+
 // Prompt system configuration stored in settings
 export interface PromptSettings {
-  systemPromptTemplate: string;        // Path to .hbs template (relative to prompts root or absolute)
-  characterDescriptionScript: string;  // Path to persona builder script
-  exampleMessagesScript: string;       // Path to example messages script
-  enableSuffixPrompt: boolean;
-  suffixPrompt: string;
-  memoriesInsertDepth: number;
-  summariesInsertDepth: number;
-  descInsertDepth: number;
+  mainTemplate: string; // Handlebars source for the main system prompt
+  defaultMainTemplatePath: string; // Relative path to the default template on disk
+  blocks: PromptBlock[]; // Ordered blocks that make up the prompt
+  suffix: SuffixConfig;
+}
+
+export interface PromptPreset {
+  id: string;
+  name: string;
+  settings: PromptSettings;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // General application settings

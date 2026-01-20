@@ -48,6 +48,13 @@ declare global {
       listFiles: (category: 'system' | 'character_description' | 'example_messages' | 'helpers') => Promise<string[]>;
       readFile: (relativePath: string) => Promise<string>;
       saveFile: (relativePath: string, content: string) => Promise<void>;
+      getDefaultMain: () => Promise<string>;
+      listPresets: () => Promise<any[]>;
+      savePreset: (preset: any) => Promise<any>;
+      deletePreset: (id: string) => Promise<void>;
+      openPromptsFolder: () => Promise<void>;
+      openPromptFile: (relativePath: string) => Promise<void>;
+      exportZip: (payload: { settings?: any, path?: string }) => Promise<{ success?: boolean; cancelled?: boolean; path?: string }>;
     };
     actionsAPI: {
       reload: () => Promise<{ success: boolean; error?: string }>;

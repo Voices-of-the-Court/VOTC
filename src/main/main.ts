@@ -1,13 +1,14 @@
 import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell } from 'electron';
+import fs from 'fs';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
 import { conversationManager } from './conversation/ConversationManager';
-import { LLMProviderConfig } from './llmProviders/types';
+import { LLMProviderConfig, PromptPreset, PromptSettings } from './llmProviders/types';
 import { ClipboardListener } from './ClipboardListener';
 import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
-import { VOTC_ACTIONS_DIR } from './utils/paths';
+import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR } from './utils/paths';
 import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 // @ts-ignore
@@ -15,6 +16,8 @@ import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
+import archiver from 'archiver';
+import { v4 as uuidv4 } from 'uuid';
 
 initLogger();
 // Keep a reference to the config window, managed globally
@@ -26,6 +29,32 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 Menu.setApplicationMenu(null)
+
+const exportPromptsZip = (destination: string, settings: PromptSettings, presets: PromptPreset[]): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const output = fs.createWriteStream(destination);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      output.on('close', () => resolve());
+      output.on('error', reject);
+      archive.on('error', reject);
+
+      archive.pipe(output);
+
+      // Include prompts directory (pList, aliChat, helpers, etc.)
+      archive.directory(VOTC_PROMPTS_DIR, 'prompts');
+
+      // Include current prompt settings and presets
+      archive.append(JSON.stringify(settings, null, 2), { name: 'prompt-settings.json' });
+      archive.append(JSON.stringify(presets, null, 2), { name: 'prompt-presets.json' });
+
+      archive.finalize();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
 
 const createWindow = (): BrowserWindow => {
   // Get primary display dimensions
@@ -134,6 +163,65 @@ const setupIpcHandlers = () => {
       console.error('Failed to save prompt file:', error);
       throw error;
     }
+  });
+
+  ipcMain.handle('prompts:getDefaultMain', () => {
+    return promptConfigManager.getDefaultMainTemplateContent();
+  });
+
+  ipcMain.handle('prompts:listPresets', () => {
+    return promptConfigManager.getPresets();
+  });
+
+  ipcMain.handle('prompts:savePreset', (_event, preset: PromptPreset) => {
+    const normalizedSettings = promptConfigManager.normalizeSettings(preset.settings);
+    const now = new Date().toISOString();
+    const toSave: PromptPreset = {
+      id: preset.id || uuidv4(),
+      name: preset.name || 'Prompt Preset',
+      createdAt: preset.createdAt || now,
+      updatedAt: now,
+      settings: normalizedSettings,
+    };
+    return promptConfigManager.savePreset(toSave);
+  });
+
+  ipcMain.handle('prompts:deletePreset', (_event, id: string) => {
+    promptConfigManager.deletePreset(id);
+    return true;
+  });
+
+  ipcMain.handle('prompts:openPromptsFolder', async () => {
+    await shell.openPath(VOTC_PROMPTS_DIR);
+    return true;
+  });
+
+  ipcMain.handle('prompts:openPromptFile', async (_event, relativePath: string) => {
+    const full = promptConfigManager.resolvePath(relativePath);
+    await shell.openPath(full);
+    return true;
+  });
+
+  ipcMain.handle('prompts:exportZip', async (_event, payload: { settings?: PromptSettings, path?: string }) => {
+    promptConfigManager.ensurePromptDirs();
+    const normalizedSettings = promptConfigManager.normalizeSettings(payload?.settings || settingsRepository.getPromptSettings());
+    const presets = promptConfigManager.getPresets();
+
+    let targetPath = payload?.path;
+    if (!targetPath) {
+      const result = await dialog.showSaveDialog({
+        title: 'Export prompt configuration',
+        defaultPath: 'prompts-export.zip',
+        filters: [{ name: 'Zip Archive', extensions: ['zip'] }],
+      });
+      if (result.canceled || !result.filePath) {
+        return { cancelled: true };
+      }
+      targetPath = result.filePath;
+    }
+
+    await exportPromptsZip(targetPath, normalizedSettings, presets);
+    return { success: true, path: targetPath };
   });
 
   ipcMain.handle('llm:saveProviderConfig', (_, config: LLMProviderConfig) => {

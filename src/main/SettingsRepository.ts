@@ -8,6 +8,7 @@ import {
   ActionSettings,
   PromptSettings,
 } from './llmProviders/types';
+import { promptConfigManager } from './conversation/PromptConfigManager';
 
 // Define the schema for electron-store for type safety
 const baseProviderConfigSchema = {
@@ -78,14 +79,18 @@ const schema: Schema<AppSettings> = {
     type: 'object',
     default: {} as PromptSettings,
     properties: {
-      systemPromptTemplate: { type: 'string', default: 'system/default.hbs' },
-      characterDescriptionScript: { type: 'string', default: 'character_description/standard/pListMcc.js' },
-      exampleMessagesScript: { type: 'string', default: 'example_messages/standard/mccAliChat.js' },
-      enableSuffixPrompt: { type: 'boolean', default: false },
-      suffixPrompt: { type: 'string', default: '' },
-      memoriesInsertDepth: { type: 'number', default: 3 },
-      summariesInsertDepth: { type: 'number', default: 2 },
-      descInsertDepth: { type: 'number', default: 1 },
+      mainTemplate: { type: 'string', default: '' },
+      defaultMainTemplatePath: { type: 'string', default: 'system/default.hbs' },
+      blocks: { type: 'array', default: [] },
+      suffix: {
+        type: 'object',
+        default: { enabled: false, template: '', label: 'Suffix' },
+        properties: {
+          enabled: { type: 'boolean', default: false },
+          template: { type: 'string', default: '' },
+          label: { type: 'string', default: 'Suffix' }
+        }
+      }
     }
   },
   actionSettings: {
@@ -182,16 +187,12 @@ export class SettingsRepository {
   }
 
   private getDefaultPromptSettings(): PromptSettings {
-    return {
-      systemPromptTemplate: 'system/default.hbs',
-      characterDescriptionScript: 'character_description/standard/pListMcc.js',
-      exampleMessagesScript: 'example_messages/standard/mccAliChat.js',
-      enableSuffixPrompt: false,
-      suffixPrompt: '',
-      memoriesInsertDepth: 3,
-      summariesInsertDepth: 2,
-      descInsertDepth: 1,
-    };
+    return promptConfigManager.normalizeSettings({
+      mainTemplate: promptConfigManager.getDefaultMainTemplateContent(),
+      defaultMainTemplatePath: 'system/default.hbs',
+      blocks: promptConfigManager.getDefaultBlocks(),
+      suffix: { enabled: false, template: '', label: 'Suffix' }
+    });
   }
 
   // --- Settings Management ---
@@ -261,11 +262,12 @@ export class SettingsRepository {
 
   // --- Prompt settings ---
   getPromptSettings(): PromptSettings {
-    return this.store.get('promptSettings', this.getDefaultPromptSettings());
+    const stored = this.store.get('promptSettings', this.getDefaultPromptSettings());
+    return promptConfigManager.normalizeSettings(stored);
   }
 
   savePromptSettings(settings: PromptSettings): void {
-    this.store.set('promptSettings', settings);
+    this.store.set('promptSettings', promptConfigManager.normalizeSettings(settings));
     console.log('Prompt settings saved.');
   }
 
