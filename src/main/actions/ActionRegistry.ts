@@ -332,6 +332,8 @@ export class ActionRegistry extends EventEmitter {
             message: `Argument '${arg.name}' enum must provide non-empty string options.`,
           };
         }
+      } else if (arg.type === "boolean") {
+        // Boolean type has no additional validation requirements
       } else {
         const exhaustiveCheck: never = arg;
         return {

@@ -22,7 +22,12 @@ export class ActionPromptBuilder {
 
     // 1) System role: purpose and strict output guidance
     const systemIntro =
-`You are an action selection engine.
+`You are an action selection engine in roleplay AI system.
+Your task is to choose which actions to execute for the given NPC character based on recent conversation context and available actions.
+Some actions may include such argument as isPlayerSource. This argument will change action source to player character ${conv.gameData.playerName} instead of the NPC. You must set this argument to true if action makes sense to be done by the player, e.g. for action isImprisonedBy, if the player is imprisoned by action target, then isPlayerSource should be true. Use this argument wisely based on the context.
+Somea actions are player-specific, meaning they should only be executed by the player character, e.g. z_playerPaysGoldTo. If gold is paid by non-player character, then action should be used unversal action, e.g. z_payGoldTo.
+
+Important instructions:
 - You MUST return ONLY JSON that matches the provided schema. Do not include prose or code fences.
 - Actions MUST be selected strictly from the provided "Available Actions" list.
 - Each action MUST have only one targetCharacterId (single target) or none. If you need multiple targets, repeat the action with different targets.
@@ -54,7 +59,7 @@ ${historyLines}
 `Characters in this conversation (order matches CK3 global list):
 ${characterRosterLines.join("\n")}
 
-You MUST select which actions should be executed for ${npc.fullName}.
+You MUST select which actions should be executed for ${npc.fullName} (or for the player character ${conv.gameData.playerName} if isPlayerSource) based on this context:
 
 ${PromptBuilder.buildPastSummariesContext(npc, conv.gameData)}
 `;
@@ -83,6 +88,9 @@ ${PromptBuilder.buildPastSummariesContext(npc, conv.gameData)}
             a.pattern ? `pattern=${typeof a.pattern === "string" ? a.pattern : a.pattern.source}` : null
           ].filter(Boolean).join(", ");
           return `- ${a.name}: string ${bounds ? `[${bounds}]` : ""} ${a.required ? "(required)" : "(optional)"}`;
+        }
+        if (a.type === "boolean") {
+          return `- ${a.name}: boolean ${a.required ? "(required)" : "(optional)"}`;
         }
         return '- unsupported arg';
       }).join("\n");
@@ -121,7 +129,7 @@ Return JSON only. No extra text.`;
 `
 Given the above, select the actions (if any) that should be executed ONLY for ${npc.shortName} (id=${npc.id}) now only from listed actions.
 Expected structure: { actions: [{ actionId, targetCharacterId?, args }] }
-You must respect action argument types and constraints.
+You must respect expected structure, action argument types and constraints. Do not invent action IDs, argument names, or character IDs.
 `;
     messages.push({ role: "user", content: outroBlock });
 

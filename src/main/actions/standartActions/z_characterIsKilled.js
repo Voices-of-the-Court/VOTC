@@ -5,16 +5,25 @@ module.exports = {
 
   /**
    * @param {object} params
+   * @param {GameData} params.gameData
    * @param {Character} params.sourceCharacter
    */
-  args: ({ sourceCharacter }) => [],
+  args: ({ gameData, sourceCharacter }) => [
+    {
+      name: "isPlayerSource",
+      type: "boolean",
+      description: `If true, ${gameData.playerName} is the one being killed`,
+      required: false,
+    }
+  ],
 
   /**
    * @param {object} params
    * @param {Character} params.sourceCharacter
    */
-  description: ({ sourceCharacter }) =>
-    `Execute ONLY when ${sourceCharacter.shortName} (id=${sourceCharacter.id}) is killed. Target must be the killer of the source.`,
+  description: ({ gameData, sourceCharacter }) =>
+    `Execute ONLY when ${sourceCharacter.shortName} (id=${sourceCharacter.id}) is killed. Target must be the killer of the source.
+    If isPlayerSource is true, the ${gameData.playerName} will be killed instead of ${sourceCharacter.shortName}.`,
 
   /**
    * @param {object} params
@@ -36,8 +45,9 @@ module.exports = {
    * @param {Character} params.targetCharacter
    * @param {Function} params.runGameEffect
    * @param {GameData} params.gameData
+   * @param {Record<string, number|string|boolean|null>} params.args
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
     // If for some reason target wasn't provided, do nothing.
     if (!targetCharacter) {
       return {
@@ -46,7 +56,23 @@ module.exports = {
       };
     }
 
-    runGameEffect(`
+    const isPlayerSource = args && typeof args.isPlayerSource === "boolean" ? args.isPlayerSource : false;
+
+    if (isPlayerSource) {
+      runGameEffect(`
+root = {
+    death = {
+        death_reason = death_murder
+        killer = global_var:votc_action_target
+    }
+}`);
+
+      return {
+        message: `${gameData.playerName} was killed by ${targetCharacter.shortName}`,
+        sentiment: 'negative'
+      };
+    } else {
+      runGameEffect(`
 global_var:votc_action_source = {
     death = {
         death_reason = death_murder
@@ -54,9 +80,10 @@ global_var:votc_action_source = {
     }
 }`);
 
-    return {
-      message: `${sourceCharacter.shortName} was killed by ${targetCharacter.shortName}`,
-      sentiment: 'negative'
-    };
+      return {
+        message: `${sourceCharacter.shortName} was killed by ${targetCharacter.shortName}`,
+        sentiment: 'negative'
+      };
+    }
   },
 };

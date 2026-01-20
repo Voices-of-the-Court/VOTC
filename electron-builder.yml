@@ -2,7 +2,7 @@ appId: com.mrandropc.revoices-of-the-court
 productName: reVOTC
 directories:
   buildResources: build
-asar: false
+asar: true
 files:
   - '!**/.vscode/*'
   - '!src/*'

@@ -39,7 +39,7 @@ export class ActionEngine {
           // Handle dynamic args
           let args;
           if (typeof act.definition.args === 'function') {
-            args = act.definition.args({ sourceCharacter: npc });
+            args = act.definition.args({ gameData: conv.gameData, sourceCharacter: npc });
           } else {
             args = act.definition.args;
           }
@@ -47,7 +47,7 @@ export class ActionEngine {
           // Handle dynamic description
           let description: string | undefined;
           if (typeof act.definition.description === 'function') {
-            description = act.definition.description({ sourceCharacter: npc });
+            description = act.definition.description({ gameData: conv.gameData, sourceCharacter: npc });
           } else {
             description = act.definition.description;
           }

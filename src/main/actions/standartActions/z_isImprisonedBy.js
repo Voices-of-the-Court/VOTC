@@ -5,9 +5,10 @@ module.exports = {
 
   /**
    * @param {object} params
+   * @param {GameData} params.gameData
    * @param {Character} params.sourceCharacter
    */
-  args: ({ sourceCharacter }) => [
+  args: ({ gameData, sourceCharacter }) => [
     {
       name: "prisonType",
       type: "enum",
@@ -15,14 +16,22 @@ module.exports = {
       required: true,
       options: ["house_arrest", "dungeon"],
     },
+    {
+      name: "isPlayerSource",
+      type: "boolean",  // ← Add to args
+      description: `If true, ${gameData.playerName} is the one being imprisoned`,
+      required: false,
+    }
   ],
 
   /**
    * @param {object} params
+   * @param {GameData} params.gameData
    * @param {Character} params.sourceCharacter
    */
-  description: ({ sourceCharacter }) =>
-    `Imprison ${sourceCharacter.shortName} by the chosen target (the jailor). Optionally specify prisonType: default, house_arrest, or dungeon.`,
+  description: ({ gameData, sourceCharacter }) =>
+    `Imprison ${sourceCharacter.shortName} by the chosen target (the jailor). Optionally specify prisonType: house_arrest, or dungeon.
+    If isPlayerSource is true, the ${gameData.playerName} will be imprisoned instead of ${sourceCharacter.shortName}.`,
 
   /**
    * @param {object} params
@@ -57,7 +66,10 @@ module.exports = {
     }
 
     const raw = (args && typeof args.prisonType === "string") ? args.prisonType.trim().toLowerCase() : "default";
+    const isPlayerSource = args && typeof args.isPlayerSource === "boolean" ? args.isPlayerSource : false;
     const prisonType = ["default", "house_arrest", "dungeon"].includes(raw) ? raw : "default";
+
+    if (!isPlayerSource) {
 
     if (prisonType === "house_arrest") {
       runGameEffect(`
@@ -141,5 +153,89 @@ else = {
       message: `${sourceCharacter.shortName} was imprisoned by ${targetCharacter.shortName}`,
       sentiment: 'negative'
     };
+  } else {
+      if (prisonType === "house_arrest") {
+      runGameEffect(`
+if = {
+    limit = {
+        root = { target_is_liege_or_above = global_var:votc_action_target }
+    }
+    imprison_character_effect = {
+        TARGET = root
+        IMPRISONER = global_var:votc_action_target
+    }
+    global_var:votc_action_target = {
+        consume_imprisonment_reasons = root
+    }
+}
+else = {
+    rightfully_imprison_character_effect = {
+        TARGET = root
+        IMPRISONER = global_var:votc_action_target
+    }
+}`);
+      return {
+        message: `${gameData.playerName} was placed under house arrest by ${targetCharacter.shortName}`,
+        sentiment: 'negative'
+      };
+    }
+
+    if (prisonType === "dungeon") {
+      runGameEffect(`
+if = {
+    limit = {
+        root = { target_is_liege_or_above = global_var:votc_action_target }
+    }
+    imprison_character_effect = {
+        TARGET = root
+        IMPRISONER = global_var:votc_action_target
+    }
+    root = {
+        change_prison_type = dungeon
+    }
+    global_var:votc_action_target = {
+        consume_imprisonment_reasons = root
+    }
+}
+else = {
+    rightfully_imprison_character_effect = {
+        TARGET = root
+        IMPRISONER = global_var:votc_action_target
+    }
+    root = {
+        change_prison_type = dungeon
+    }
+}`);
+      return {
+        message: `${gameData.playerName} was thrown into the dungeon by ${targetCharacter.shortName}`,
+        sentiment: 'negative'
+      };
+    }
+
+    // default
+    runGameEffect(`
+if = {
+    limit = {
+        root = { target_is_liege_or_above = global_var:votc_action_target }
+    }
+    imprison_character_effect = {
+        TARGET = root
+        IMPRISONER = global_var:votc_action_target
+    }
+    global_var:votc_action_target = {
+        consume_imprisonment_reasons = root
+    }
+}
+else = {
+    rightfully_imprison_character_effect = {
+        TARGET = root
+        IMPRISONER = global_var:votc_action_target
+    }
+}`);
+    return {
+      message: `${gameData.playerName} was imprisoned by ${targetCharacter.shortName}`,
+      sentiment: 'negative'
+    };
+  }
   },
 };

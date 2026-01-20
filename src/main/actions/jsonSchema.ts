@@ -135,6 +135,13 @@ function buildArgsObjectSchema(args: ActionArgumentDefinition[]) {
         break;
       }
 
+      case "boolean": {
+        const bool: any = { type: "boolean" };
+        properties[name] = arg.required ? bool : { anyOf: [bool, { type: "null" }] };
+        if (arg.required) required.push(name);
+        break;
+      }
+
       default: {
         properties[name] = { not: {} }; // impossible schema
         break;

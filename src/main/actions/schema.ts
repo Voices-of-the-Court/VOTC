@@ -87,6 +87,16 @@ function buildEnumSchema(arg: Extract<ActionArgumentDefinition, { type: "enum" }
   return schema;
 }
 
+function buildBooleanSchema(arg: Extract<ActionArgumentDefinition, { type: "boolean" }>) {
+  let schema = z.boolean({ required_error: `${arg.name} must be provided` });
+
+  if (!arg.required) {
+    return (schema as unknown as ZodType<boolean>).optional().nullable();
+  }
+
+  return schema;
+}
+
 function buildArgumentSchema(arg: ActionArgumentDefinition): ZodTypeAny {
   switch (arg.type) {
     case "number":
@@ -95,6 +105,8 @@ function buildArgumentSchema(arg: ActionArgumentDefinition): ZodTypeAny {
       return buildStringSchema(arg);
     case "enum":
       return buildEnumSchema(arg);
+    case "boolean":
+      return buildBooleanSchema(arg);
     default: {
       const exhaustiveCheck: never = arg;
       return z.never({
