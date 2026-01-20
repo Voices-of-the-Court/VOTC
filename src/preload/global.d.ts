@@ -1,4 +1,4 @@
-import type { LLMProviderConfig, AppSettings, ILLMModel } from '../main/llmProviders/types';
+import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings } from '../main/llmProviders/types';
 
 declare global {
   interface Window {
@@ -41,6 +41,13 @@ declare global {
       setActionsProviderId: (instanceId: string | null) => Promise<void>;
       getSummaryProviderId: () => Promise<string | null>;
       setSummaryProviderId: (instanceId: string | null) => Promise<void>;
+    };
+    promptsAPI: {
+      getSettings: () => Promise<PromptSettings>;
+      saveSettings: (settings: PromptSettings) => Promise<void>;
+      listFiles: (category: 'system' | 'character_description' | 'example_messages' | 'helpers') => Promise<string[]>;
+      readFile: (relativePath: string) => Promise<string>;
+      saveFile: (relativePath: string, content: string) => Promise<void>;
     };
     actionsAPI: {
       reload: () => Promise<{ success: boolean; error?: string }>;

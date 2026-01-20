@@ -1,8 +1,14 @@
-import { GameData } from "../gameData/GameData";
+import { GameData, Memory } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
 import { Message } from "./types";
+import { TemplateEngine } from "./TemplateEngine";
+import { PromptScriptLoader } from "./PromptScriptLoader";
+import { settingsRepository } from "../SettingsRepository";
+import { promptConfigManager } from "./PromptConfigManager";
 
 export class PromptBuilder {
+        private static templateEngine = new TemplateEngine();
+        private static scriptLoader = new PromptScriptLoader();
         /**
      * Build prompt for resummarization
      */
@@ -39,59 +45,25 @@ export class PromptBuilder {
      * Generate a system prompt based on the characters in the conversation
      */
     static generateSystemPrompt(char: Character, gameData: GameData): string {
-        if (gameData.characters.size === 0) {
-            console.log('No characters in conversation for system prompt');
+        const promptSettings = settingsRepository.getPromptSettings();
+        const templatePath = promptConfigManager.resolvePath(promptSettings.systemPromptTemplate);
+
+        if (gameData.characters.size === 0 || !char) {
+            console.log('No characters or main character missing for system prompt');
             return "You are characters in a medieval strategy game. Engage in conversation naturally.";
         }
 
-        if (!char) {
-            console.log('Primary character not found for ID:', gameData.aiID);
-            return "You are characters in a medieval strategy game. Engage in conversation naturally.";
+        try {
+            const rendered = this.templateEngine.renderTemplate(templatePath, {
+                character: char,
+                gameData
+            });
+            return rendered;
+        } catch (error) {
+            console.error('Failed to render system template, using fallback:', error);
         }
 
-        console.log('Generating system prompt for character:', char.shortName);
-
-        let prompt = `You are ${char.fullName}, ${char.primaryTitle} in a medieval strategy game.
-
-## Current Scene:
-${gameData.scene}
-
-## Current date:
-${gameData.date}
-
-## Character Background:
-- Name: ${char.fullName}
-- Age: ${char.age} years old
-- Personality: ${char.personality}
-- Culture: ${char.culture}, Faith: ${char.faith}
-- Sexuality: ${char.sexuality}
-${char.liege ? `- Liege: ${char.liege}` : ''}
-${char.consort ? `- Consort: ${char.consort}` : ''}
-
-## Traits and Personality:
-${char.traits.map(trait => `- ${trait.category}: ${trait.name} - ${trait.desc}`).join('\n') || 'None specific'}
-
-## Current Situation:
-- Gold: ${char.gold} gold coins
-- Opinion of Player: ${char.opinionOfPlayer}/100
-${char.isRuler ? '- Ruler status' : '- Not a ruler'}
-${char.isIndependentRuler ? '- Independent ruler' : ''}
-${char.capitalLocation ? `- Rules from: ${char.capitalLocation}` : ''}
-
-## Key Relationships:
-${char.relationsToPlayer.map(rel => `- ${rel}`).join('\n') || 'None noted'}
-
-Other characters in this conversation:
-${Array.from(gameData.characters.values()).map(c => `- ${c.shortName}`).filter(c => c !== char.shortName).join('\n')}
-
-You should respond as this character would, taking into account their personality, traits, and opinions. Be politically minded, strategic, and faithful to medieval power structures, elite norms, and systems of loyalty and authority, following your character persona, and interacting with other character as this character would in real life.
-Characters should include phrases in their native language besides English, to add cultural flavour to conversation. Always do Romanization if language doesn't use Latin script base.
-Respond to other character's replica only if is addressed to you, alas your character would retort.
-If any message has /OOC prefix, you should follow every instruction in that message.
-`;
-
-        console.log('Generated system prompt:', prompt.substring(0, 200) + '...');
-        return prompt;
+        return "You are characters in a medieval strategy game. Engage in conversation naturally.";
     }
 
     /**
@@ -115,9 +87,33 @@ If any message has /OOC prefix, you should follow every instruction in that mess
         currentSessionSummary?: string
     ): any[] {
         const systemPrompt = this.generateSystemPrompt(char, gameData);
+        const promptSettings = settingsRepository.getPromptSettings();
+        const descScriptPath = promptConfigManager.resolvePath(promptSettings.characterDescriptionScript);
+        const examplesScriptPath = promptConfigManager.resolvePath(promptSettings.exampleMessagesScript);
+        
+        console.log('Building messages for character', char.id, 'with system prompt:', systemPrompt);
+        let descriptionBlock = '';
+        let exampleMessages: any[] = [];
+
+        try {
+            descriptionBlock = this.scriptLoader.executeDescription(descScriptPath, gameData, char.id);
+        } catch (error) {
+            console.error('Failed to run description script:', error);
+        }
+
+        try {
+            exampleMessages = this.scriptLoader.executeExamples(examplesScriptPath, gameData, char.id);
+        } catch (error) {
+            console.error('Failed to run example script:', error);
+        }
+
         const llmMessages: any[] = [
             { role: 'system', content: systemPrompt }
         ];
+
+        if (exampleMessages.length > 0) {
+            llmMessages.push(...exampleMessages);
+        }
         
         // Add character's past conversation summaries (long-term memory)
         if (char.conversationSummaries && char.conversationSummaries.length > 0) {
@@ -129,20 +125,44 @@ If any message has /OOC prefix, you should follow every instruction in that mess
                 });
             }
         }
-        
-        // Add current session summary (rolling summary for context management)
-        if (currentSessionSummary) {
-            llmMessages.push({
-                role: 'system',
-                content: `Summary of earlier messages in this conversation:\n${currentSessionSummary}`
-            });
+
+        const workingHistory: any[] = [
+            ...history.map(m => ({
+                role: m.role,
+                name: m.name,
+                content: m.content
+            }))
+        ];
+
+        // Drop empty placeholders that are still streaming or blank
+        for (let i = workingHistory.length - 1; i >= 0; i--) {
+            const msg = workingHistory[i];
+            if (!msg.content) {
+                workingHistory.splice(i, 1);
+            }
         }
-        
+
+        // Insert description/persona
+        if (descriptionBlock) {
+            this.insertMessageAtDepth(workingHistory, { role: 'system', content: descriptionBlock }, promptSettings.descInsertDepth);
+        }
+
+        // Insert memories
+        const memoriesBlock = this.buildMemoriesBlock(gameData);
+        if (memoriesBlock) {
+            this.insertMessageAtDepth(workingHistory, { role: 'system', content: memoriesBlock }, promptSettings.memoriesInsertDepth);
+        }
+
+        // Insert rolling summary
+        if (currentSessionSummary) {
+            this.insertMessageAtDepth(workingHistory, { role: 'system', content: `Summary of earlier messages in this conversation:\n${currentSessionSummary}` }, promptSettings.summariesInsertDepth);
+        }
+
         // Add recent message history
         llmMessages.push(
-            ...history.map(m => ({ 
+            ...workingHistory.map(m => ({ 
                 role: m.role, 
-                content: `${m.name}: ${m.content}` 
+                content: m.name ? `${m.name}: ${m.content}` : m.content
             }))
         );
         
@@ -151,6 +171,13 @@ If any message has /OOC prefix, you should follow every instruction in that mess
             role: 'user',
             content: `[Write next reply only as ${char.fullName}]`
         });
+
+        if (promptSettings.enableSuffixPrompt && promptSettings.suffixPrompt) {
+            llmMessages.push({
+                role: 'system',
+                content: promptSettings.suffixPrompt
+            });
+        }
         
         return llmMessages;
     }
@@ -261,6 +288,28 @@ Please summarize the conversation into only a single paragraph.`
         }
 
         return `${Math.floor(timeDifference / 365)} years ago`;
+    }
+
+    private static insertMessageAtDepth(messages: any[], messageToInsert: any, insertDepth: number): void {
+        if (messages.length < insertDepth) {
+            messages.splice(0, 0, messageToInsert);
+        } else {
+            messages.splice(messages.length - insertDepth + 1, 0, messageToInsert);
+        }
+    }
+
+    private static buildMemoriesBlock(gameData: GameData): string | null {
+        const allMemories: Memory[] = [];
+        gameData.characters.forEach((value) => {
+            if (value?.memories) {
+                allMemories.push(...value.memories);
+            }
+        });
+        if (allMemories.length === 0) return null;
+        const sorted = allMemories.sort((a, b) => (b.relevanceWeight ?? 0) - (a.relevanceWeight ?? 0));
+        const selected = sorted.slice(0, 5);
+        const lines = selected.map(m => `${m.creationDate}: ${m.desc}`);
+        return `Relevant memories:\n${lines.join('\n')}`;
     }
 
 

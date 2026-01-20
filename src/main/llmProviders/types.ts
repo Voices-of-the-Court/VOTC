@@ -144,6 +144,18 @@ export interface ActionSettings {
   validation: Record<string, ActionValidationStatus>;
 }
 
+// Prompt system configuration stored in settings
+export interface PromptSettings {
+  systemPromptTemplate: string;        // Path to .hbs template (relative to prompts root or absolute)
+  characterDescriptionScript: string;  // Path to persona builder script
+  exampleMessagesScript: string;       // Path to example messages script
+  enableSuffixPrompt: boolean;
+  suffixPrompt: string;
+  memoriesInsertDepth: number;
+  summariesInsertDepth: number;
+  descInsertDepth: number;
+}
+
 // General application settings
 export interface AppSettings {
   llmSettings: LLMSettings;
@@ -151,6 +163,7 @@ export interface AppSettings {
   globalStreamEnabled?: boolean; // Global toggle for streaming
   pauseOnRegeneration?: boolean; // Pause conversation after regenerating a message
   generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
+  promptSettings?: PromptSettings; // Prompt templates/scripts configuration
   actionSettings?: ActionSettings;
 }
 

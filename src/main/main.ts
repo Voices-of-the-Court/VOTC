@@ -9,6 +9,7 @@ import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
 import { VOTC_ACTIONS_DIR } from './utils/paths';
 import { actionRegistry } from './actions/ActionRegistry';
+import { promptConfigManager } from './conversation/PromptConfigManager';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
@@ -95,6 +96,44 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('llm:getAppSettings', () => {
     return settingsRepository.getAppSettings();
+  });
+
+  // Prompt configuration IPC
+  ipcMain.handle('prompts:getSettings', () => {
+    return settingsRepository.getPromptSettings();
+  });
+
+  ipcMain.handle('prompts:saveSettings', (_event, settings) => {
+    settingsRepository.savePromptSettings(settings);
+    return true;
+  });
+
+  ipcMain.handle('prompts:list', (_event, category: 'system' | 'character_description' | 'example_messages' | 'helpers') => {
+    try {
+      return promptConfigManager.listFiles(category);
+    } catch (error: any) {
+      console.error('Failed to list prompt files:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('prompts:readFile', (_event, relativePath: string) => {
+    try {
+      return promptConfigManager.readPromptFile(relativePath);
+    } catch (error: any) {
+      console.error('Failed to read prompt file:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('prompts:saveFile', (_event, relativePath: string, content: string) => {
+    try {
+      promptConfigManager.savePromptFile(relativePath, content);
+      return true;
+    } catch (error: any) {
+      console.error('Failed to save prompt file:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('llm:saveProviderConfig', (_, config: LLMProviderConfig) => {
@@ -388,6 +427,7 @@ const setupIpcHandlers = () => {
 app.on('ready', () => {
   console.log(app.getPath('userData'));
   clearLog();
+  promptConfigManager.seedDefaults();
   setupIpcHandlers(); // Setup handlers first
   chatWindow = createWindow(); // Create the main chat window and assign to global
   // Initialize actions registry with saved settings and preload actions

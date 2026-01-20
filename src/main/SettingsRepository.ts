@@ -6,6 +6,7 @@ import {
   LLMSettings,
   LLMProviderConfig,
   ActionSettings,
+  PromptSettings,
 } from './llmProviders/types';
 
 // Define the schema for electron-store for type safety
@@ -72,6 +73,20 @@ const schema: Schema<AppSettings> = {
   generateFollowingMessages: {
     type: 'boolean',
     default: true
+  },
+  promptSettings: {
+    type: 'object',
+    default: {} as PromptSettings,
+    properties: {
+      systemPromptTemplate: { type: 'string', default: 'system/default.hbs' },
+      characterDescriptionScript: { type: 'string', default: 'character_description/standard/pListMcc.js' },
+      exampleMessagesScript: { type: 'string', default: 'example_messages/standard/mccAliChat.js' },
+      enableSuffixPrompt: { type: 'boolean', default: false },
+      suffixPrompt: { type: 'string', default: '' },
+      memoriesInsertDepth: { type: 'number', default: 3 },
+      summariesInsertDepth: { type: 'number', default: 2 },
+      descInsertDepth: { type: 'number', default: 1 },
+    }
   },
   actionSettings: {
     type: 'object',
@@ -161,6 +176,22 @@ export class SettingsRepository {
     if ((currentAppSettings as any).actionSettings === undefined) {
         this.store.set('actionSettings', { disabledActions: [], validation: {} } as any);
     }
+    if ((currentAppSettings as any).promptSettings === undefined) {
+        this.store.set('promptSettings', this.getDefaultPromptSettings());
+    }
+  }
+
+  private getDefaultPromptSettings(): PromptSettings {
+    return {
+      systemPromptTemplate: 'system/default.hbs',
+      characterDescriptionScript: 'character_description/standard/pListMcc.js',
+      exampleMessagesScript: 'example_messages/standard/mccAliChat.js',
+      enableSuffixPrompt: false,
+      suffixPrompt: '',
+      memoriesInsertDepth: 3,
+      summariesInsertDepth: 2,
+      descInsertDepth: 1,
+    };
   }
 
   // --- Settings Management ---
@@ -172,6 +203,7 @@ export class SettingsRepository {
       globalStreamEnabled: this.getGlobalStreamSetting(),
       pauseOnRegeneration: this.getPauseOnRegenerationSetting(),
       generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),
+      promptSettings: this.getPromptSettings(),
       actionSettings: this.getActionSettings()
     };
   }
@@ -225,6 +257,16 @@ export class SettingsRepository {
   saveGenerateFollowingMessagesSetting(enabled: boolean): void {
     this.store.set('generateFollowingMessages', enabled);
     console.log('Generate following messages setting saved:', enabled);
+  }
+
+  // --- Prompt settings ---
+  getPromptSettings(): PromptSettings {
+    return this.store.get('promptSettings', this.getDefaultPromptSettings());
+  }
+
+  savePromptSettings(settings: PromptSettings): void {
+    this.store.set('promptSettings', settings);
+    console.log('Prompt settings saved.');
   }
 
   // --- Action Settings (actions toggles and validation cache) ---

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel } from '@llmTypes';
+import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings } from '@llmTypes';
 
 const DEFAULT_PARAMETERS = { temperature: 0.7, max_tokens: 2048 };
 
@@ -27,6 +27,14 @@ interface ConfigStore {
   
   // Auto-save
   autoSaveTimer: NodeJS.Timeout | null;
+
+  // Prompt config
+  promptSettings: PromptSettings | null;
+  promptFiles: {
+    system: string[];
+    descriptions: string[];
+    examples: string[];
+  };
   
   // Actions
   loadSettings: () => Promise<void>;
@@ -58,7 +66,14 @@ interface ConfigStore {
   updateGenerateFollowingMessages: (enabled: boolean) => Promise<void>;
   updateCK3Folder: (path: string) => Promise<void>;
   selectCK3Folder: () => Promise<void>;
-  importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
+  importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>; 
+
+  // Prompt actions
+  loadPromptSettings: () => Promise<void>;
+  savePromptSettings: (settings: PromptSettings) => Promise<void>;
+  refreshPromptFiles: () => Promise<void>;
+  readPromptFile: (relativePath: string) => Promise<string>;
+  savePromptFile: (relativePath: string, content: string) => Promise<void>;
 }
 
 const getCacheKey = (config: Partial<LLMProviderConfig>): string => {
@@ -84,17 +99,29 @@ export const useConfigStore = create<ConfigStore>()(
       summaryProviderInstanceId: null,
       testResult: null,
       autoSaveTimer: null,
+      promptSettings: null,
+      promptFiles: { system: [], descriptions: [], examples: [] },
 
       // Load settings from backend
       loadSettings: async () => {
         const settings = await window.llmConfigAPI.getAppSettings();
         const actionsProviderId = await window.llmConfigAPI.getActionsProviderId();
         const summaryProviderId = await window.llmConfigAPI.getSummaryProviderId();
+        const promptSettings = await window.promptsAPI.getSettings();
+        const systemFiles = await window.promptsAPI.listFiles('system');
+        const descFiles = await window.promptsAPI.listFiles('character_description');
+        const exampleFiles = await window.promptsAPI.listFiles('example_messages');
         
         set({
           appSettings: settings,
           actionsProviderInstanceId: actionsProviderId,
           summaryProviderInstanceId: summaryProviderId,
+          promptSettings,
+          promptFiles: {
+            system: systemFiles,
+            descriptions: descFiles,
+            examples: exampleFiles,
+          }
         });
         
         // Initialize selection based on active provider
@@ -468,6 +495,32 @@ export const useConfigStore = create<ConfigStore>()(
         return result;
       },
       
+      // Prompt settings actions
+      loadPromptSettings: async () => {
+        const promptSettings = await window.promptsAPI.getSettings();
+        const systemFiles = await window.promptsAPI.listFiles('system');
+        const descFiles = await window.promptsAPI.listFiles('character_description');
+        const exampleFiles = await window.promptsAPI.listFiles('example_messages');
+        set({ promptSettings, promptFiles: { system: systemFiles, descriptions: descFiles, examples: exampleFiles } });
+      },
+      savePromptSettings: async (settings) => {
+        await window.promptsAPI.saveSettings(settings);
+        set({ promptSettings: settings });
+      },
+      refreshPromptFiles: async () => {
+        const systemFiles = await window.promptsAPI.listFiles('system');
+        const descFiles = await window.promptsAPI.listFiles('character_description');
+        const exampleFiles = await window.promptsAPI.listFiles('example_messages');
+        set({ promptFiles: { system: systemFiles, descriptions: descFiles, examples: exampleFiles } });
+      },
+      readPromptFile: async (relativePath) => {
+        return window.promptsAPI.readFile(relativePath);
+      },
+      savePromptFile: async (relativePath, content) => {
+        await window.promptsAPI.saveFile(relativePath, content);
+        await get().refreshPromptFiles();
+      },
+      
       // Provider override actions
       setActionsProvider: async (instanceId) => {
         await window.llmConfigAPI.setActionsProviderId(instanceId);
@@ -503,3 +556,6 @@ export const useModelState = () => {
   
   return { isLoadingModels, getCachedModels };
 };
+
+export const usePromptSettings = () => useConfigStore((state) => state.promptSettings);
+export const usePromptFiles = () => useConfigStore((state) => state.promptFiles);

@@ -53,6 +53,16 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setSummaryProviderId: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setSummaryProviderId', instanceId),
 });
 
+contextBridge.exposeInMainWorld('promptsAPI', {
+  getSettings: (): Promise<any> => ipcRenderer.invoke('prompts:getSettings'),
+  saveSettings: (settings: any): Promise<void> => ipcRenderer.invoke('prompts:saveSettings', settings),
+  listFiles: (category: 'system' | 'character_description' | 'example_messages' | 'helpers'): Promise<string[]> =>
+    ipcRenderer.invoke('prompts:list', category),
+  readFile: (relativePath: string): Promise<string> => ipcRenderer.invoke('prompts:readFile', relativePath),
+  saveFile: (relativePath: string, content: string): Promise<void> =>
+    ipcRenderer.invoke('prompts:saveFile', relativePath, content),
+});
+
 contextBridge.exposeInMainWorld('conversationAPI', {
   sendMessage: (userMessage: string): Promise<{streamStarted?: boolean, message?: any, error?: string}> => {
     return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage });
