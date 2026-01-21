@@ -596,6 +596,17 @@ app.on('ready', () => {
     console.log('Failed to register Ctrl+H global shortcut');
   }
 
+  const reta = globalShortcut.register('Control+Shift+H', () => {
+    if (chatWindow && !chatWindow.isDestroyed()) {
+      console.log('Ctrl+Shift+H pressed - toggling settings');
+      chatWindow.webContents.send('toggle-settings');
+    }
+  });
+
+  if (!reta) {
+    console.log('Failed to register Ctrl+Shift+H global shortcut');
+  }
+
   // Check if a shortcut is registered
   console.log('Ctrl+H shortcut registered:', globalShortcut.isRegistered('Control+H'));
 });

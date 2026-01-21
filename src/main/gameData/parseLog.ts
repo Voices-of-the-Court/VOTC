@@ -11,6 +11,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
     let isWaitingForMultiLine: boolean = false;
     let multiLineType: string = ""; //relation, opinionModifier, income, treasury, influence, or herd
     let currentRootID: number = 0; // Store current rootID for multiline processing
+    let currentTargetID: number = 0; // Store target character ID for opinion breakdown
     
     // Temporary storage for secret parsing
     let currentSecret: Partial<Secret> | null = null;
@@ -438,12 +439,19 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 break;
 
                 case "opinionBreakdown":
+                    currentTargetID = Number(data[1]);
+                    let breakdownEntry = gameData!.characters.get(rootID)!.opinionBreakdowns.find(ob => ob.id === currentTargetID);
+                    if (!breakdownEntry) {
+                        breakdownEntry = { id: currentTargetID, breakdown: [] };
+                        gameData!.characters.get(rootID)!.opinionBreakdowns.push(breakdownEntry);
+                    }
+                    
                     if(line.split('#')[1] !== ''){
-                        gameData!.characters.get(rootID)!.opinionBreakdownToPlayer = [parseOpinionModifier(line.split('#')[1])]
+                        breakdownEntry.breakdown = [parseOpinionModifier(line.split('#')[1])];
                     }
                     
                     if(!line.includes("#ENDMULTILINE")){
-                        multiLineTempStorage = gameData!.characters.get(rootID)!.opinionBreakdownToPlayer
+                        multiLineTempStorage = breakdownEntry.breakdown;
                         isWaitingForMultiLine = true;
                         multiLineType = "opinionBreakdown";
                     }
