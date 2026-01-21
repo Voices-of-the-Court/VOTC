@@ -196,6 +196,7 @@ export interface AppSettings {
   globalStreamEnabled?: boolean; // Global toggle for streaming
   pauseOnRegeneration?: boolean; // Pause conversation after regenerating a message
   generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
+  messageFontSize?: number; // Font size for chat messages in rem units
   promptSettings?: PromptSettings; // Prompt templates/scripts configuration
   actionSettings?: ActionSettings;
 }

@@ -75,6 +75,10 @@ const schema: Schema<AppSettings> = {
     type: 'boolean',
     default: true
   },
+  messageFontSize: {
+    type: 'number',
+    default: 1.1
+  },
   promptSettings: {
     type: 'object',
     default: {} as PromptSettings,
@@ -184,6 +188,9 @@ export class SettingsRepository {
     if ((currentAppSettings as any).promptSettings === undefined) {
         this.store.set('promptSettings', this.getDefaultPromptSettings());
     }
+    if (currentAppSettings.messageFontSize === undefined) {
+        this.store.set('messageFontSize', 1.1); // Default font size
+    }
   }
 
   private getDefaultPromptSettings(): PromptSettings {
@@ -204,6 +211,7 @@ export class SettingsRepository {
       globalStreamEnabled: this.getGlobalStreamSetting(),
       pauseOnRegeneration: this.getPauseOnRegenerationSetting(),
       generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),
+      messageFontSize: this.getMessageFontSize(),
       promptSettings: this.getPromptSettings(),
       actionSettings: this.getActionSettings()
     };
@@ -258,6 +266,15 @@ export class SettingsRepository {
   saveGenerateFollowingMessagesSetting(enabled: boolean): void {
     this.store.set('generateFollowingMessages', enabled);
     console.log('Generate following messages setting saved:', enabled);
+  }
+
+  getMessageFontSize(): number {
+    return this.store.get('messageFontSize', 1.1); // Default to 1.1rem
+  }
+
+  saveMessageFontSize(fontSize: number): void {
+    this.store.set('messageFontSize', fontSize);
+    console.log('Message font size saved:', fontSize);
   }
 
   // --- Prompt settings ---

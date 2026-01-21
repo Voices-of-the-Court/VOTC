@@ -6,6 +6,7 @@ const SettingsView: React.FC = () => {
   const updateGlobalStreamSetting = useConfigStore((state) => state.updateGlobalStreamSetting);
   const updatePauseOnRegeneration = useConfigStore((state) => state.updatePauseOnRegeneration);
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
+  const updateMessageFontSize = useConfigStore((state) => state.updateMessageFontSize);
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
   const importLegacySummaries = useConfigStore((state) => state.importLegacySummaries);
 
@@ -23,6 +24,10 @@ const SettingsView: React.FC = () => {
 
   const handleGenerateFollowingMessagesToggle = async (e: ChangeEvent<HTMLInputElement>) => {
     await updateGenerateFollowingMessages(e.target.checked);
+  };
+
+  const handleMessageFontSizeChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    await updateMessageFontSize(parseFloat(e.target.value));
   };
 
   const handleSelectCK3Folder = async () => {
@@ -84,6 +89,20 @@ const SettingsView: React.FC = () => {
           name="generateFollowingMessages"
           checked={appSettings.generateFollowingMessages ?? true}
           onChange={handleGenerateFollowingMessagesToggle}
+        />
+      </div>
+      
+      <div className="form-group">
+        <label htmlFor="messageFontSize">Message Font Size: {appSettings.messageFontSize?.toFixed(1) || 1.1}rem</label>
+        <input
+          type="range"
+          id="messageFontSize"
+          name="messageFontSize"
+          min="0.8"
+          max="2.0"
+          step="0.1"
+          value={appSettings.messageFontSize || 1.1}
+          onChange={handleMessageFontSizeChange}
         />
       </div>
       

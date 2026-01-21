@@ -2,6 +2,10 @@
   margin: 30px;
 }
 
+:root {
+  --message-font-size: 1.1rem;
+}
+
 .minimize-button {
     position: absolute;
     top: 10px;
@@ -85,7 +89,7 @@
   -o-hyphens: auto;
   color: #fff;
   position: relative;
-  font-size: 1.1rem;
+  font-size: var(--message-font-size, 1.1rem);
   &:hover .message-actions {
     opacity: 1;
   }

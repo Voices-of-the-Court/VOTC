@@ -1,10 +1,22 @@
 import { useState, useCallback, useEffect } from 'react';
 import Chat from './chat/Chat';
 import ConfigPanel from './config/ConfigPanel';
+import { useConfigStore, useAppSettings } from './config/store/useConfigStore';
 
 function App() {
   const [showChat, setShowChat] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const loadSettings = useConfigStore((state) => state.loadSettings);
+  const appSettings = useAppSettings();
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  useEffect(() => {
+    const fontSize = appSettings?.messageFontSize ?? 1.1;
+    document.documentElement.style.setProperty('--message-font-size', `${fontSize}rem`);
+  }, [appSettings?.messageFontSize]);
 
   useEffect(() => {
     // Listen for VOTC:IN event to show chat

@@ -279,6 +279,10 @@ const setupIpcHandlers = () => {
     settingsRepository.saveGenerateFollowingMessagesSetting(enabled);
   });
 
+  ipcMain.handle('llm:saveMessageFontSize', (_, fontSize: number) => {
+    settingsRepository.saveMessageFontSize(fontSize);
+  });
+
   ipcMain.handle('llm:getCurrentContextLength', async () => {
     try {
       return await llmManager.getCurrentContextLength();

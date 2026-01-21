@@ -65,9 +65,10 @@ interface ConfigStore {
   updateGlobalStreamSetting: (enabled: boolean) => Promise<void>;
   updatePauseOnRegeneration: (enabled: boolean) => Promise<void>;
   updateGenerateFollowingMessages: (enabled: boolean) => Promise<void>;
+  updateMessageFontSize: (fontSize: number) => Promise<void>;
   updateCK3Folder: (path: string) => Promise<void>;
   selectCK3Folder: () => Promise<void>;
-  importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>; 
+  importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
 
   // Prompt actions
   loadPromptSettings: () => Promise<void>;
@@ -503,9 +504,18 @@ export const useConfigStore = create<ConfigStore>()(
         }
         
         return result;
-      },
-      
-      // Prompt settings actions
+        },
+  
+        updateMessageFontSize: async (fontSize) => {
+          await window.llmConfigAPI.saveMessageFontSize(fontSize);
+          set((state) => ({
+            appSettings: state.appSettings
+              ? { ...state.appSettings, messageFontSize: fontSize }
+              : null,
+          }));
+        },
+        
+        // Prompt settings actions
       loadPromptSettings: async () => {
         const promptSettings = await window.promptsAPI.getSettings();
         const systemFiles = await window.promptsAPI.listFiles('system');
