@@ -1,4 +1,4 @@
-import {Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, Law, Income, Treasury, Influence, Herd} from "./GameData"
+import {Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, Law, Income, Treasury, Influence, Herd, Parent, Child} from "./GameData"
 import fs from 'fs';
 
 // Simple replacement for removeTooltip since parseLog.ts doesn't exist
@@ -55,6 +55,10 @@ export class Character {
     relationsToCharacters: { id: number, relations: string[]}[];
     opinionBreakdowns: { id: number, breakdown: OpinionModifier[]}[];
     opinions: { id: number, opinon: number}[];
+    
+    // Family data
+    parents: Parent[];
+    children: Child[];
 
     // Conversation summaries
     conversationSummaries: ConversationSummary[] = [];
@@ -97,7 +101,9 @@ export class Character {
             this.relationsToPlayer = [],
             this.relationsToCharacters = [],
             this.opinionBreakdowns = [],
-            this.opinions = [];
+            this.opinions = [],
+            this.parents = [],
+            this.children = [];
     }
 
     /**
