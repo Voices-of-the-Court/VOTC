@@ -334,10 +334,9 @@ button{
     cursor: not-allowed;
   }
 }
-
 // Action Feedback Styles - Minimalistic
 .action-feedback-container {
-  margin: 4px 10px 4px 30px; // Indent to show it's a sub-item
+  margin: 4px 10px 4px 30px;
   padding: 6px 10px;
   background: rgba(0, 0, 0, 0.2);
   border-left: 2px solid #EFB16A;
@@ -362,31 +361,31 @@ button{
   // Positive sentiment - green/success tones
   &.positive {
     color: rgba(150, 255, 150, 0.95);
-    background: rgba(40, 167, 69, 0.1);
+    background: linear-gradient(to right, rgba(40, 167, 69, 0.1), transparent);
   }
   
   // Negative sentiment - red/warning tones
   &.negative {
     color: rgba(255, 180, 150, 0.95);
-    background: rgba(220, 53, 69, 0.1);
+    background: linear-gradient(to right, rgba(220, 53, 69, 0.1), transparent);
   }
   
   // Neutral sentiment - golden/theme tones
   &.neutral {
     color: rgba(239, 177, 106, 0.95);
-    background: rgba(239, 177, 106, 0.05);
+    background: linear-gradient(to right, rgba(239, 177, 106, 0.05), transparent);
   }
   
   // Error state (failed action)
   &.error {
     color: rgba(255, 150, 150, 0.95);
-    background: rgba(220, 53, 69, 0.15);
+    background: linear-gradient(to right, rgba(220, 53, 69, 0.15), transparent);
     border-left: 2px solid #dc3545;
     padding-left: 6px;
   }
   
   &:hover {
-    background-color: transparent;
+    background: transparent;
   }
 }
 
