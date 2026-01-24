@@ -34,8 +34,7 @@ publish:
   provider: github
   owner: MrAndroPC
   repo: reVOTC
-  private: true
+  private: false
   releaseType: release
-  token: ${GH_TOKEN}
 # electronDownload:
 #   mirror: https://npmmirror.com/mirrors/electron/
