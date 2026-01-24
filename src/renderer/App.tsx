@@ -23,6 +23,9 @@ function App() {
     const cleanupChatEvent = window.electronAPI.onChatReset(() => {
       console.log('Chat reset - showing chat interface');
       setShowChat(true);
+      // When showing chat, reset mouse events to be ignored initially
+      // They will be unignored when mouse enters the chat panel
+      window.electronAPI?.setIgnoreMouseEvents(true);
     });
 
     return () => {
@@ -34,7 +37,14 @@ function App() {
     // Listen for toggle settings event from tray
     const cleanupToggleSettings = window.electronAPI.onToggleSettings(() => {
       console.log('Toggle settings event received');
-      setShowConfig(prev => !prev);
+      setShowConfig(prev => {
+        const newState = !prev;
+        // When closing the config panel, reset mouse events to be ignored
+        if (!newState) {
+          window.electronAPI?.setIgnoreMouseEvents(true);
+        }
+        return newState;
+      });
     });
 
     return () => {
@@ -48,6 +58,8 @@ function App() {
       console.log('Hide chat event received - hiding both chat and config');
       setShowChat(false);
       setShowConfig(false);
+      // Reset mouse events when hiding panels
+      window.electronAPI?.setIgnoreMouseEvents(true);
     });
 
     return () => {
@@ -56,8 +68,15 @@ function App() {
   }, []);
 
   const toggleConfig = useCallback(() => {
-    setShowConfig(prev => !prev);
-  }, []);
+    setShowConfig(prev => {
+      const newState = !prev;
+      // When closing the config panel, only reset mouse events if chat is also hidden
+      if (!newState && !showChat) {
+        window.electronAPI?.setIgnoreMouseEvents(true);
+      }
+      return newState;
+    });
+  }, [showChat]);
 
   return (
     <div className="App">
