@@ -12,6 +12,17 @@ export class AppUpdater {
     autoUpdater.autoDownload = false; // We'll let the user choose when to download
     autoUpdater.autoInstallOnAppQuit = false; // We'll handle installation manually
     
+    // For private repositories, set the GitHub token
+    // The token should be set as an environment variable GH_TOKEN
+    if (process.env.GH_TOKEN) {
+      autoUpdater.requestHeaders = {
+        'Authorization': `token ${process.env.GH_TOKEN}`
+      };
+      log.info('GitHub token configured for private repository access');
+    } else {
+      log.warn('No GH_TOKEN environment variable found. Private repository updates may fail.');
+    }
+    
     // Set up event handlers
     this.setupEventHandlers();
   }
