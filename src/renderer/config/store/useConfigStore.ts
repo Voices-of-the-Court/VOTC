@@ -30,6 +30,7 @@ interface ConfigStore {
 
   // Prompt config
   promptSettings: PromptSettings | null;
+  letterPromptSettings: PromptSettings | null;
   promptFiles: {
     system: string[];
     descriptions: string[];
@@ -68,11 +69,15 @@ interface ConfigStore {
   updateMessageFontSize: (fontSize: number) => Promise<void>;
   updateCK3Folder: (path: string) => Promise<void>;
   selectCK3Folder: () => Promise<void>;
+  updateModLocationPath: (path: string) => Promise<void>;
+  selectModLocationPath: () => Promise<void>;
   importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
 
   // Prompt actions
   loadPromptSettings: () => Promise<void>;
   savePromptSettings: (settings: PromptSettings) => Promise<void>;
+  loadLetterPromptSettings: () => Promise<void>;
+  saveLetterPromptSettings: (settings: PromptSettings) => Promise<void>;
   refreshPromptFiles: () => Promise<void>;
   readPromptFile: (relativePath: string) => Promise<string>;
   savePromptFile: (relativePath: string, content: string) => Promise<void>;
@@ -108,6 +113,7 @@ export const useConfigStore = create<ConfigStore>()(
       testResult: null,
       autoSaveTimer: null,
       promptSettings: null,
+      letterPromptSettings: null,
       promptFiles: { system: [], descriptions: [], examples: [] },
       promptPresets: [],
 
@@ -117,6 +123,7 @@ export const useConfigStore = create<ConfigStore>()(
         const actionsProviderId = await window.llmConfigAPI.getActionsProviderId();
         const summaryProviderId = await window.llmConfigAPI.getSummaryProviderId();
         const promptSettings = await window.promptsAPI.getSettings();
+        const letterPromptSettings = await window.promptsAPI.getLetterSettings();
         const systemFiles = await window.promptsAPI.listFiles('system');
         const descFiles = await window.promptsAPI.listFiles('character_description');
         const exampleFiles = await window.promptsAPI.listFiles('example_messages');
@@ -127,6 +134,7 @@ export const useConfigStore = create<ConfigStore>()(
           actionsProviderInstanceId: actionsProviderId,
           summaryProviderInstanceId: summaryProviderId,
           promptSettings,
+          letterPromptSettings,
           promptFiles: {
             system: systemFiles,
             descriptions: descFiles,
@@ -490,6 +498,22 @@ export const useConfigStore = create<ConfigStore>()(
         }
       },
 
+      updateModLocationPath: async (path) => {
+        await window.llmConfigAPI.setModLocationPath(path);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { ...state.appSettings, modLocationPath: path }
+            : null,
+        }));
+      },
+
+      selectModLocationPath: async () => {
+        const path = await window.llmConfigAPI.selectFolder();
+        if (path) {
+          get().updateModLocationPath(path);
+        }
+      },
+
       importLegacySummaries: async () => {
         const result = await window.llmConfigAPI.importLegacySummaries();
         
@@ -518,15 +542,24 @@ export const useConfigStore = create<ConfigStore>()(
         // Prompt settings actions
       loadPromptSettings: async () => {
         const promptSettings = await window.promptsAPI.getSettings();
+        const letterPromptSettings = await window.promptsAPI.getLetterSettings();
         const systemFiles = await window.promptsAPI.listFiles('system');
         const descFiles = await window.promptsAPI.listFiles('character_description');
         const exampleFiles = await window.promptsAPI.listFiles('example_messages');
         const promptPresets = await window.promptsAPI.listPresets();
-        set({ promptSettings, promptFiles: { system: systemFiles, descriptions: descFiles, examples: exampleFiles }, promptPresets });
+        set({ promptSettings, letterPromptSettings, promptFiles: { system: systemFiles, descriptions: descFiles, examples: exampleFiles }, promptPresets });
       },
       savePromptSettings: async (settings) => {
         await window.promptsAPI.saveSettings(settings);
         set({ promptSettings: settings });
+      },
+      loadLetterPromptSettings: async () => {
+        const letterPromptSettings = await window.promptsAPI.getLetterSettings();
+        set({ letterPromptSettings });
+      },
+      saveLetterPromptSettings: async (settings) => {
+        await window.promptsAPI.saveLetterSettings(settings);
+        set({ letterPromptSettings: settings });
       },
       refreshPromptFiles: async () => {
         const systemFiles = await window.promptsAPI.listFiles('system');

@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs";
 import { Character } from "./Character";
 import { VOTC_SUMMARIES_DIR } from "../utils/paths";
+import type { LetterData } from "../letter/types";
 
 // Simple replacement for removeTooltip since parseLog.ts doesn't exist
 function removeTooltip(text: string): string {
@@ -188,6 +189,7 @@ export class GameData {
     aiName: string;
 
     characters: Map<number,Character>
+    letterData: LetterData | null;
 
     constructor(data: string[]){
             this.playerID = Number(data[0]),
@@ -200,7 +202,8 @@ export class GameData {
             this.locationController = data[7],
             this.totalDays = Number(data[8]),
 
-            this.characters = new Map<number, Character>()
+            this.characters = new Map<number, Character>(),
+            this.letterData = null
     }
 
     getPlayer(): Character{
@@ -220,6 +223,15 @@ export class GameData {
         for (const character of this.characters.values()) {
             character.loadSummaries(path.join(summariesPath, character.id.toString() + '.json'));
         }
+    }
+
+    saveCharacterSummary(characterId: number, summary: { date: string; totalDays: number; content: string }): void {
+        const summariesPath = path.join(VOTC_SUMMARIES_DIR, this.playerID.toString());
+        fs.mkdirSync(summariesPath, { recursive: true });
+        const target = this.characters.get(characterId);
+        if (!target) return;
+        target.conversationSummaries.unshift(summary);
+        target.saveSummaries(path.join(summariesPath, `${characterId}.json`));
     }
 
     saveCharactersSummaries(finalSummary: string){

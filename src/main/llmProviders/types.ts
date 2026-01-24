@@ -193,11 +193,13 @@ export interface PromptPreset {
 export interface AppSettings {
   llmSettings: LLMSettings;
   ck3UserFolderPath?: string | null;
+  modLocationPath?: string | null;
   globalStreamEnabled?: boolean; // Global toggle for streaming
   pauseOnRegeneration?: boolean; // Pause conversation after regenerating a message
   generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
   messageFontSize?: number; // Font size for chat messages in rem units
   promptSettings?: PromptSettings; // Prompt templates/scripts configuration
+  letterPromptSettings?: PromptSettings; // Letter prompt templates/scripts configuration
   actionSettings?: ActionSettings;
 }
 

@@ -50,6 +50,9 @@ export class ClipboardListener extends EventEmitter{
                 case "EFFECT_ACCEPTED":
                     this.emit('VOTC:EFFECT_ACCEPTED');
                 break;
+                case "LETTER":
+                    this.emit('VOTC:LETTER');
+                break;
             }
             
             

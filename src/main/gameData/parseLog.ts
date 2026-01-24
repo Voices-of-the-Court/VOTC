@@ -1,4 +1,5 @@
 import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd, Parent, Child} from "./GameData";
+import type { LetterData } from "../letter/types";
 import { Character } from "./Character";
 const fs = require('fs');
 const readline = require('readline');
@@ -73,6 +74,23 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 isWaitingForMultiLine = false;
             }
            continue;
+        }
+
+        if(line.includes("VOTC:LETTER") && !line.includes("delay") && !line.includes("set to thread")){
+            if (gameData) {
+                const parts = line.split("/;/").slice(1).map(removeTooltip);
+                let letterData: LetterData | null = null;
+                
+                letterData = {
+                    content: parts[0],
+                    letterId: parts[1]
+                }
+
+                if (letterData) {
+                    gameData.letterData = letterData;
+                }
+            }
+            continue;
         }
 
         if(line.includes("VOTC:IN")){

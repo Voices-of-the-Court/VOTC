@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   listModels: (): Promise<ILLMModel[] | { error: string }> => ipcRenderer.invoke('llm:listModels'),
   testConnection: (): Promise<{success: boolean, error?: string, message?: string}> => ipcRenderer.invoke('llm:testConnection'),
   setCK3Folder: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setCK3Folder', path),
+  setModLocationPath: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setModLocationPath', path),
   selectFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:selectFolder'),
   saveGlobalStreamSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGlobalStreamSetting', enabled),
   savePauseOnRegenerationSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:savePauseOnRegenerationSetting', enabled),
@@ -57,12 +58,15 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
 contextBridge.exposeInMainWorld('promptsAPI', {
   getSettings: (): Promise<any> => ipcRenderer.invoke('prompts:getSettings'),
   saveSettings: (settings: any): Promise<void> => ipcRenderer.invoke('prompts:saveSettings', settings),
+  getLetterSettings: (): Promise<any> => ipcRenderer.invoke('prompts:getLetterSettings'),
+  saveLetterSettings: (settings: any): Promise<void> => ipcRenderer.invoke('prompts:saveLetterSettings', settings),
   listFiles: (category: 'system' | 'character_description' | 'example_messages' | 'helpers'): Promise<string[]> =>
     ipcRenderer.invoke('prompts:list', category),
   readFile: (relativePath: string): Promise<string> => ipcRenderer.invoke('prompts:readFile', relativePath),
   saveFile: (relativePath: string, content: string): Promise<void> =>
     ipcRenderer.invoke('prompts:saveFile', relativePath, content),
   getDefaultMain: (): Promise<string> => ipcRenderer.invoke('prompts:getDefaultMain'),
+  getDefaultLetterMain: (): Promise<string> => ipcRenderer.invoke('prompts:getDefaultLetterMain'),
   listPresets: (): Promise<any[]> => ipcRenderer.invoke('prompts:listPresets'),
   savePreset: (preset: any): Promise<any> => ipcRenderer.invoke('prompts:savePreset', preset),
   deletePreset: (id: string): Promise<void> => ipcRenderer.invoke('prompts:deletePreset', id),
@@ -70,6 +74,10 @@ contextBridge.exposeInMainWorld('promptsAPI', {
   openPromptFile: (relativePath: string): Promise<void> => ipcRenderer.invoke('prompts:openPromptFile', relativePath),
   exportZip: (payload: { settings?: any, path?: string }): Promise<{ success?: boolean; cancelled?: boolean; path?: string }> =>
     ipcRenderer.invoke('prompts:exportZip', payload),
+});
+
+contextBridge.exposeInMainWorld('lettersAPI', {
+  getPromptPreview: (): Promise<string | null> => ipcRenderer.invoke('letter:getPromptPreview'),
 });
 
 contextBridge.exposeInMainWorld('conversationAPI', {

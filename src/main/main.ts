@@ -16,6 +16,7 @@ import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
+import { letterManager } from './letter/LetterManager';
 import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -137,6 +138,15 @@ const setupIpcHandlers = () => {
     return true;
   });
 
+  ipcMain.handle('prompts:getLetterSettings', () => {
+    return settingsRepository.getLetterPromptSettings();
+  });
+
+  ipcMain.handle('prompts:saveLetterSettings', (_event, settings) => {
+    settingsRepository.saveLetterPromptSettings(settings);
+    return true;
+  });
+
   ipcMain.handle('prompts:list', (_event, category: 'system' | 'character_description' | 'example_messages' | 'helpers') => {
     try {
       return promptConfigManager.listFiles(category);
@@ -167,6 +177,9 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('prompts:getDefaultMain', () => {
     return promptConfigManager.getDefaultMainTemplateContent();
+  });
+  ipcMain.handle('prompts:getDefaultLetterMain', () => {
+    return promptConfigManager.getDefaultLetterMainTemplateContent();
   });
 
   ipcMain.handle('prompts:listPresets', () => {
@@ -224,6 +237,15 @@ const setupIpcHandlers = () => {
     return { success: true, path: targetPath };
   });
 
+  ipcMain.handle('letter:getPromptPreview', async () => {
+    try {
+      return await letterManager.buildPromptPreview();
+    } catch (error: any) {
+      console.error('Failed to build letter prompt preview:', error);
+      return null;
+    }
+  });
+
   ipcMain.handle('llm:saveProviderConfig', (_, config: LLMProviderConfig) => {
     return settingsRepository.saveProviderConfig(config);
   });
@@ -254,6 +276,10 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('llm:setCK3Folder', (_, path: string | null) => {
     settingsRepository.setCK3UserFolderPath(path);
+  });
+
+  ipcMain.handle('llm:setModLocationPath', (_, path: string | null) => {
+    settingsRepository.setModLocationPath(path);
   });
 
   ipcMain.handle('dialog:selectFolder', async () => {
@@ -578,6 +604,15 @@ app.on('ready', () => {
     chatWindow.show();
     chatWindow.focus();
     chatWindow.webContents.send('chat-reset'); // This will trigger showChat in App.tsx
+  });
+
+  clipboardListener.on('VOTC:LETTER', async () => {
+    console.log('VOTC:LETTER detected - generating reply');
+    try {
+      await letterManager.processLatestLetter();
+    } catch (error) {
+      console.error('Failed to process letter:', error);
+    }
   });
   
   // Add IPC handler for hiding chat UI (not window - window stays persistent)

@@ -8,6 +8,7 @@ const SettingsView: React.FC = () => {
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
   const updateMessageFontSize = useConfigStore((state) => state.updateMessageFontSize);
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
+  const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
   const importLegacySummaries = useConfigStore((state) => state.importLegacySummaries);
 
   if (!appSettings) {
@@ -32,6 +33,10 @@ const SettingsView: React.FC = () => {
 
   const handleSelectCK3Folder = async () => {
     await selectCK3Folder();
+  };
+
+  const handleSelectModLocationPath = async () => {
+    await selectModLocationPath();
   };
 
   const [isImporting, setIsImporting] = React.useState(false);
@@ -152,6 +157,20 @@ const SettingsView: React.FC = () => {
           readOnly
         />
         <button type="button" onClick={handleSelectCK3Folder}>
+          Select Folder
+        </button>
+      </div>
+      
+      <div className="form-group">
+        <h4>VOTC Mod Location</h4>
+        <label htmlFor="modLocationPath">Current Path:</label>
+        <input
+          type="text"
+          id="modLocationPath"
+          value={appSettings.modLocationPath || ''}
+          readOnly
+        />
+        <button type="button" onClick={handleSelectModLocationPath}>
           Select Folder
         </button>
       </div>

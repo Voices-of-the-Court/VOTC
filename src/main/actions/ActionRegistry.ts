@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
 import { EventEmitter } from "events";
+import { app } from "electron";
 
 import {
   ActionDefinition,
@@ -16,6 +17,7 @@ import {
 
 const STANDARD_SUBDIR = "standard";
 const CUSTOM_SUBDIR = "custom";
+const DEFAULT_USERDATA_DIR = path.join(app.getAppPath(), 'default_userdata', 'actions');
 
 export type ActionSource = "standard" | "custom";
 
@@ -121,6 +123,7 @@ export class ActionRegistry extends EventEmitter {
     this.actions.clear();
     this.settings.validation = {};
     await this.ensureBaseStructure();
+    await this.seedDefaults(); // Ensure default actions are copied
     const loaded: LoadedAction[] = [];
     const standardActions = await this.loadDirectory(STANDARD_SUBDIR, "standard");
     const customActions = await this.loadDirectory(CUSTOM_SUBDIR, "custom");
@@ -148,6 +151,39 @@ export class ActionRegistry extends EventEmitter {
       path.join(VOTC_ACTIONS_DIR, CUSTOM_SUBDIR),
       { recursive: true }
     );
+  }
+
+  /**
+   * Copy default action files into user data if they do not exist.
+   */
+  public async seedDefaults(): Promise<void> {
+    await this.ensureBaseStructure();
+    
+    if (!fs.existsSync(DEFAULT_USERDATA_DIR)) {
+      return;
+    }
+
+    const copyRecursive = (src: string, dest: string) => {
+      if (!fs.existsSync(src)) return;
+      const stat = fs.statSync(src);
+      if (stat.isDirectory()) {
+        fs.mkdirSync(dest, { recursive: true });
+        for (const entry of fs.readdirSync(src)) {
+          copyRecursive(path.join(src, entry), path.join(dest, entry));
+        }
+      } else {
+        if (!fs.existsSync(dest)) {
+          fs.copyFileSync(src, dest);
+        }
+      }
+    };
+
+    const defaultStandardDir = path.join(DEFAULT_USERDATA_DIR, STANDARD_SUBDIR);
+    const userStandardDir = path.join(VOTC_ACTIONS_DIR, STANDARD_SUBDIR);
+    
+    if (fs.existsSync(defaultStandardDir)) {
+      copyRecursive(defaultStandardDir, userStandardDir);
+    }
   }
 
   private async loadDirectory(

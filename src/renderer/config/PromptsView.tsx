@@ -6,10 +6,13 @@ type BlockUpdater = (block: PromptBlock) => PromptBlock;
 
 const PromptsView: React.FC = () => {
   const promptSettings = useConfigStore((state) => state.promptSettings);
+  const letterPromptSettings = useConfigStore((state) => state.letterPromptSettings);
   const promptFiles = useConfigStore((state) => state.promptFiles);
   const promptPresets = useConfigStore((state) => state.promptPresets);
   const loadPromptSettings = useConfigStore((state) => state.loadPromptSettings);
+  const loadLetterPromptSettings = useConfigStore((state) => state.loadLetterPromptSettings);
   const savePromptSettings = useConfigStore((state) => state.savePromptSettings);
+  const saveLetterPromptSettings = useConfigStore((state) => state.saveLetterPromptSettings);
   const refreshPromptFiles = useConfigStore((state) => state.refreshPromptFiles);
   const loadPromptPresets = useConfigStore((state) => state.loadPromptPresets);
   const savePromptPreset = useConfigStore((state) => state.savePromptPreset);
@@ -19,6 +22,7 @@ const PromptsView: React.FC = () => {
   const openPromptFile = useConfigStore((state) => state.openPromptFile);
 
   const [localSettings, setLocalSettings] = useState<PromptSettings | null>(null);
+  const [mode, setMode] = useState<'conversation' | 'letter'>('conversation');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -27,15 +31,22 @@ const PromptsView: React.FC = () => {
 
   useEffect(() => {
     loadPromptSettings();
+    loadLetterPromptSettings();
     loadPromptPresets();
     // run once on mount
   }, []);
 
   useEffect(() => {
-    if (promptSettings) {
+    if (promptSettings && mode === 'conversation') {
       setLocalSettings(promptSettings);
     }
-  }, [promptSettings]);
+  }, [promptSettings, mode]);
+
+  useEffect(() => {
+    if (letterPromptSettings && mode === 'letter') {
+      setLocalSettings(letterPromptSettings);
+    }
+  }, [letterPromptSettings, mode]);
 
   useEffect(() => {
     return () => {
@@ -45,6 +56,12 @@ const PromptsView: React.FC = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    setExpandedId(null);
+    setSelectedPresetId(null);
+    setPresetName('');
+  }, [mode]);
 
   const selectedPreset = useMemo(
     () => promptPresets.find((p) => p.id === selectedPresetId) || null,
@@ -61,11 +78,11 @@ const PromptsView: React.FC = () => {
       clearTimeout(saveTimer.current);
     }
     if (immediate) {
-      savePromptSettings(next);
+      (mode === 'conversation' ? savePromptSettings : saveLetterPromptSettings)(next);
       return;
     }
     saveTimer.current = setTimeout(() => {
-      savePromptSettings(next);
+      (mode === 'conversation' ? savePromptSettings : saveLetterPromptSettings)(next);
       saveTimer.current = null;
     }, 400);
   };
@@ -118,7 +135,7 @@ const PromptsView: React.FC = () => {
   const handleResetMain = async () => {
     const confirm = window.confirm('Reset main prompt to default template? This will replace current text.');
     if (!confirm) return;
-    const defaultMain = await window.promptsAPI.getDefaultMain();
+    const defaultMain = mode === 'conversation' ? await window.promptsAPI.getDefaultMain() : await window.promptsAPI.getDefaultLetterMain();
     persist({ ...localSettings, mainTemplate: defaultMain });
   };
 
@@ -365,6 +382,29 @@ const PromptsView: React.FC = () => {
           <button onClick={handleExport}>Export ZIP</button>
         </div>
       </div>
+      <div className="field-row spaced">
+        <label>Prompt set</label>
+        <div className="mini-buttons">
+          <button
+            className={mode === 'conversation' ? 'primary' : ''}
+            onClick={() => {
+              setMode('conversation');
+              if (promptSettings) setLocalSettings(promptSettings);
+            }}
+          >
+            Conversation
+          </button>
+          <button
+            className={mode === 'letter' ? 'primary' : ''}
+            onClick={() => {
+              setMode('letter');
+              if (letterPromptSettings) setLocalSettings(letterPromptSettings);
+            }}
+          >
+            Letters
+          </button>
+        </div>
+      </div>
 
       <div className="main-prompt-card">
         <div className="card-header">
@@ -380,41 +420,43 @@ const PromptsView: React.FC = () => {
         />
       </div>
 
-      <div className="presets-bar">
-        <div className="field-row">
-          <label>Presets</label>
-          <select
-            value={selectedPresetId || ''}
-            onChange={(e) => {
-              const id = e.target.value || null;
-              const preset = promptPresets.find((p) => p.id === id);
-              setSelectedPresetId(id);
-              setPresetName(preset?.name || '');
-              if (preset) {
-                handleApplyPreset(preset);
-              }
-            }}
-          >
-            <option value="">Select preset...</option>
-            {promptPresets.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="Preset name"
-            value={presetName}
-            onChange={(e) => setPresetName(e.target.value)}
-          />
+      {mode === 'conversation' && (
+        <div className="presets-bar">
+          <div className="field-row">
+            <label>Presets</label>
+            <select
+              value={selectedPresetId || ''}
+              onChange={(e) => {
+                const id = e.target.value || null;
+                const preset = promptPresets.find((p) => p.id === id);
+                setSelectedPresetId(id);
+                setPresetName(preset?.name || '');
+                if (preset) {
+                  handleApplyPreset(preset);
+                }
+              }}
+            >
+              <option value="">Select preset...</option>
+              {promptPresets.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Preset name"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+            />
+          </div>
+          <div className="mini-buttons">
+            <button onClick={() => handleSavePreset(selectedPreset ? 'update' : 'new')}>
+              {selectedPreset ? 'Update preset' : 'Save preset'}
+            </button>
+            <button onClick={() => handleSavePreset('new')}>Save as new</button>
+            <button disabled={!selectedPresetId} onClick={handleDeletePreset}>Delete</button>
+          </div>
         </div>
-        <div className="mini-buttons">
-          <button onClick={() => handleSavePreset(selectedPreset ? 'update' : 'new')}>
-            {selectedPreset ? 'Update preset' : 'Save preset'}
-          </button>
-          <button onClick={() => handleSavePreset('new')}>Save as new</button>
-          <button disabled={!selectedPresetId} onClick={handleDeletePreset}>Delete</button>
-        </div>
-      </div>
+      )}
 
       <div className="blocks-list">
         {localSettings.blocks.map((block, idx) => renderBlock(block, idx))}

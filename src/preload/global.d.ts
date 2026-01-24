@@ -31,6 +31,7 @@ declare global {
       listModels: () => Promise<ILLMModel[] | { error: string }>;
       testConnection: () => Promise<{success: boolean, error?: string, message?: string}>;
       setCK3Folder: (path: string | null) => Promise<void>;
+      setModLocationPath: (path: string | null) => Promise<void>;
       selectFolder: () => Promise<string | null>;
       saveGlobalStreamSetting: (enabled: boolean) => Promise<void>;
       savePauseOnRegenerationSetting: (enabled: boolean) => Promise<void>;
@@ -46,16 +47,22 @@ declare global {
     promptsAPI: {
       getSettings: () => Promise<PromptSettings>;
       saveSettings: (settings: PromptSettings) => Promise<void>;
+      getLetterSettings: () => Promise<PromptSettings>;
+      saveLetterSettings: (settings: PromptSettings) => Promise<void>;
       listFiles: (category: 'system' | 'character_description' | 'example_messages' | 'helpers') => Promise<string[]>;
       readFile: (relativePath: string) => Promise<string>;
       saveFile: (relativePath: string, content: string) => Promise<void>;
       getDefaultMain: () => Promise<string>;
+      getDefaultLetterMain: () => Promise<string>;
       listPresets: () => Promise<any[]>;
       savePreset: (preset: any) => Promise<any>;
       deletePreset: (id: string) => Promise<void>;
       openPromptsFolder: () => Promise<void>;
       openPromptFile: (relativePath: string) => Promise<void>;
       exportZip: (payload: { settings?: any, path?: string }) => Promise<{ success?: boolean; cancelled?: boolean; path?: string }>;
+    };
+    lettersAPI: {
+      getPromptPreview: () => Promise<string | null>;
     };
     actionsAPI: {
       reload: () => Promise<{ success: boolean; error?: string }>;

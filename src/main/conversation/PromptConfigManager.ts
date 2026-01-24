@@ -12,6 +12,7 @@ import { PromptBlock, PromptPreset, PromptSettings } from '../llmProviders/types
 
 const DEFAULT_USERDATA_DIR = path.join(app.getAppPath(), 'default_userdata', 'prompts');
 const DEFAULT_MAIN_TEMPLATE_PATH = 'system/default.hbs';
+const DEFAULT_LETTER_TEMPLATE_PATH = 'system/letter.hbs';
 
 export class PromptConfigManager {
   ensurePromptDirs(): void {
@@ -173,6 +174,49 @@ export class PromptConfigManager {
     ];
   }
 
+  getDefaultLetterBlocks(): PromptBlock[] {
+    return [
+      {
+        id: 'letter-main-system',
+        type: 'main',
+        label: 'Letter System Prompt',
+        enabled: true,
+        role: 'system',
+        template: '',
+      },
+      {
+        id: 'letter-description',
+        type: 'description',
+        label: 'Letter Character Description (pList)',
+        enabled: true,
+        scriptPath: 'character_description/letter/pListLetter.js',
+      },
+      {
+        id: 'letter-past-summaries',
+        type: 'past_summaries',
+        label: 'Past Conversation Summaries',
+        enabled: true,
+        template: '',
+      },
+      {
+        id: 'letter-memories',
+        type: 'memories',
+        label: 'All Memories',
+        enabled: true,
+        template: 'All memories:\n{{#each memories}}- {{this.creationDate}}: {{this.desc}}\n{{/each}}',
+      },
+      {
+        id: 'letter-instruction',
+        type: 'instruction',
+        label: 'Letter Instruction',
+        enabled: true,
+        role: 'user',
+        template:
+          'You received a letter from {{player.fullName}}:\n"{{letter.content}}"\nWrite only the reply as {{character.fullName}}.',
+      },
+    ];
+  }
+
   private mergeBlocks(defaults: PromptBlock[], incoming?: PromptBlock[]): PromptBlock[] {
     const cleanedIncoming = Array.isArray(incoming) ? incoming : [];
     const normalize = (block: PromptBlock): PromptBlock => {
@@ -207,14 +251,17 @@ export class PromptConfigManager {
     return merged;
   }
 
-  normalizeSettings(settings: any): PromptSettings {
-    const defaults = this.getDefaultBlocks();
-    const defaultMainTemplate = this.getDefaultMainTemplateContent();
-    const defaultPath = settings?.defaultMainTemplatePath || DEFAULT_MAIN_TEMPLATE_PATH;
+  normalizeSettings(
+    settings: any,
+    options?: { defaultBlocks?: PromptBlock[]; defaultMainTemplatePath?: string; fallbackMainTemplate?: string }
+  ): PromptSettings {
+    const defaults = options?.defaultBlocks || this.getDefaultBlocks();
+    const defaultMainTemplate = options?.fallbackMainTemplate || this.getDefaultMainTemplateContent();
+    const defaultPath = settings?.defaultMainTemplatePath || options?.defaultMainTemplatePath || DEFAULT_MAIN_TEMPLATE_PATH;
 
     let mainTemplate = settings?.mainTemplate;
     if (!mainTemplate) {
-      const legacyPath = settings?.systemPromptTemplate || DEFAULT_MAIN_TEMPLATE_PATH;
+      const legacyPath = settings?.systemPromptTemplate || defaultPath;
       try {
         mainTemplate = this.readPromptFile(legacyPath);
       } catch {
@@ -293,6 +340,24 @@ export class PromptConfigManager {
     const presets = this.getPresets().filter((p) => p.id !== id);
     fs.mkdirSync(VOTC_PROMPTS_DIR, { recursive: true });
     fs.writeFileSync(this.getPresetsPath(), JSON.stringify(presets, null, 2), 'utf-8');
+  }
+
+  getDefaultLetterMainTemplateContent(): string {
+    const fallback = 'Respond with a letter in-character. Do not perform actions.';
+    try {
+      this.ensurePromptDirs();
+      const fullPath = path.join(VOTC_PROMPTS_DIR, DEFAULT_LETTER_TEMPLATE_PATH);
+      if (fs.existsSync(fullPath)) {
+        return fs.readFileSync(fullPath, 'utf-8');
+      }
+      const bundledDefault = path.join(DEFAULT_USERDATA_DIR, 'system', 'letter.hbs');
+      if (fs.existsSync(bundledDefault)) {
+        return fs.readFileSync(bundledDefault, 'utf-8');
+      }
+    } catch (error) {
+      console.error('Failed to read default letter template:', error);
+    }
+    return fallback;
   }
 }
 
