@@ -1,7 +1,7 @@
 {
   "name": "re-voices-of-the-court",
   "productName": "reVOTC",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Reimplementation of Voices of the Court mod for Crusader Kings III for better experience",
   "main": "out/main/main.js",
   "scripts": {
