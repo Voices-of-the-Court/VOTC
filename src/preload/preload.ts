@@ -27,6 +27,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('toggle-minimize', callback);
     return () => ipcRenderer.removeListener('toggle-minimize', callback);
   },
+  // Auto-updater methods
+  updaterCheckForUpdates: (): Promise<boolean> => ipcRenderer.invoke('updater:checkForUpdates'),
+  updaterDownloadUpdate: (): Promise<boolean> => ipcRenderer.invoke('updater:downloadUpdate'),
+  updaterInstallUpdate: (): Promise<boolean> => ipcRenderer.invoke('updater:installUpdate'),
+  onUpdaterStatus: (callback: (event: any, status: string) => void) => {
+    ipcRenderer.on('updater-status', callback);
+    return () => ipcRenderer.removeListener('updater-status', callback);
+  },
+  removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => {
+    ipcRenderer.removeListener('updater-status', callback);
+  },
 });
 
 contextBridge.exposeInMainWorld('llmConfigAPI', {

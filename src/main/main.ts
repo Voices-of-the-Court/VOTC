@@ -11,6 +11,7 @@ import { importLegacySummaries } from './utils/importLegacySummaries';
 import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR } from './utils/paths';
 import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
+import { appUpdater } from './AutoUpdater';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
@@ -436,6 +437,22 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // Auto-updater IPC handlers
+  ipcMain.handle('updater:checkForUpdates', () => {
+    appUpdater.checkForUpdates();
+    return true;
+  });
+
+  ipcMain.handle('updater:downloadUpdate', () => {
+    appUpdater.downloadUpdate();
+    return true;
+  });
+
+  ipcMain.handle('updater:installUpdate', () => {
+    appUpdater.installUpdate();
+    return true;
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---
@@ -570,6 +587,15 @@ app.on('ready', () => {
   promptConfigManager.seedDefaults();
   setupIpcHandlers(); // Setup handlers first
   chatWindow = createWindow(); // Create the main chat window and assign to global
+  
+  // Set up auto-updater
+  appUpdater.setMainWindow(chatWindow);
+  
+  // Check for updates on startup
+  if (app.isPackaged) {
+    appUpdater.checkForUpdates();
+  }
+  
   // Initialize actions registry with saved settings and preload actions
   actionRegistry.setSettings(settingsRepository.getActionSettings());
   actionRegistry.reloadActions().catch(err => console.error('Failed to reload actions on startup:', err));

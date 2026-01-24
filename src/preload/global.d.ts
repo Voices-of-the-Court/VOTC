@@ -23,6 +23,12 @@ declare global {
       onToggleSettings: (callback: () => void) => () => void;
       onHideChat: (callback: () => void) => () => void;
       onToggleMinimize: (callback: () => void) => () => void;
+      // Auto-updater methods
+      updaterCheckForUpdates: () => Promise<boolean>;
+      updaterDownloadUpdate: () => Promise<boolean>;
+      updaterInstallUpdate: () => Promise<boolean>;
+      onUpdaterStatus: (callback: (event: any, status: string) => void) => () => void;
+      removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => void;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;

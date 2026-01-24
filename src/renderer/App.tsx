@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import Chat from './chat/Chat';
 import ConfigPanel from './config/ConfigPanel';
+import { UpdateNotification } from './chat/components/UpdateNotification';
 import { useConfigStore, useAppSettings } from './config/store/useConfigStore';
 
 function App() {
   const [showChat, setShowChat] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   const loadSettings = useConfigStore((state) => state.loadSettings);
   const appSettings = useAppSettings();
 
@@ -67,6 +69,19 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    // Listen for updater status to show notification
+    const cleanupUpdaterStatus = window.electronAPI.onUpdaterStatus((_event: any, status: string) => {
+      if (status === 'Update available' || status === 'Update downloaded') {
+        setShowUpdateNotification(true);
+      }
+    });
+
+    return () => {
+      cleanupUpdaterStatus();
+    };
+  }, []);
+
   const toggleConfig = useCallback(() => {
     setShowConfig(prev => {
       const newState = !prev;
@@ -87,6 +102,11 @@ function App() {
             setShowConfig(false);
             window.electronAPI?.setIgnoreMouseEvents(true);
           }}
+        />
+      )}
+      {showUpdateNotification && (
+        <UpdateNotification
+          onClose={() => setShowUpdateNotification(false)}
         />
       )}
     </div>

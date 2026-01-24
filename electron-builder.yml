@@ -30,8 +30,11 @@ nsis:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-# publish:
-#   provider: generic
-#   url: https://example.com/auto-updates
+publish:
+  provider: github
+  owner: Voices-of-the-Court
+  repo: reVOTC
+  private: false
+  releaseType: release
 # electronDownload:
 #   mirror: https://npmmirror.com/mirrors/electron/
