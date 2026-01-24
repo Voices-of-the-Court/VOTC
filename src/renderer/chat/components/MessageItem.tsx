@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import StreamingMarkdown from './StreamingMarkdown';
 import ActionFeedbackItem from './ActionFeedbackItem';
 import { ChatEntry } from '../types';
+import AlertIcon from '../../assets/Alert.png';
 
 
 interface MessageItemProps {
@@ -18,6 +19,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
         await window.conversationAPI.regenerateMessage(parseInt(entry.id));
       } catch (error) {
         console.error('Failed to regenerate message:', error);
+      }
+    }
+  };
+
+  const handleRegenerateError = async () => {
+    if (entry.type === 'error') {
+      try {
+        await window.conversationAPI.regenerateError(parseInt(entry.id));
+      } catch (error) {
+        console.error('Failed to regenerate error:', error);
       }
     }
   };
@@ -50,8 +61,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
       <div className="message">
         <div className="error-message">
           <div className="error-header">
-            <span className="error-icon">⚠️</span>
+            <span className="error-icon"><img src={AlertIcon} alt="Error" /></span>
             <span className="error-title">Error</span>
+            <div className="message-actions">
+              <button className="message-action-btn" onClick={handleRegenerateError} title="Regenerate">
+                🔄
+              </button>
+            </div>
           </div>
           <div className="error-content">
             <p>{entry.content}</p>

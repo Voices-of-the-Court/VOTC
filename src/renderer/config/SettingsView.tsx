@@ -6,7 +6,9 @@ const SettingsView: React.FC = () => {
   const updateGlobalStreamSetting = useConfigStore((state) => state.updateGlobalStreamSetting);
   const updatePauseOnRegeneration = useConfigStore((state) => state.updatePauseOnRegeneration);
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
+  const updateMessageFontSize = useConfigStore((state) => state.updateMessageFontSize);
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
+  const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
   const importLegacySummaries = useConfigStore((state) => state.importLegacySummaries);
 
   if (!appSettings) {
@@ -25,8 +27,16 @@ const SettingsView: React.FC = () => {
     await updateGenerateFollowingMessages(e.target.checked);
   };
 
+  const handleMessageFontSizeChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    await updateMessageFontSize(parseFloat(e.target.value));
+  };
+
   const handleSelectCK3Folder = async () => {
     await selectCK3Folder();
+  };
+
+  const handleSelectModLocationPath = async () => {
+    await selectModLocationPath();
   };
 
   const [isImporting, setIsImporting] = React.useState(false);
@@ -87,6 +97,20 @@ const SettingsView: React.FC = () => {
         />
       </div>
       
+      <div className="form-group">
+        <label htmlFor="messageFontSize">Message Font Size: {appSettings.messageFontSize?.toFixed(1) || 1.1}rem</label>
+        <input
+          type="range"
+          id="messageFontSize"
+          name="messageFontSize"
+          min="0.8"
+          max="2.0"
+          step="0.1"
+          value={appSettings.messageFontSize || 1.1}
+          onChange={handleMessageFontSizeChange}
+        />
+      </div>
+      
       <hr />
       
       <div className="form-group legacy-data-import">
@@ -133,6 +157,20 @@ const SettingsView: React.FC = () => {
           readOnly
         />
         <button type="button" onClick={handleSelectCK3Folder}>
+          Select Folder
+        </button>
+      </div>
+      
+      <div className="form-group">
+        <h4>VOTC Mod Location</h4>
+        <label htmlFor="modLocationPath">Current Path:</label>
+        <input
+          type="text"
+          id="modLocationPath"
+          value={appSettings.modLocationPath || ''}
+          readOnly
+        />
+        <button type="button" onClick={handleSelectModLocationPath}>
           Select Folder
         </button>
       </div>

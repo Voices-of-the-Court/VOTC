@@ -39,7 +39,7 @@ export class Conversation {
     }
 
     private async initializeGameData(): Promise<void> {
-        runFileManager.clear();    
+        runFileManager.clear();
         try {
             this.gameData = await parseLog(settingsRepository.getCK3DebugLogPath()!);
             console.log('GameData initialized with', this.gameData.characters.size, 'characters');
@@ -48,6 +48,15 @@ export class Conversation {
         } catch (error) {
             console.error('Failed to parse log file:', error);
             this.isActive = false;
+            
+            // Add initialization error message to conversation
+            const initError = createError({
+                id: this.nextId++,
+                content: 'Failed to initialize conversation',
+                details: error instanceof Error ? error.message : String(error)
+            });
+            this.messages.push(initError);
+            this.emitUpdate();
         }
     }
 
@@ -430,6 +439,54 @@ export class Conversation {
         }
     }
 
+    // Regenerate error message and retry the operation
+    async regenerateError(messageId: number): Promise<void> {
+        console.log('Regenerating error with ID:', messageId);
+
+        // Find target error
+        const targetIndex = this.messages.findIndex(msg => 'id' in msg && msg.id === messageId);
+        if (targetIndex === -1) {
+            console.error('Error not found for regeneration:', messageId);
+            return;
+        }
+
+        const targetError = this.messages[targetIndex];
+        if (targetError.type !== 'error') {
+            console.error('Can only regenerate error entries:', targetError.type);
+            return;
+        }
+
+        // Remove the error message
+        this.messages.splice(targetIndex, 1);
+        
+        // Check if this was an initialization error
+        if (targetError.content === 'Failed to initialize conversation') {
+            // Try to reinitialize
+            await this.initializeGameData();
+        } else {
+            // For other errors, find the latest user message and try to regenerate responses
+            const userMessages = this.messages.filter(msg => 'role' in msg && msg.role === 'user') as Message[];
+            if (userMessages.length > 0) {
+                const latestUserMessage = userMessages[userMessages.length - 1];
+                // Remove all assistant messages and errors after the latest user message
+                for (let i = this.messages.length - 1; i >= 0; i--) {
+                    const msg = this.messages[i];
+                    if (('role' in msg && msg.role === 'user' && msg.id === latestUserMessage.id) ||
+                        (msg.type === 'action-feedback' && msg.associatedMessageId === latestUserMessage.id)) {
+                        break;
+                    }
+                    if (('role' in msg && msg.role === 'assistant') || msg.type === 'error') {
+                        this.messages.splice(i, 1);
+                    }
+                }
+                // Trigger message processing again
+                await this.sendMessage(latestUserMessage.content);
+            }
+        }
+        
+        this.emitUpdate();
+    }
+
     // Edit user message and resend
     async editUserMessage(messageId: number, newContent: string): Promise<void> {
         console.log('Editing user message with ID:', messageId);
@@ -535,6 +592,11 @@ export class Conversation {
         this.isActive = false;
         this.clearHistory();
         cleanLogFile(settingsRepository.getCK3DebugLogPath()!);
+        runFileManager.write("trigger_event = mcc_event_v2.9002");
+        setTimeout(() => {
+            runFileManager.clear();
+            console.log('Run file cleared after conversation end event.');
+        }, 500);
     }
 
     // Emit conversation update event

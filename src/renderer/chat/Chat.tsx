@@ -42,7 +42,9 @@ const { messagesEndRef, containerRef, scrollToBottom, handleScroll } = useAutoSc
   const toggleMinimize = () => {
     const newState = !isMinimized;
     setIsMinimized(newState);
-    window.electronAPI?.setIgnoreMouseEvents(false);
+    if (newState) {
+      window.electronAPI?.setIgnoreMouseEvents(true);
+    }
   };
 
   const handleSend = () => {

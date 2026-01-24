@@ -1,9 +1,11 @@
-appId: com.electron.app
-productName: revoices-of-the-court
+appId: com.mrandropc.revotc
+productName: reVOTC
 directories:
   buildResources: build
 asar: false
 files:
+  - 'out/**'  # Include the output directory
+  - 'default_userdata/**'  # Include default_userdata directory
   - '!**/.vscode/*'
   - '!src/*'
   - '!dist/*'
@@ -18,7 +20,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: revoices-of-the-court
+  executableName: reVOTC
   icon: build/icon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
@@ -28,8 +30,12 @@ nsis:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-# publish:
-#   provider: generic
-#   url: https://example.com/auto-updates
+publish:
+  provider: github
+  owner: MrAndroPC
+  repo: reVOTC
+  private: true
+  releaseType: release
+  token: ${GH_TOKEN}
 # electronDownload:
 #   mirror: https://npmmirror.com/mirrors/electron/

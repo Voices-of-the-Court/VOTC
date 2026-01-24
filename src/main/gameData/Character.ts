@@ -1,4 +1,4 @@
-import {Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, Law, Income, Treasury, Influence, Herd} from "./GameData"
+import {Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, Law, Income, Treasury, Influence, Herd, Parent, Child} from "./GameData"
 import fs from 'fs';
 
 // Simple replacement for removeTooltip since parseLog.ts doesn't exist
@@ -53,8 +53,12 @@ export class Character {
     traits: Trait[];
     relationsToPlayer: string[];
     relationsToCharacters: { id: number, relations: string[]}[];
-    opinionBreakdownToPlayer: OpinionModifier[];
+    opinionBreakdowns: { id: number, breakdown: OpinionModifier[]}[];
     opinions: { id: number, opinon: number}[];
+    
+    // Family data
+    parents: Parent[];
+    children: Child[];
 
     // Conversation summaries
     conversationSummaries: ConversationSummary[] = [];
@@ -96,8 +100,10 @@ export class Character {
             this.traits = [],
             this.relationsToPlayer = [],
             this.relationsToCharacters = [],
-            this.opinionBreakdownToPlayer = []
-            this.opinions = [];
+            this.opinionBreakdowns = [],
+            this.opinions = [],
+            this.parents = [],
+            this.children = [];
     }
 
     /**
@@ -125,12 +131,24 @@ export class Character {
     }
 
     /**
-     * Get the value of the opinion modifier with the given reason text
+     * Get the opinion breakdown to a specific character
+     * @param {number} targetId - the ID of the target character
+     * @returns {OpinionModifier[]} - array of opinion modifiers, or empty array if not found
+     */
+    getOpinionBreakdownTo(targetId: number): OpinionModifier[]{
+        const breakdown = this.opinionBreakdowns.find(ob => ob.id === targetId);
+        return breakdown ? breakdown.breakdown : [];
+    }
+
+    /**
+     * Get the value of the opinion modifier with the given reason text towards a specific character
+     * @param {number} targetId - the ID of the target character
      * @param {string} reason - the opinion modifier's reason text
      * @returns {number} - opinion modifier's value. returns 0 if doesn't exist.
      */
-    getOpinionModifierValue(reason: string): number{
-        let target = this.opinionBreakdownToPlayer.find( modifier => modifier.reason === reason);
+    getOpinionModifierValue(targetId: number, reason: string): number{
+        const breakdown = this.getOpinionBreakdownTo(targetId);
+        let target = breakdown.find(modifier => modifier.reason === reason);
 
         if(target !== undefined){
             return target.value;
@@ -141,35 +159,34 @@ export class Character {
     }
 
     /**
-     * Sets the opinion modifier's value. Creates a new opinion modifier if it doesn't exist. NOTE: this will also update the opinionOfPlayer property.
+     * Sets the opinion modifier's value towards a specific character. Creates a new opinion modifier if it doesn't exist.
+     * @param {number} targetId - the ID of the target character
      * @param {string} reason - The opinion modifier's reason text.
-     * @param {string} value - The value to set the opinion modifier.
+     * @param {number} value - The value to set the opinion modifier.
      * @returns {void}
      */
-    setOpinionModifierValue(reason: string, value: number): void{
-        let targetIndex = this.opinionBreakdownToPlayer.findIndex( (om: OpinionModifier) =>{
-            om.reason.toLowerCase() == reason.toLowerCase();
+    setOpinionModifierValue(targetId: number, reason: string, value: number): void{
+        let breakdownEntry = this.opinionBreakdowns.find(ob => ob.id === targetId);
+        
+        if(!breakdownEntry){
+            breakdownEntry = { id: targetId, breakdown: [] };
+            this.opinionBreakdowns.push(breakdownEntry);
+        }
+
+        let targetIndex = breakdownEntry.breakdown.findIndex((om: OpinionModifier) =>{
+            return om.reason.toLowerCase() == reason.toLowerCase();
         })
 
         if(targetIndex != -1){
-            this.opinionBreakdownToPlayer[targetIndex].value = value;
+            breakdownEntry.breakdown[targetIndex].value = value;
         }
         else{
-            this.opinionBreakdownToPlayer.push({
-                reason: "From conversations",
+            breakdownEntry.breakdown.push({
+                reason: reason,
                 value: value
             })
         }
-
-        //recalculate opinionOfPlayer
-        let sum = 0;
-        for(const opinionModifier of this.opinionBreakdownToPlayer){
-            if (!Number.isNaN(opinionModifier.value)) {
-                sum += Number(opinionModifier.value);
-            }
-        }
-        this.opinionOfPlayer = sum;
-    }   
+    }
 
 
     saveSummaries(summariesPath: string): void {

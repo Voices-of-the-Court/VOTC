@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { LLMProviderConfig, ILLMModel } from '@llmTypes';
 import { useModelState } from '../store/useConfigStore';
+import AlertIcon from '../../assets/Alert.png';
 
 interface ModelSelectorProps {
   config: Partial<LLMProviderConfig>;
@@ -105,14 +106,14 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           
           {config.providerType === 'openrouter' && !config.apiKey && (
             <div className="api-key-required-info">
-              <img src="assets/Alert.png" alt="Alert" />
+              <img src={AlertIcon} alt="Alert" />
               <span>API Key required to search models.</span>
             </div>
           )}
           
           {config.providerType === 'openai-compatible' && !config.baseUrl && (
             <div className="api-key-required-info">
-              <img src="assets/Alert.png" alt="Alert" />
+              <img src={AlertIcon} alt="Alert" />
               <span>Base URL required to search models.</span>
             </div>
           )}

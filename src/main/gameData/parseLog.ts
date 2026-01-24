@@ -1,4 +1,5 @@
-import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, SecretTarget, SecretKnower, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd} from "./GameData";
+import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd, Parent, Child} from "./GameData";
+import type { LetterData } from "../letter/types";
 import { Character } from "./Character";
 const fs = require('fs');
 const readline = require('readline');
@@ -11,6 +12,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
     let isWaitingForMultiLine: boolean = false;
     let multiLineType: string = ""; //relation, opinionModifier, income, treasury, influence, or herd
     let currentRootID: number = 0; // Store current rootID for multiline processing
+    let currentTargetID: number = 0; // Store target character ID for opinion breakdown
     
     // Temporary storage for secret parsing
     let currentSecret: Partial<Secret> | null = null;
@@ -18,6 +20,9 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
     
     // Temporary storage for troops parsing
     let currentTroops: Partial<Troops> | null = null;
+    
+    // Temporary storage for family parsing
+    let currentChild: Partial<Child> | null = null;
 
     const fileStream = fs.createReadStream(debugLogPath);
 
@@ -69,6 +74,23 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 isWaitingForMultiLine = false;
             }
            continue;
+        }
+
+        if(line.includes("VOTC:LETTER") && !line.includes("delay") && !line.includes("set to thread")){
+            if (gameData) {
+                const parts = line.split("/;/").slice(1).map(removeTooltip);
+                let letterData: LetterData | null = null;
+                
+                letterData = {
+                    content: parts[0],
+                    letterId: parts[1]
+                }
+
+                if (letterData) {
+                    gameData.letterData = letterData;
+                }
+            }
+            continue;
         }
 
         if(line.includes("VOTC:IN")){
@@ -438,15 +460,138 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 break;
 
                 case "opinionBreakdown":
+                    currentTargetID = Number(data[1]);
+                    let breakdownEntry = gameData!.characters.get(rootID)!.opinionBreakdowns.find(ob => ob.id === currentTargetID);
+                    if (!breakdownEntry) {
+                        breakdownEntry = { id: currentTargetID, breakdown: [] };
+                        gameData!.characters.get(rootID)!.opinionBreakdowns.push(breakdownEntry);
+                    }
+                    
                     if(line.split('#')[1] !== ''){
-                        gameData!.characters.get(rootID)!.opinionBreakdownToPlayer = [parseOpinionModifier(line.split('#')[1])]
+                        breakdownEntry.breakdown = [parseOpinionModifier(line.split('#')[1])];
                     }
                     
                     if(!line.includes("#ENDMULTILINE")){
-                        multiLineTempStorage = gameData!.characters.get(rootID)!.opinionBreakdownToPlayer
+                        multiLineTempStorage = breakdownEntry.breakdown;
                         isWaitingForMultiLine = true;
                         multiLineType = "opinionBreakdown";
                     }
+                break;
+                
+                case "parents":
+                    const parent: Parent = {
+                        id: Number(data[1]),
+                        name: data[2],
+                        birthDateTotalDays: Number(data[3]),
+                        birthDate: data[4]
+                    };
+                    gameData!.characters.get(rootID)!.parents.push(parent);
+                break;
+                
+                case "parent_death":
+                    const parentId = Number(data[1]);
+                    const parentToUpdate = gameData!.characters.get(rootID)!.parents.find(p => p.id === parentId);
+                    if (parentToUpdate) {
+                        parentToUpdate.deathDateTotalDays = Number(data[2]);
+                        parentToUpdate.deathDate = data[3];
+                        parentToUpdate.deathReason = data[4];
+                    }
+                break;
+                
+                case "kids":
+                    currentChild = {
+                        id: Number(data[1]),
+                        name: data[2],
+                        sheHe: data[3],
+                        birthDateTotalDays: Number(data[4]),
+                        birthDate: data[5],
+                        traits: [],
+                        maritalStatus: 'unmarried',
+                        concubines: [],
+                        spouses: []
+                    };
+                    gameData!.characters.get(rootID)!.children.push(currentChild as Child);
+                break;
+                
+                case "kid_other_parent":
+                    if (currentChild) {
+                        currentChild.otherParent = {
+                            id: Number(data[2]),
+                            name: data[3]
+                        };
+                    }
+                break;
+                
+                case "kid_trait":
+                    if (currentChild && currentChild.traits) {
+                        currentChild.traits.push({
+                            category: data[2],
+                            name: data[3],
+                            desc: data[4]
+                        });
+                    }
+                break;
+                
+                case "kid_is_concubine":
+                    if (currentChild) {
+                        currentChild.maritalStatus = 'concubine';
+                        currentChild.concubineOf = {
+                            id: Number(data[2]),
+                            name: data[3]
+                        };
+                    }
+                break;
+                
+                case "kid_concubine":
+                    if (currentChild) {
+                        currentChild.maritalStatus = 'has_concubines';
+                        if (!currentChild.concubines) currentChild.concubines = [];
+                        currentChild.concubines.push({
+                            id: Number(data[2]),
+                            name: data[3]
+                        });
+                    }
+                break;
+                
+                case "kid_spouse":
+                    if (currentChild) {
+                        currentChild.maritalStatus = 'has_spouses';
+                        if (!currentChild.spouses) currentChild.spouses = [];
+                        currentChild.spouses.push({
+                            id: Number(data[2]),
+                            name: data[3]
+                        });
+                    }
+                break;
+                
+                case "kid_betrothed":
+                    if (currentChild) {
+                        currentChild.maritalStatus = 'betrothed';
+                        currentChild.betrothed = {
+                            id: Number(data[2]),
+                            name: data[3]
+                        };
+                    }
+                break;
+                
+                case "kid_unmarried":
+                    if (currentChild) {
+                        currentChild.maritalStatus = 'unmarried';
+                    }
+                break;
+                
+                case "kid_death":
+                    if (currentChild) {
+                        currentChild.deathDateTotalDays = Number(data[2]);
+                        currentChild.deathDate = data[3];
+                        currentChild.deathReason = data[4];
+                    }
+                break;
+                
+                case "kid_eob":
+                    // End of block for kid - reset currentChild
+                    currentChild = null;
+                break;
             }
         }
     } 

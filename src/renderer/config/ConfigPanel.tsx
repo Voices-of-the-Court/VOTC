@@ -4,8 +4,9 @@ import './configPanel.scss';
 import ConnectionView from './ConnectionView';
 import SettingsView from './SettingsView';
 import ActionsView from './ActionsView';
+import PromptsView from './PromptsView';
 
-type CurrentTab = 'connection' | 'settings' | 'actions';
+type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts';
 
 interface ConfigPanelProps {
   onClose: () => void;
@@ -60,11 +61,18 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         >
           Actions
         </button>
+        <button
+          onClick={() => setCurrentTab('prompts')}
+          className={currentTab === 'prompts' ? 'active' : ''}
+        >
+          Prompts
+        </button>
       </header>
       <main className="config-main-content">
         {currentTab === 'connection' && <ConnectionView />}
         {currentTab === 'settings' && <SettingsView />}
         {currentTab === 'actions' && <ActionsView />}
+        {currentTab === 'prompts' && <PromptsView />}
       </main>
     </div>
   );

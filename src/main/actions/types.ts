@@ -1,7 +1,7 @@
 import { GameData } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
 
-export type ActionArgumentPrimitiveType = "number" | "string" | "enum";
+export type ActionArgumentPrimitiveType = "number" | "string" | "enum" | "boolean";
 
 export interface ActionArgumentBase {
   name: string;
@@ -29,17 +29,22 @@ export interface EnumArgument extends ActionArgumentBase {
   options: string[];
 }
 
+export interface BooleanArgument extends ActionArgumentBase {
+  type: "boolean";
+}
+
 export type ActionArgumentDefinition =
   | NumberArgument
   | StringArgument
-  | EnumArgument;
+  | EnumArgument
+  | BooleanArgument;
 
-export type ActionArgumentValue = number | string | null;
+export type ActionArgumentValue = number | string | boolean | null;
 
 export type ActionArgumentValues = Record<string, ActionArgumentValue>;
 
-export type DynamicArgsFunction = (context: { sourceCharacter: Character }) => ActionArgumentDefinition[];
-export type DynamicDescriptionFunction = (context: { sourceCharacter: Character }) => string;
+export type DynamicArgsFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => ActionArgumentDefinition[];
+export type DynamicDescriptionFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => string;
 
 export interface ActionCheckContext {
   gameData: GameData;

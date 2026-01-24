@@ -144,13 +144,62 @@ export interface ActionSettings {
   validation: Record<string, ActionValidationStatus>;
 }
 
+export type PromptBlockType =
+  | 'main'
+  | 'description'
+  | 'examples'
+  | 'memories'
+  | 'rolling_summary'
+  | 'past_summaries'
+  | 'history'
+  | 'instruction'
+  | 'custom';
+
+export interface PromptBlock {
+  id: string;
+  type: PromptBlockType;
+  label: string;
+  enabled: boolean;
+  role?: 'system' | 'user' | 'assistant';
+  template?: string; // Handlebars template for text-based blocks
+  scriptPath?: string; // For description/examples blocks
+  limit?: number; // For capped list blocks (e.g., memories)
+  pinned?: boolean; // UI hint for non-removable blocks like history
+}
+
+export interface SuffixConfig {
+  enabled: boolean;
+  template: string; // Handlebars template appended at the end
+  label?: string;
+}
+
+// Prompt system configuration stored in settings
+export interface PromptSettings {
+  mainTemplate: string; // Handlebars source for the main system prompt
+  defaultMainTemplatePath: string; // Relative path to the default template on disk
+  blocks: PromptBlock[]; // Ordered blocks that make up the prompt
+  suffix: SuffixConfig;
+}
+
+export interface PromptPreset {
+  id: string;
+  name: string;
+  settings: PromptSettings;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // General application settings
 export interface AppSettings {
   llmSettings: LLMSettings;
   ck3UserFolderPath?: string | null;
+  modLocationPath?: string | null;
   globalStreamEnabled?: boolean; // Global toggle for streaming
   pauseOnRegeneration?: boolean; // Pause conversation after regenerating a message
   generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
+  messageFontSize?: number; // Font size for chat messages in rem units
+  promptSettings?: PromptSettings; // Prompt templates/scripts configuration
+  letterPromptSettings?: PromptSettings; // Letter prompt templates/scripts configuration
   actionSettings?: ActionSettings;
 }
 

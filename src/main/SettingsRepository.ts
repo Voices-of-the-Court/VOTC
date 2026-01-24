@@ -6,7 +6,9 @@ import {
   LLMSettings,
   LLMProviderConfig,
   ActionSettings,
+  PromptSettings,
 } from './llmProviders/types';
+import { promptConfigManager } from './conversation/PromptConfigManager';
 
 // Define the schema for electron-store for type safety
 const baseProviderConfigSchema = {
@@ -61,6 +63,10 @@ const schema: Schema<AppSettings> = {
     type: ['string', 'null'],
     default: null
   },
+  modLocationPath: {
+    type: ['string', 'null'],
+    default: null
+  },
   globalStreamEnabled: {
     type: 'boolean',
     default: true
@@ -72,6 +78,46 @@ const schema: Schema<AppSettings> = {
   generateFollowingMessages: {
     type: 'boolean',
     default: true
+  },
+  messageFontSize: {
+    type: 'number',
+    default: 1.1
+  },
+  promptSettings: {
+    type: 'object',
+    default: {} as PromptSettings,
+    properties: {
+      mainTemplate: { type: 'string', default: '' },
+      defaultMainTemplatePath: { type: 'string', default: 'system/default.hbs' },
+      blocks: { type: 'array', default: [] },
+      suffix: {
+        type: 'object',
+        default: { enabled: false, template: '', label: 'Suffix' },
+        properties: {
+          enabled: { type: 'boolean', default: false },
+          template: { type: 'string', default: '' },
+          label: { type: 'string', default: 'Suffix' }
+        }
+      }
+    }
+  },
+  letterPromptSettings: {
+    type: 'object',
+    default: {} as PromptSettings,
+    properties: {
+      mainTemplate: { type: 'string', default: '' },
+      defaultMainTemplatePath: { type: 'string', default: 'system/letter.hbs' },
+      blocks: { type: 'array', default: [] },
+      suffix: {
+        type: 'object',
+        default: { enabled: false, template: '', label: 'Suffix' },
+        properties: {
+          enabled: { type: 'boolean', default: false },
+          template: { type: 'string', default: '' },
+          label: { type: 'string', default: 'Suffix' }
+        }
+      }
+    }
   },
   actionSettings: {
     type: 'object',
@@ -161,6 +207,47 @@ export class SettingsRepository {
     if ((currentAppSettings as any).actionSettings === undefined) {
         this.store.set('actionSettings', { disabledActions: [], validation: {} } as any);
     }
+    if ((currentAppSettings as any).promptSettings === undefined) {
+        this.store.set('promptSettings', this.getDefaultPromptSettings());
+    }
+    if ((currentAppSettings as any).letterPromptSettings === undefined) {
+        this.store.set('letterPromptSettings', this.getDefaultLetterPromptSettings());
+    }
+    if (currentAppSettings.messageFontSize === undefined) {
+        this.store.set('messageFontSize', 1.1); // Default font size
+    }
+  }
+
+  private getDefaultPromptSettings(): PromptSettings {
+    return promptConfigManager.normalizeSettings(
+      {
+        mainTemplate: promptConfigManager.getDefaultMainTemplateContent(),
+        defaultMainTemplatePath: 'system/default.hbs',
+        blocks: promptConfigManager.getDefaultBlocks(),
+        suffix: { enabled: false, template: '', label: 'Suffix' }
+      },
+      {
+        defaultBlocks: promptConfigManager.getDefaultBlocks(),
+        defaultMainTemplatePath: 'system/default.hbs',
+        fallbackMainTemplate: promptConfigManager.getDefaultMainTemplateContent()
+      }
+    );
+  }
+
+  private getDefaultLetterPromptSettings(): PromptSettings {
+    return promptConfigManager.normalizeSettings(
+      {
+        mainTemplate: promptConfigManager.getDefaultLetterMainTemplateContent(),
+        defaultMainTemplatePath: 'system/letter.hbs',
+        blocks: promptConfigManager.getDefaultLetterBlocks(),
+        suffix: { enabled: false, template: '', label: 'Suffix' }
+      },
+      {
+        defaultBlocks: promptConfigManager.getDefaultLetterBlocks(),
+        defaultMainTemplatePath: 'system/letter.hbs',
+        fallbackMainTemplate: promptConfigManager.getDefaultLetterMainTemplateContent()
+      }
+    );
   }
 
   // --- Settings Management ---
@@ -169,9 +256,13 @@ export class SettingsRepository {
     return {
       llmSettings: this.getLLMSettings(),
       ck3UserFolderPath: this.getCK3UserFolderPath(),
+      modLocationPath: this.getModLocationPath(),
       globalStreamEnabled: this.getGlobalStreamSetting(),
       pauseOnRegeneration: this.getPauseOnRegenerationSetting(),
       generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),
+      messageFontSize: this.getMessageFontSize(),
+      promptSettings: this.getPromptSettings(),
+      letterPromptSettings: this.getLetterPromptSettings(),
       actionSettings: this.getActionSettings()
     };
   }
@@ -209,6 +300,15 @@ export class SettingsRepository {
     console.log('CK3 User Folder Path saved:', path);
   }
 
+  getModLocationPath(): string | null | undefined {
+    return this.store.get('modLocationPath');
+  }
+
+  setModLocationPath(modPath: string | null): void {
+    this.store.set('modLocationPath', modPath);
+    console.log('VOTC Mod Path saved:', modPath);
+  }
+
   getPauseOnRegenerationSetting(): boolean {
     return this.store.get('pauseOnRegeneration', true); // Default to true
   }
@@ -225,6 +325,58 @@ export class SettingsRepository {
   saveGenerateFollowingMessagesSetting(enabled: boolean): void {
     this.store.set('generateFollowingMessages', enabled);
     console.log('Generate following messages setting saved:', enabled);
+  }
+
+  getMessageFontSize(): number {
+    return this.store.get('messageFontSize', 1.1); // Default to 1.1rem
+  }
+
+  saveMessageFontSize(fontSize: number): void {
+    this.store.set('messageFontSize', fontSize);
+    console.log('Message font size saved:', fontSize);
+  }
+
+  // --- Prompt settings ---
+  getPromptSettings(): PromptSettings {
+    const stored = this.store.get('promptSettings', this.getDefaultPromptSettings());
+    return promptConfigManager.normalizeSettings(stored, {
+      defaultBlocks: promptConfigManager.getDefaultBlocks(),
+      defaultMainTemplatePath: 'system/default.hbs',
+      fallbackMainTemplate: promptConfigManager.getDefaultMainTemplateContent()
+    });
+  }
+
+  savePromptSettings(settings: PromptSettings): void {
+    this.store.set(
+      'promptSettings',
+      promptConfigManager.normalizeSettings(settings, {
+        defaultBlocks: promptConfigManager.getDefaultBlocks(),
+        defaultMainTemplatePath: 'system/default.hbs',
+        fallbackMainTemplate: promptConfigManager.getDefaultMainTemplateContent()
+      })
+    );
+    console.log('Prompt settings saved.');
+  }
+
+  getLetterPromptSettings(): PromptSettings {
+    const stored = this.store.get('letterPromptSettings', this.getDefaultLetterPromptSettings());
+    return promptConfigManager.normalizeSettings(stored, {
+      defaultBlocks: promptConfigManager.getDefaultLetterBlocks(),
+      defaultMainTemplatePath: 'system/letter.hbs',
+      fallbackMainTemplate: promptConfigManager.getDefaultLetterMainTemplateContent()
+    });
+  }
+
+  saveLetterPromptSettings(settings: PromptSettings): void {
+    this.store.set(
+      'letterPromptSettings',
+      promptConfigManager.normalizeSettings(settings, {
+        defaultBlocks: promptConfigManager.getDefaultLetterBlocks(),
+        defaultMainTemplatePath: 'system/letter.hbs',
+        fallbackMainTemplate: promptConfigManager.getDefaultLetterMainTemplateContent()
+      })
+    );
+    console.log('Letter prompt settings saved.');
   }
 
   // --- Action Settings (actions toggles and validation cache) ---

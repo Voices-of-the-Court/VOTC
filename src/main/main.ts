@@ -1,19 +1,25 @@
 import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell } from 'electron';
+import fs from 'fs';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
 import { conversationManager } from './conversation/ConversationManager';
-import { LLMProviderConfig } from './llmProviders/types'; // Added more types
-import { ClipboardListener } from './ClipboardListener'; // Add missing import
+import { LLMProviderConfig, PromptPreset, PromptSettings } from './llmProviders/types';
+import { ClipboardListener } from './ClipboardListener';
 import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
-import { VOTC_ACTIONS_DIR } from './utils/paths';
+import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR } from './utils/paths';
 import { actionRegistry } from './actions/ActionRegistry';
+import { promptConfigManager } from './conversation/PromptConfigManager';
+import { appUpdater } from './AutoUpdater';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
+import { letterManager } from './letter/LetterManager';
+import archiver from 'archiver';
+import { v4 as uuidv4 } from 'uuid';
 
 initLogger();
 // Keep a reference to the config window, managed globally
@@ -25,6 +31,32 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 Menu.setApplicationMenu(null)
+
+const exportPromptsZip = (destination: string, settings: PromptSettings, presets: PromptPreset[]): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const output = fs.createWriteStream(destination);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      output.on('close', () => resolve());
+      output.on('error', reject);
+      archive.on('error', reject);
+
+      archive.pipe(output);
+
+      // Include prompts directory (pList, aliChat, helpers, etc.)
+      archive.directory(VOTC_PROMPTS_DIR, 'prompts');
+
+      // Include current prompt settings and presets
+      archive.append(JSON.stringify(settings, null, 2), { name: 'prompt-settings.json' });
+      archive.append(JSON.stringify(presets, null, 2), { name: 'prompt-presets.json' });
+
+      archive.finalize();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
 
 const createWindow = (): BrowserWindow => {
   // Get primary display dimensions
@@ -38,7 +70,7 @@ const createWindow = (): BrowserWindow => {
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    // alwaysOnTop: true, // Keep window on top
+    alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
     fullscreen: true,
     webPreferences: {
@@ -50,7 +82,7 @@ const createWindow = (): BrowserWindow => {
   });
 
   // Make the window initially click-through
-  // chatWindow.setAlwaysOnTop(true, 'screen-saver');
+  chatWindow.setAlwaysOnTop(true, 'screen-saver');
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Set fullscreen (optional, might conflict with alwaysOnTop/transparency goals depending on OS/WM)
@@ -65,10 +97,10 @@ if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   );
 }
 
-  // Open the DevTools.
-  chatWindow.webContents.openDevTools(
-    { mode: 'detach' }
-  );
+  // // Open the DevTools.
+  // chatWindow.webContents.openDevTools(
+  //   { mode: 'detach' }
+  // );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
@@ -95,6 +127,124 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('llm:getAppSettings', () => {
     return settingsRepository.getAppSettings();
+  });
+
+  // Prompt configuration IPC
+  ipcMain.handle('prompts:getSettings', () => {
+    return settingsRepository.getPromptSettings();
+  });
+
+  ipcMain.handle('prompts:saveSettings', (_event, settings) => {
+    settingsRepository.savePromptSettings(settings);
+    return true;
+  });
+
+  ipcMain.handle('prompts:getLetterSettings', () => {
+    return settingsRepository.getLetterPromptSettings();
+  });
+
+  ipcMain.handle('prompts:saveLetterSettings', (_event, settings) => {
+    settingsRepository.saveLetterPromptSettings(settings);
+    return true;
+  });
+
+  ipcMain.handle('prompts:list', (_event, category: 'system' | 'character_description' | 'example_messages' | 'helpers') => {
+    try {
+      return promptConfigManager.listFiles(category);
+    } catch (error: any) {
+      console.error('Failed to list prompt files:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('prompts:readFile', (_event, relativePath: string) => {
+    try {
+      return promptConfigManager.readPromptFile(relativePath);
+    } catch (error: any) {
+      console.error('Failed to read prompt file:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('prompts:saveFile', (_event, relativePath: string, content: string) => {
+    try {
+      promptConfigManager.savePromptFile(relativePath, content);
+      return true;
+    } catch (error: any) {
+      console.error('Failed to save prompt file:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('prompts:getDefaultMain', () => {
+    return promptConfigManager.getDefaultMainTemplateContent();
+  });
+  ipcMain.handle('prompts:getDefaultLetterMain', () => {
+    return promptConfigManager.getDefaultLetterMainTemplateContent();
+  });
+
+  ipcMain.handle('prompts:listPresets', () => {
+    return promptConfigManager.getPresets();
+  });
+
+  ipcMain.handle('prompts:savePreset', (_event, preset: PromptPreset) => {
+    const normalizedSettings = promptConfigManager.normalizeSettings(preset.settings);
+    const now = new Date().toISOString();
+    const toSave: PromptPreset = {
+      id: preset.id || uuidv4(),
+      name: preset.name || 'Prompt Preset',
+      createdAt: preset.createdAt || now,
+      updatedAt: now,
+      settings: normalizedSettings,
+    };
+    return promptConfigManager.savePreset(toSave);
+  });
+
+  ipcMain.handle('prompts:deletePreset', (_event, id: string) => {
+    promptConfigManager.deletePreset(id);
+    return true;
+  });
+
+  ipcMain.handle('prompts:openPromptsFolder', async () => {
+    await shell.openPath(VOTC_PROMPTS_DIR);
+    return true;
+  });
+
+  ipcMain.handle('prompts:openPromptFile', async (_event, relativePath: string) => {
+    const full = promptConfigManager.resolvePath(relativePath);
+    await shell.openPath(full);
+    return true;
+  });
+
+  ipcMain.handle('prompts:exportZip', async (_event, payload: { settings?: PromptSettings, path?: string }) => {
+    promptConfigManager.ensurePromptDirs();
+    const normalizedSettings = promptConfigManager.normalizeSettings(payload?.settings || settingsRepository.getPromptSettings());
+    const presets = promptConfigManager.getPresets();
+
+    let targetPath = payload?.path;
+    if (!targetPath) {
+      const result = await dialog.showSaveDialog({
+        title: 'Export prompt configuration',
+        defaultPath: 'prompts-export.zip',
+        filters: [{ name: 'Zip Archive', extensions: ['zip'] }],
+      });
+      if (result.canceled || !result.filePath) {
+        return { cancelled: true };
+      }
+      targetPath = result.filePath;
+    }
+
+    await exportPromptsZip(targetPath, normalizedSettings, presets);
+    return { success: true, path: targetPath };
+  });
+
+  ipcMain.handle('letter:getPromptPreview', async () => {
+    try {
+      return await letterManager.buildPromptPreview();
+    } catch (error: any) {
+      console.error('Failed to build letter prompt preview:', error);
+      return null;
+    }
   });
 
   ipcMain.handle('llm:saveProviderConfig', (_, config: LLMProviderConfig) => {
@@ -129,6 +279,10 @@ const setupIpcHandlers = () => {
     settingsRepository.setCK3UserFolderPath(path);
   });
 
+  ipcMain.handle('llm:setModLocationPath', (_, path: string | null) => {
+    settingsRepository.setModLocationPath(path);
+  });
+
   ipcMain.handle('dialog:selectFolder', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
@@ -150,6 +304,10 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('llm:saveGenerateFollowingMessagesSetting', (_, enabled: boolean) => {
     settingsRepository.saveGenerateFollowingMessagesSetting(enabled);
+  });
+
+  ipcMain.handle('llm:saveMessageFontSize', (_, fontSize: number) => {
+    settingsRepository.saveMessageFontSize(fontSize);
   });
 
   ipcMain.handle('llm:getCurrentContextLength', async () => {
@@ -279,6 +437,22 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // Auto-updater IPC handlers
+  ipcMain.handle('updater:checkForUpdates', () => {
+    appUpdater.checkForUpdates();
+    return true;
+  });
+
+  ipcMain.handle('updater:downloadUpdate', () => {
+    appUpdater.downloadUpdate();
+    return true;
+  });
+
+  ipcMain.handle('updater:installUpdate', () => {
+    appUpdater.installUpdate();
+    return true;
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---
@@ -372,11 +546,33 @@ const setupIpcHandlers = () => {
     }
   });
 
+  ipcMain.handle('conversation:regenerateError', async (_, requestArgs: {
+    messageId: number
+  }) => {
+    const { messageId } = requestArgs;
+
+    try {
+      console.log('IPC: Regenerating error:', messageId);
+      const conversation = conversationManager.getCurrentConversation();
+      if (!conversation) {
+        throw new Error('No active conversation');
+      }
+      await conversationManager.regenerateError(messageId);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: Failed to regenerate error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  });
+
   // Set up conversation update listener
   const conversationUpdateCallback = (entries: any[]) => {
-    if (chatWindow && !chatWindow.isDestroyed()) {
-      chatWindow.webContents.send('conversation:updated', entries);
-    }
+      if (chatWindow && !chatWindow.isDestroyed()) {
+          chatWindow.webContents.send('conversation:updated', entries);
+      }
   };
 
   // Subscribe to conversation updates
@@ -388,8 +584,18 @@ const setupIpcHandlers = () => {
 app.on('ready', () => {
   console.log(app.getPath('userData'));
   clearLog();
+  promptConfigManager.seedDefaults();
   setupIpcHandlers(); // Setup handlers first
   chatWindow = createWindow(); // Create the main chat window and assign to global
+  
+  // Set up auto-updater
+  appUpdater.setMainWindow(chatWindow);
+  
+  // Check for updates on startup
+  if (app.isPackaged) {
+    appUpdater.checkForUpdates();
+  }
+  
   // Initialize actions registry with saved settings and preload actions
   actionRegistry.setSettings(settingsRepository.getActionSettings());
   actionRegistry.reloadActions().catch(err => console.error('Failed to reload actions on startup:', err));
@@ -447,6 +653,15 @@ app.on('ready', () => {
     chatWindow.focus();
     chatWindow.webContents.send('chat-reset'); // This will trigger showChat in App.tsx
   });
+
+  clipboardListener.on('VOTC:LETTER', async () => {
+    console.log('VOTC:LETTER detected - generating reply');
+    try {
+      await letterManager.processLatestLetter();
+    } catch (error) {
+      console.error('Failed to process letter:', error);
+    }
+  });
   
   // Add IPC handler for hiding chat UI (not window - window stays persistent)
   ipcMain.on('chat-hide', () => {
@@ -466,6 +681,17 @@ app.on('ready', () => {
 
   if (!ret) {
     console.log('Failed to register Ctrl+H global shortcut');
+  }
+
+  const reta = globalShortcut.register('Control+Shift+H', () => {
+    if (chatWindow && !chatWindow.isDestroyed()) {
+      console.log('Ctrl+Shift+H pressed - toggling settings');
+      chatWindow.webContents.send('toggle-settings');
+    }
+  });
+
+  if (!reta) {
+    console.log('Failed to register Ctrl+Shift+H global shortcut');
   }
 
   // Check if a shortcut is registered

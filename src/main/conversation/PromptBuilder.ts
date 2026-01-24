@@ -1,8 +1,15 @@
-import { GameData } from "../gameData/GameData";
+import { GameData, Memory } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
 import { Message } from "./types";
+import { TemplateEngine } from "./TemplateEngine";
+import { PromptScriptLoader } from "./PromptScriptLoader";
+import { settingsRepository } from "../SettingsRepository";
+import { promptConfigManager } from "./PromptConfigManager";
+import { PromptBlock, PromptSettings } from "../llmProviders/types";
 
 export class PromptBuilder {
+        private static templateEngine = new TemplateEngine();
+        private static scriptLoader = new PromptScriptLoader();
         /**
      * Build prompt for resummarization
      */
@@ -39,59 +46,25 @@ export class PromptBuilder {
      * Generate a system prompt based on the characters in the conversation
      */
     static generateSystemPrompt(char: Character, gameData: GameData): string {
-        if (gameData.characters.size === 0) {
-            console.log('No characters in conversation for system prompt');
+        const promptSettings = settingsRepository.getPromptSettings();
+        const templatePath = promptConfigManager.resolvePath(promptSettings.defaultMainTemplatePath);
+
+        if (gameData.characters.size === 0 || !char) {
+            console.log('No characters or main character missing for system prompt');
             return "You are characters in a medieval strategy game. Engage in conversation naturally.";
         }
 
-        if (!char) {
-            console.log('Primary character not found for ID:', gameData.aiID);
-            return "You are characters in a medieval strategy game. Engage in conversation naturally.";
+        try {
+            const rendered = this.templateEngine.renderTemplate(templatePath, {
+                character: char,
+                gameData
+            });
+            return rendered;
+        } catch (error) {
+            console.error('Failed to render system template, using fallback:', error);
         }
 
-        console.log('Generating system prompt for character:', char.shortName);
-
-        let prompt = `You are ${char.fullName}, ${char.primaryTitle} in a medieval strategy game.
-
-## Current Scene:
-${gameData.scene}
-
-## Current date:
-${gameData.date}
-
-## Character Background:
-- Name: ${char.fullName}
-- Age: ${char.age} years old
-- Personality: ${char.personality}
-- Culture: ${char.culture}, Faith: ${char.faith}
-- Sexuality: ${char.sexuality}
-${char.liege ? `- Liege: ${char.liege}` : ''}
-${char.consort ? `- Consort: ${char.consort}` : ''}
-
-## Traits and Personality:
-${char.traits.map(trait => `- ${trait.category}: ${trait.name} - ${trait.desc}`).join('\n') || 'None specific'}
-
-## Current Situation:
-- Gold: ${char.gold} gold coins
-- Opinion of Player: ${char.opinionOfPlayer}/100
-${char.isRuler ? '- Ruler status' : '- Not a ruler'}
-${char.isIndependentRuler ? '- Independent ruler' : ''}
-${char.capitalLocation ? `- Rules from: ${char.capitalLocation}` : ''}
-
-## Key Relationships:
-${char.relationsToPlayer.map(rel => `- ${rel}`).join('\n') || 'None noted'}
-
-Other characters in this conversation:
-${Array.from(gameData.characters.values()).map(c => `- ${c.shortName}`).filter(c => c !== char.shortName).join('\n')}
-
-You should respond as this character would, taking into account their personality, traits, and opinions. Be politically minded, strategic, and faithful to medieval power structures, elite norms, and systems of loyalty and authority, following your character persona, and interacting with other character as this character would in real life.
-Characters should include phrases in their native language besides English, to add cultural flavour to conversation. Always do Romanization if language doesn't use Latin script base.
-Respond to other character's replica only if is addressed to you, alas your character would retort.
-If any message has /OOC prefix, you should follow every instruction in that message.
-`;
-
-        console.log('Generated system prompt:', prompt.substring(0, 200) + '...');
-        return prompt;
+        return "You are characters in a medieval strategy game. Engage in conversation naturally.";
     }
 
     /**
@@ -114,44 +87,34 @@ If any message has /OOC prefix, you should follow every instruction in that mess
         gameData: GameData,
         currentSessionSummary?: string
     ): any[] {
-        const systemPrompt = this.generateSystemPrompt(char, gameData);
-        const llmMessages: any[] = [
-            { role: 'system', content: systemPrompt }
-        ];
-        
-        // Add character's past conversation summaries (long-term memory)
-        if (char.conversationSummaries && char.conversationSummaries.length > 0) {
-            const pastSummaries = this.buildPastSummariesContext(char, gameData);
-            if (pastSummaries) {
-                llmMessages.push({
-                    role: 'system',
-                    content: pastSummaries
-                });
-            }
-        }
-        
-        // Add current session summary (rolling summary for context management)
-        if (currentSessionSummary) {
-            llmMessages.push({
-                role: 'system',
-                content: `Summary of earlier messages in this conversation:\n${currentSessionSummary}`
-            });
-        }
-        
-        // Add recent message history
-        llmMessages.push(
-            ...history.map(m => ({ 
-                role: m.role, 
-                content: `${m.name}: ${m.content}` 
+        const promptSettings = settingsRepository.getPromptSettings();
+        const blocks = promptSettings.blocks || [];
+        const llmMessages: any[] = [];
+
+        const context = {
+            character: char,
+            gameData,
+            summary: currentSessionSummary,
+        };
+
+        const workingHistory: any[] = history
+            .map(m => ({
+                role: m.role,
+                name: m.name,
+                content: m.content
             }))
-        );
-        
-        // Add instruction
-        llmMessages.push({
-            role: 'user',
-            content: `[Write next reply only as ${char.fullName}]`
-        });
-        
+            .filter(m => !!m.content);
+
+        for (const block of blocks) {
+            if (!block.enabled) continue;
+            this.applyBlock(block, llmMessages, workingHistory, context, promptSettings);
+        }
+
+        if (promptSettings.suffix?.enabled && promptSettings.suffix.template) {
+            const suffixContent = this.templateEngine.renderTemplateString(promptSettings.suffix.template, context);
+            llmMessages.push({ role: 'system', content: suffixContent });
+        }
+
         return llmMessages;
     }
 
@@ -263,5 +226,108 @@ Please summarize the conversation into only a single paragraph.`
         return `${Math.floor(timeDifference / 365)} years ago`;
     }
 
+    private static buildMemoriesBlock(gameData: GameData, limit = 5, template?: string, context: any = {}): string | null {
+        const allMemories: Memory[] = [];
+        gameData.characters.forEach((value) => {
+            if (value?.memories) {
+                allMemories.push(...value.memories);
+            }
+        });
+        if (allMemories.length === 0) return null;
+        const sorted = allMemories.sort((a, b) => (b.relevanceWeight ?? 0) - (a.relevanceWeight ?? 0));
+        const selected = sorted.slice(0, limit);
+        const tpl = template || 'Relevant memories:\n{{#each memories}}- {{this.creationDate}}: {{this.desc}}\n{{/each}}';
+        return this.templateEngine.renderTemplateString(tpl, { ...context, memories: selected });
+    }
 
+    private static applyBlock(block: PromptBlock, messages: any[], history: any[], baseContext: any, promptSettings: PromptSettings): void {
+        const { character, gameData, summary } = baseContext;
+        switch (block.type) {
+            case 'main': {
+                const template = promptSettings.mainTemplate || promptConfigManager.getDefaultMainTemplateContent();
+                const content = this.templateEngine.renderTemplateString(template, baseContext);
+                if (content?.trim()) {
+                    messages.push({ role: block.role || 'system', content });
+                }
+                break;
+            }
+            case 'description': {
+                if (!block.scriptPath) break;
+                const descScriptPath = promptConfigManager.resolvePath(block.scriptPath);
+                try {
+                    const descriptionBlock = this.scriptLoader.executeDescription(descScriptPath, gameData, character.id);
+                    if (descriptionBlock) {
+                        messages.push({ role: 'system', content: descriptionBlock });
+                    }
+                } catch (error) {
+                    console.error('Failed to run description script:', error);
+                }
+                break;
+            }
+            case 'examples': {
+                if (!block.scriptPath) break;
+                const examplesScriptPath = promptConfigManager.resolvePath(block.scriptPath);
+                try {
+                    const exampleMessages = this.scriptLoader.executeExamples(examplesScriptPath, gameData, character.id);
+                    if (Array.isArray(exampleMessages) && exampleMessages.length > 0) {
+                        messages.push(...exampleMessages);
+                    }
+                } catch (error) {
+                    console.error('Failed to run example script:', error);
+                }
+                break;
+            }
+            case 'memories': {
+                const memoriesBlock = this.buildMemoriesBlock(gameData, block.limit ?? 5, block.template, baseContext);
+                if (memoriesBlock) {
+                    messages.push({ role: block.role || 'system', content: memoriesBlock });
+                }
+                break;
+            }
+            case 'past_summaries': {
+                const pastSummaries = this.buildPastSummariesContext(character, gameData);
+                if (pastSummaries) {
+                    const content = block.template
+                        ? this.templateEngine.renderTemplateString(block.template, { ...baseContext, pastSummaries })
+                        : pastSummaries;
+                    messages.push({ role: block.role || 'system', content });
+                }
+                break;
+            }
+            case 'rolling_summary': {
+                if (summary) {
+                    const tpl = block.template || 'Summary of earlier messages in this conversation:\n{{summary}}';
+                    const content = this.templateEngine.renderTemplateString(tpl, { ...baseContext, summary });
+                    messages.push({ role: block.role || 'system', content });
+                }
+                break;
+            }
+            case 'history': {
+                messages.push(
+                    ...history.map(m => ({
+                        role: m.role,
+                        content: m.name ? `${m.name}: ${m.content}` : m.content
+                    }))
+                );
+                break;
+            }
+            case 'instruction': {
+                const tpl = block.template || '[Write next reply only as {{character.fullName}}]';
+                const content = this.templateEngine.renderTemplateString(tpl, baseContext);
+                messages.push({
+                    role: block.role || 'user',
+                    content
+                });
+                break;
+            }
+            case 'custom': {
+                if (!block.template) break;
+                const content = this.templateEngine.renderTemplateString(block.template, baseContext);
+                messages.push({ role: block.role || 'system', content });
+                break;
+            }
+            default:
+                break;
+        }
+    }
 }
