@@ -256,6 +256,7 @@ export class SettingsRepository {
     return {
       llmSettings: this.getLLMSettings(),
       ck3UserFolderPath: this.getCK3UserFolderPath(),
+      modLocationPath: this.getModLocationPath(),
       globalStreamEnabled: this.getGlobalStreamSetting(),
       pauseOnRegeneration: this.getPauseOnRegenerationSetting(),
       generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),

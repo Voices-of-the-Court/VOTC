@@ -154,7 +154,7 @@ export class ActionRegistry extends EventEmitter {
   }
 
   /**
-   * Copy default action files into user data if they do not exist.
+   * Copy default action files into user data, always updating existing files.
    */
   public async seedDefaults(): Promise<void> {
     await this.ensureBaseStructure();
@@ -172,9 +172,7 @@ export class ActionRegistry extends EventEmitter {
           copyRecursive(path.join(src, entry), path.join(dest, entry));
         }
       } else {
-        if (!fs.existsSync(dest)) {
-          fs.copyFileSync(src, dest);
-        }
+        fs.copyFileSync(src, dest);
       }
     };
 

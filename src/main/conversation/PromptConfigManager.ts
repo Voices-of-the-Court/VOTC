@@ -21,7 +21,7 @@ export class PromptConfigManager {
   }
 
   /**
-   * Copy default prompt assets into user data if they do not exist.
+   * Copy default prompt assets into user data, always updating existing files.
    */
   seedDefaults(): void {
     this.ensurePromptDirs();
@@ -38,9 +38,7 @@ export class PromptConfigManager {
           copyRecursive(path.join(src, entry), path.join(dest, entry));
         }
       } else {
-        if (!fs.existsSync(dest)) {
-          fs.copyFileSync(src, dest);
-        }
+        fs.copyFileSync(src, dest);
       }
     };
 
