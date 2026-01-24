@@ -13,6 +13,7 @@ declare global {
       getConversationState: () => Promise<{ isPaused: boolean; queueLength: number }>;
       regenerateMessage: (messageId: number) => Promise<{success: boolean, error?: string}>;
       editUserMessage: (messageId: number, newContent: string) => Promise<{success: boolean, error?: string}>;
+      regenerateError: (messageId: number) => Promise<{success: boolean, error?: string}>;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;

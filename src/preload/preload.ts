@@ -113,6 +113,9 @@ contextBridge.exposeInMainWorld('conversationAPI', {
   editUserMessage: (messageId: number, newContent: string): Promise<{success: boolean, error?: string}> => {
     return ipcRenderer.invoke('conversation:editUserMessage', { messageId, newContent });
   },
+  regenerateError: (messageId: number): Promise<{success: boolean, error?: string}> => {
+    return ipcRenderer.invoke('conversation:regenerateError', { messageId });
+  },
  });
  
  // Actions API exposed to renderer

@@ -200,6 +200,25 @@ export class ConversationManager {
     }
 
     /**
+     * Regenerate an error message
+     */
+    async regenerateError(messageId: number): Promise<any> {
+        if (!this.currentConversation) {
+            throw new Error('No active conversation');
+        }
+
+        try {
+            await this.currentConversation.regenerateError(messageId);
+            this.emitConversationUpdate();
+            return { success: true };
+        } catch (error) {
+            console.error('Error in ConversationManager.regenerateError:', error);
+            this.emitConversationUpdate();
+            throw error;
+        }
+    }
+
+    /**
      * Subscribe to conversation updates
      */
     onConversationUpdate(callback: (entries: any[]) => void): void {

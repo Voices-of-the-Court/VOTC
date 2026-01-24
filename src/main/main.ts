@@ -529,11 +529,33 @@ const setupIpcHandlers = () => {
     }
   });
 
+  ipcMain.handle('conversation:regenerateError', async (_, requestArgs: {
+    messageId: number
+  }) => {
+    const { messageId } = requestArgs;
+
+    try {
+      console.log('IPC: Regenerating error:', messageId);
+      const conversation = conversationManager.getCurrentConversation();
+      if (!conversation) {
+        throw new Error('No active conversation');
+      }
+      await conversationManager.regenerateError(messageId);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: Failed to regenerate error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  });
+
   // Set up conversation update listener
   const conversationUpdateCallback = (entries: any[]) => {
-    if (chatWindow && !chatWindow.isDestroyed()) {
-      chatWindow.webContents.send('conversation:updated', entries);
-    }
+      if (chatWindow && !chatWindow.isDestroyed()) {
+          chatWindow.webContents.send('conversation:updated', entries);
+      }
   };
 
   // Subscribe to conversation updates
