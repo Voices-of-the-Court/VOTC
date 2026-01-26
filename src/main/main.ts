@@ -467,6 +467,98 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // Bug report logs collector
+  ipcMain.handle('logs:collectAndOpen', async () => {
+    try {
+      const os = require('os');
+      const path = require('path');
+      const fs = require('fs');
+      
+      // Use a fixed folder path for logs
+      const logsFolder = path.join(os.tmpdir(), 'VOTC-all-logs');
+      
+      // Clear the folder if it exists
+      if (fs.existsSync(logsFolder)) {
+        const files = fs.readdirSync(logsFolder);
+        for (const file of files) {
+          const filePath = path.join(logsFolder, file);
+          fs.unlinkSync(filePath);
+        }
+      } else {
+        // Create the folder if it doesn't exist
+        fs.mkdirSync(logsFolder, { recursive: true });
+      }
+      
+      // Get app logs directory
+      const userDataPath = app.getPath('userData');
+      const appLogsPath = path.join(userDataPath, 'votc_data', 'logs');
+      
+      // Copy app logs if they exist
+      if (fs.existsSync(appLogsPath)) {
+        const appLogFiles = fs.readdirSync(appLogsPath);
+        for (const file of appLogFiles) {
+          const srcPath = path.join(appLogsPath, file);
+          const destPath = path.join(logsFolder, `app-${file}`);
+          fs.copyFileSync(srcPath, destPath);
+        }
+      }
+      
+      // Get CK3 logs path from settings
+      const ck3Path = settingsRepository.getCK3UserFolderPath();
+      if (ck3Path) {
+        const ck3LogsPath = path.join(ck3Path, 'logs');
+        
+        // Copy debug.log
+        const debugLogPath = path.join(ck3LogsPath, 'debug.log');
+        if (fs.existsSync(debugLogPath)) {
+          fs.copyFileSync(debugLogPath, path.join(logsFolder, 'debug.log'));
+        }
+        
+        // Copy game.log
+        const gameLogPath = path.join(ck3LogsPath, 'game.log');
+        if (fs.existsSync(gameLogPath)) {
+          fs.copyFileSync(gameLogPath, path.join(logsFolder, 'game.log'));
+        }
+        
+        // Copy error.log
+        const errorLogPath = path.join(ck3LogsPath, 'error.log');
+        if (fs.existsSync(errorLogPath)) {
+          fs.copyFileSync(errorLogPath, path.join(logsFolder, 'error.log'));
+        }
+      }
+      
+      // Create a summary file with system information
+      const summary = {
+        timestamp: new Date().toISOString(),
+        platform: os.platform(),
+        arch: os.arch(),
+        nodeVersion: process.version,
+        electronVersion: process.versions.electron,
+        appVersion: app.getVersion(),
+        ck3Path: ck3Path || 'Not set'
+      };
+      
+      fs.writeFileSync(
+        path.join(logsFolder, 'system-info.json'),
+        JSON.stringify(summary, null, 2)
+      );
+      
+      // Open the folder for the user
+      await shell.openPath(logsFolder);
+      
+      return { 
+        success: true, 
+        path: logsFolder 
+      };
+    } catch (error: any) {
+      console.error('Failed to collect logs:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Unknown error' 
+      };
+    }
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---

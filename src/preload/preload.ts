@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   openExternal: (url: string): Promise<{ success: boolean; error?: string }> => 
     ipcRenderer.invoke('shell:openExternal', url),
+  collectAndOpenLogs: (): Promise<{ success: boolean; path?: string; error?: string }> =>
+    ipcRenderer.invoke('logs:collectAndOpen'),
 });
 
 contextBridge.exposeInMainWorld('llmConfigAPI', {

@@ -30,6 +30,7 @@ declare global {
       onUpdaterStatus: (callback: (event: any, status: string) => void) => () => void;
       removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => void;
       openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
+      collectAndOpenLogs: () => Promise<{ success: boolean; path?: string; error?: string }>;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;

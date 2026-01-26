@@ -7,6 +7,7 @@ import ActionsView from './ActionsView';
 import PromptsView from './PromptsView';
 import discordIcon from '../assets/discord-icon.svg';
 import tooltipIcon from '../assets/tooltip2.png';
+import logsIcon from '../assets/folder.svg';
 
 type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts';
 
@@ -43,6 +44,19 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
     }
   };
 
+  const handleBugReportClick = async () => {
+    try {
+      const result = await window.electronAPI?.collectAndOpenLogs();
+      if (result?.success) {
+        console.log('Logs collected and folder opened:', result.path);
+      } else {
+        console.error('Failed to collect logs:', result?.error);
+      }
+    } catch (error) {
+      console.error('Failed to collect logs:', error);
+    }
+  };
+
   return (
     <div
       className="config-panel-container"
@@ -52,7 +66,7 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
     >
       <header className="config-header">
         <div className="discord-container">
-          <button className="tooltip-button" title="Discord">
+          <button className="tooltip-button" title="Help section">
             <img src={tooltipIcon} alt="?" className="tooltip-icon" />
           </button>
           <button 
@@ -61,6 +75,13 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
             title="Join our Discord"
           >
             <img src={discordIcon} alt="Discord" className="discord-icon" />
+          </button>
+          <button 
+            className="discord-button visible" 
+            onClick={handleBugReportClick} 
+            title="Collect all logs for bug report"
+          >
+            <img src={logsIcon} alt="?" className="discord-icon" />
           </button>
         </div>
         <button
