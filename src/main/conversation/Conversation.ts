@@ -518,6 +518,11 @@ export class Conversation {
     
     // Create final comprehensive summary and save to characters
     async finalizeConversation(): Promise<void> {
+        runFileManager.write("trigger_event = mcc_event_v2.9002");
+        setTimeout(() => {
+            runFileManager.clear();
+            console.log('Run file cleared after conversation end event.');
+        }, 500);
         if (this.messages.length < 6) {
             console.log('Not enough messages for final summarization');
             this.end();
@@ -592,11 +597,6 @@ export class Conversation {
         this.isActive = false;
         this.clearHistory();
         cleanLogFile(settingsRepository.getCK3DebugLogPath()!);
-        runFileManager.write("trigger_event = mcc_event_v2.9002");
-        setTimeout(() => {
-            runFileManager.clear();
-            console.log('Run file cleared after conversation end event.');
-        }, 500);
     }
 
     // Emit conversation update event

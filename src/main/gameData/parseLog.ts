@@ -682,9 +682,8 @@ export async function cleanLogFile(filePath: string) {
     const fileContent = await fs.promises.readFile(filePath, 'utf-8');
     const lines = fileContent.split('\n');
     const stringsToRemove = [
-        'Running console command: run votc.txt',
+        'Running console command',
         'console_failure: Effect is empty. Check error log',
-        'Running console command: gui.createwidget gui/custom_gui/talk_window_v2.gui talk_window_counter',
         'console_success: Executing effect',
         'Trying to trigger an animation with glow_alpha for a widget which has no glow',
         'No sound alias named \'river_node\' configured! Please check you sound alias database'

@@ -4,7 +4,7 @@ import TailFile from '@logdna/tail-file';
 import readline from 'node:readline';
 import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
-import { parseLog } from "../gameData/parseLog";
+import { parseLog, cleanLogFile } from "../gameData/parseLog";
 import { letterPromptBuilder } from "./LetterPromptBuilder";
 import { LetterData, StoredLetter } from "./types";
 import { GameData } from "../gameData/GameData";
@@ -15,6 +15,8 @@ export class LetterManager {
   private storedLetters: Map<string, StoredLetter> = new Map();
   private tailFile: TailFile | null = null;
   private readline: readline.Interface | null = null;
+  private lastCleanTime: number = 0;
+  private readonly CLEAN_INTERVAL_MS: number = 300000; // 5 minutes
 
   constructor() {
     this.startLogTailing();
@@ -47,7 +49,7 @@ export class LetterManager {
       // Set up line-by-line parsing
       this.readline = readline.createInterface({ input: this.tailFile });
       this.readline.on('line', (line) => {
-        this.processLogLine(line);
+        this.processLogLine(line, debugLogPath);
       });
     } catch (error) {
       console.error('Failed to start log tailing:', error);
@@ -57,7 +59,7 @@ export class LetterManager {
   /**
    * Process a single log line looking for VOTC:DATE
    */
-  private processLogLine(line: string): void {
+  private processLogLine(line: string, debugLogPath: string): void {
     // Check for VOTC:DATE updates
     const dateRegex = /VOTC:DATE\/;\/(\d+)/;
     const match = line.match(dateRegex);
@@ -65,6 +67,13 @@ export class LetterManager {
     if (match) {
       const newTotalDays = Number(match[1]);
       this.updateCurrentDate(newTotalDays);
+    }
+    
+    // Throttle log cleaning to once every 5 minutes
+    const now = Date.now();
+    if (now - this.lastCleanTime >= this.CLEAN_INTERVAL_MS) {
+      this.lastCleanTime = now;
+      cleanLogFile(debugLogPath);
     }
   }
 
@@ -77,7 +86,7 @@ export class LetterManager {
 
     // Detect time travel backwards
     if (oldTotalDays > 0 && newTotalDays < oldTotalDays) {
-      console.log("Time travel detected (backwards). Removing letters sent after new date.");
+      console.log(`Time travel detected (backwards). Removing letters sent after new date. | Old date: ${oldTotalDays} | New date: ${newTotalDays}`);
       this.removeLettersAfterDate(newTotalDays);
     }
     // Detect large time jump forward (more than 40 days)
@@ -266,7 +275,8 @@ export class LetterManager {
     const letterFilePath = path.join(runFolder, `letters.txt`);
 
     const escapedReply = reply.replace(/"/g, '\\"');
-    const gameCommand = `remove_global_variable ?= votc_${letter.letterId}
+    const gameCommand = `debug_log = "[Localize('talk_event.9999.desc')]"
+remove_global_variable ?= votc_${letter.letterId}
 create_artifact = {
 \tname = votc_huixin_title${letter.letterId.replace(/letter_/, "")}
 \tdescription = "${escapedReply}"
@@ -300,7 +310,7 @@ trigger_event = message_event.362`;
     const letterFilePath = path.join(runFolder, "letters.txt");
 
     if (fs.existsSync(letterFilePath)) {
-      fs.writeFileSync(letterFilePath, "", "utf-8");
+      fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");
       console.log("Cleared letters.txt file");
     } else {
       console.log("letters.txt file does not exist, nothing to clear");
