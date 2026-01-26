@@ -83,7 +83,9 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 
                 letterData = {
                     content: parts[0],
-                    letterId: parts[1]
+                    letterId: parts[1],
+                    totalDays: Number(parts[2]),
+                    delay: Number(parts[3])
                 }
 
                 if (letterData) {

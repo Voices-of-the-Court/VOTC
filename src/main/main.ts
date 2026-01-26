@@ -662,6 +662,15 @@ app.on('ready', () => {
       console.error('Failed to process letter:', error);
     }
   });
+
+  clipboardListener.on('VOTC:LETTER_ACCEPTED', () => {
+    console.log('VOTC:LETTER_ACCEPTED detected - clearing letters.txt');
+    try {
+      letterManager.clearLettersFile();
+    } catch (error) {
+      console.error('Failed to clear letters file:', error);
+    }
+  });
   
   // Add IPC handler for hiding chat UI (not window - window stays persistent)
   ipcMain.on('chat-hide', () => {
@@ -706,6 +715,8 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   tray?.destroy();
+  // Stop letter manager log tailing
+  letterManager.stopLogTailing();
 });
 
 app.on('activate', () => {

@@ -1,30 +1,174 @@
 import fs from "fs";
 import path from "path";
+import TailFile from '@logdna/tail-file';
+import readline from 'node:readline';
 import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
 import { parseLog } from "../gameData/parseLog";
 import { letterPromptBuilder } from "./LetterPromptBuilder";
-import { LetterData } from "./types";
+import { LetterData, StoredLetter } from "./types";
 import { GameData } from "../gameData/GameData";
 import type { ILLMMessage } from "../llmProviders/types";
 
 export class LetterManager {
+  private currentTotalDays: number = 0;
+  private storedLetters: Map<string, StoredLetter> = new Map();
+  private tailFile: TailFile | null = null;
+  private readline: readline.Interface | null = null;
+
+  constructor() {
+    this.startLogTailing();
+  }
+
+  /**
+   * Start tailing the debug.log file to track VOTC:DATE updates
+   */
+  private async startLogTailing(): Promise<void> {
+    const debugLogPath = settingsRepository.getCK3DebugLogPath();
+    if (!debugLogPath) {
+      console.warn("CK3 debug log path is not configured; cannot start log tailing.");
+      return;
+    }
+
+    if (!fs.existsSync(debugLogPath)) {
+      console.warn(`Debug log file does not exist: ${debugLogPath}`);
+      return;
+    }
+
+    try {
+      this.tailFile = new TailFile(debugLogPath, { encoding: 'utf8' })
+        .on('tail_error', (err) => {
+          console.error('Tail error:', err);
+        });
+
+      await this.tailFile.start();
+      console.log(`Started tailing debug log: ${debugLogPath}`);
+
+      // Set up line-by-line parsing
+      this.readline = readline.createInterface({ input: this.tailFile });
+      this.readline.on('line', (line) => {
+        this.processLogLine(line);
+      });
+    } catch (error) {
+      console.error('Failed to start log tailing:', error);
+    }
+  }
+
+  /**
+   * Process a single log line looking for VOTC:DATE
+   */
+  private processLogLine(line: string): void {
+    // Check for VOTC:DATE updates
+    const dateRegex = /VOTC:DATE\/;\/(\d+)/;
+    const match = line.match(dateRegex);
+    
+    if (match) {
+      const newTotalDays = Number(match[1]);
+      this.updateCurrentDate(newTotalDays);
+    }
+  }
+
+  /**
+   * Update current date and handle time travel detection
+   */
+  private updateCurrentDate(newTotalDays: number): void {
+    const oldTotalDays = this.currentTotalDays;
+    
+
+    // Detect time travel backwards
+    if (oldTotalDays > 0 && newTotalDays < oldTotalDays) {
+      console.log("Time travel detected (backwards). Removing letters sent after new date.");
+      this.removeLettersAfterDate(newTotalDays);
+    }
+    // Detect large time jump forward (more than 40 days)
+    else if (oldTotalDays > 0 && newTotalDays - oldTotalDays > 40) {
+      console.log("Large time jump detected (>40 days). Removing letters sent after old date.");
+      this.removeLettersAfterDate(oldTotalDays);
+    }
+
+    this.currentTotalDays = newTotalDays;
+
+    // Check if any stored letters should now be delivered
+    this.checkAndDeliverLetters();
+  }
+
+  /**
+   * Remove letters that were generated after a certain date (time travel cleanup)
+   */
+  private removeLettersAfterDate(cutoffDate: number): void {
+    const lettersToRemove: string[] = [];
+    
+    for (const [letterId, storedLetter] of this.storedLetters.entries()) {
+      // Remove letters that were sent after the cutoff date
+      if (storedLetter.letter.totalDays > cutoffDate) {
+        lettersToRemove.push(letterId);
+      }
+    }
+
+    for (const letterId of lettersToRemove) {
+      console.log(`Removing letter ${letterId} due to time travel`);
+      this.storedLetters.delete(letterId);
+    }
+  }
+
+  /**
+   * Check stored letters and deliver any that are ready
+   */
+  private checkAndDeliverLetters(): void {
+    for (const [letterId, storedLetter] of this.storedLetters.entries()) {
+      if (this.currentTotalDays >= storedLetter.expectedDeliveryDay) {
+        console.log(`Delivering letter ${letterId} (current: ${this.currentTotalDays}, expected: ${storedLetter.expectedDeliveryDay})`);
+        this.deliverLetter(storedLetter);
+        this.storedLetters.delete(letterId);
+      }
+    }
+  }
+
+  /**
+   * Deliver a letter by writing the effect file and updating localization
+   */
+  private async deliverLetter(storedLetter: StoredLetter): Promise<void> {
+    await this.writeLetterEffect(storedLetter.reply, storedLetter.letter);
+  }
+
+  /**
+   * Process a new letter: generate response immediately but store it for delayed delivery
+   */
   async processLatestLetter(): Promise<string | null> {
     const context = await this.loadLatestGameDataWithLetter();
     if (!context) return null;
     const { gameData, letter } = context;
 
+    // Generate the reply immediately
     const messages: ILLMMessage[] = letterPromptBuilder.buildMessages(gameData, letter);
-
     const result = await llmManager.sendChatRequest(messages as unknown as any[], undefined, true);
     const reply = await this.extractReply(result);
+    
     if (!reply) {
       console.warn("Letter reply generation returned empty content.");
       return null;
     }
 
+    // Generate summary
     await this.generateSummary(gameData, letter, reply);
-    await this.writeLetterEffect(reply, letter);
+
+    // Store the letter for delayed delivery
+    const expectedDeliveryDay = letter.totalDays + letter.delay;
+    const storedLetter: StoredLetter = {
+      letter,
+      reply,
+      expectedDeliveryDay
+    };
+
+    this.storedLetters.set(letter.letterId, storedLetter);
+    console.log(`Letter ${letter.letterId} generated and stored. Will deliver on day ${expectedDeliveryDay} (current: ${this.currentTotalDays})`);
+
+    // Check if it should be delivered immediately
+    if (this.currentTotalDays >= expectedDeliveryDay) {
+      console.log(`Letter ${letter.letterId} is ready for immediate delivery`);
+      await this.deliverLetter(storedLetter);
+      this.storedLetters.delete(letter.letterId);
+    }
 
     return reply;
   }
@@ -114,78 +258,76 @@ export class LetterManager {
       return;
     }
 
+    // Update the localization file with the letter content
+    // this.updateLocalizationFile(reply);
+
     const runFolder = path.join(ck3Folder, "run");
     fs.mkdirSync(runFolder, { recursive: true });
-    const letterFilePath = path.join(runFolder, `${letter.letterId}.txt`);
+    const letterFilePath = path.join(runFolder, `letters.txt`);
 
     const escapedReply = reply.replace(/"/g, '\\"');
-    const gameCommand = `send_interface_message = {
-    type = votc_message_popup
-    title = votc_huixin_title${letter.letterId.replace(/letter_/, "")}
-    desc = "${escapedReply}"
-    #left_icon = global_var:message_second_scope_${letter.letterId}
-}
-\tremove_global_variable ?= votc_${letter.letterId}
-    create_artifact = {
+    const gameCommand = `remove_global_variable ?= votc_${letter.letterId}
+create_artifact = {
 \tname = votc_huixin_title${letter.letterId.replace(/letter_/, "")}
 \tdescription = "${escapedReply}"
 \ttype = journal
 \tvisuals = scroll
 \tcreator = global_var:message_second_scope_${letter.letterId}
 \tmodifier = artifact_monthly_minor_prestige_1_modifier
-\t}`;
+\tsave_scope_as = votc_latest_letter
+}
+set_global_variable = {
+\tname = votc_latest_letter
+\tvalue = scope:votc_latest_letter
+}
+trigger_event = message_event.362`;
 
     fs.writeFileSync(letterFilePath, gameCommand, "utf-8");
-
-    // Update the localization file with the letter content
-    await this.updateLocalizationFile(reply);
   }
 
-  private async updateLocalizationFile(reply: string): Promise<void> {
-    const votcModPath = settingsRepository.getModLocationPath();
-    if (!votcModPath) {
-      console.warn("VOTC mod path is not configured; skipping localization update.");
+
+  /**
+   * Clear the letters.txt file
+   */
+  public clearLettersFile(): void {
+    const ck3Folder = settingsRepository.getCK3UserFolderPath();
+    if (!ck3Folder) {
+      console.warn("CK3 user folder is not configured; cannot clear letters file.");
       return;
     }
 
-    const localizationPath = path.join(votcModPath, "localization", "english", "talk_l_english.yml");
-    
-    try {
-      // Read the existing file
-      if (!fs.existsSync(localizationPath)) {
-        console.warn("Localization file does not exist:", localizationPath);
-        return;
-      }
-      
-      let content = fs.readFileSync(localizationPath, "utf-8");
-      
-      // Replace the votc_message_tooltip line with the actual letter content
-      // Keep \n characters for line breaks in the localization file
-      const escapedReply = reply.replace(/\n/g, '\\n'); // Converts actual newline to literal "\n"
-      const newTooltipLine = `letter_message:0 "${escapedReply}"`;
-      
-      // Use regex to find and replace the line
-      const tooltipRegex = /^letter_message:0 .+$/m;
-      if (tooltipRegex.test(content)) {
-        content = content.replace(tooltipRegex, newTooltipLine);
-        
-        fs.writeFileSync(localizationPath, content, "utf-8");
-        console.log("Updated letter_message in localization file with letter content");
-      } else {
-        console.warn("Could not find letter_message line in localization file");
-      }
-    } catch (error) {
-      console.error("Failed to update localization file:", error);
+    const runFolder = path.join(ck3Folder, "run");
+    const letterFilePath = path.join(runFolder, "letters.txt");
+
+    if (fs.existsSync(letterFilePath)) {
+      fs.writeFileSync(letterFilePath, "", "utf-8");
+      console.log("Cleared letters.txt file");
+    } else {
+      console.log("letters.txt file does not exist, nothing to clear");
     }
   }
-  // @ts-ignore
-  private _extractLetterNumber(letterId: string): string {
-    const match = letterId.match(/letter_?(\\d+)/);
-    if (match && match[1]) {
-      return match[1];
+
+  /**
+   * Stop log tailing (cleanup)
+   */
+  public async stopLogTailing(): Promise<void> {
+    if (this.readline) {
+      this.readline.close();
+      this.readline = null;
     }
-    const digits = letterId.replace(/\\D/g, "");
-    return digits || "latest";
+    
+    if (this.tailFile) {
+      await this.tailFile.quit();
+      this.tailFile = null;
+      console.log("Stopped log tailing");
+    }
+  }
+
+  /**
+   * Get current tracked date
+   */
+  public getCurrentTotalDays(): number {
+    return this.currentTotalDays;
   }
 }
 
