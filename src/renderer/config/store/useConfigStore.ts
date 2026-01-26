@@ -67,6 +67,7 @@ interface ConfigStore {
   updatePauseOnRegeneration: (enabled: boolean) => Promise<void>;
   updateGenerateFollowingMessages: (enabled: boolean) => Promise<void>;
   updateMessageFontSize: (fontSize: number) => Promise<void>;
+  updateShowSettingsOnStartup: (enabled: boolean) => Promise<void>;
   updateCK3Folder: (path: string) => Promise<void>;
   selectCK3Folder: () => Promise<void>;
   updateModLocationPath: (path: string) => Promise<void>;
@@ -535,6 +536,15 @@ export const useConfigStore = create<ConfigStore>()(
           set((state) => ({
             appSettings: state.appSettings
               ? { ...state.appSettings, messageFontSize: fontSize }
+              : null,
+          }));
+        },
+        
+        updateShowSettingsOnStartup: async (enabled) => {
+          await window.llmConfigAPI.saveShowSettingsOnStartupSetting(enabled);
+          set((state) => ({
+            appSettings: state.appSettings
+              ? { ...state.appSettings, showSettingsOnStartup: enabled }
               : null,
           }));
         },

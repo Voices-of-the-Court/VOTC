@@ -7,6 +7,7 @@ const SettingsView: React.FC = () => {
   const updatePauseOnRegeneration = useConfigStore((state) => state.updatePauseOnRegeneration);
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
   const updateMessageFontSize = useConfigStore((state) => state.updateMessageFontSize);
+  const updateShowSettingsOnStartup = useConfigStore((state) => state.updateShowSettingsOnStartup);
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
   const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
   const importLegacySummaries = useConfigStore((state) => state.importLegacySummaries);
@@ -29,6 +30,10 @@ const SettingsView: React.FC = () => {
 
   const handleMessageFontSizeChange = async (e: ChangeEvent<HTMLInputElement>) => {
     await updateMessageFontSize(parseFloat(e.target.value));
+  };
+
+  const handleShowSettingsOnStartupToggle = async (e: ChangeEvent<HTMLInputElement>) => {
+    await updateShowSettingsOnStartup(e.target.checked);
   };
 
   const handleSelectCK3Folder = async () => {
@@ -108,6 +113,17 @@ const SettingsView: React.FC = () => {
           step="0.1"
           value={appSettings.messageFontSize || 1.1}
           onChange={handleMessageFontSizeChange}
+        />
+      </div>
+      
+      <div className="form-group">
+        <label htmlFor="showSettingsOnStartup">Show Settings on Startup:</label>
+        <input
+          type="checkbox"
+          id="showSettingsOnStartup"
+          name="showSettingsOnStartup"
+          checked={appSettings.showSettingsOnStartup ?? true}
+          onChange={handleShowSettingsOnStartupToggle}
         />
       </div>
       

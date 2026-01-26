@@ -198,6 +198,7 @@ export interface AppSettings {
   pauseOnRegeneration?: boolean; // Pause conversation after regenerating a message
   generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
   messageFontSize?: number; // Font size for chat messages in rem units
+  showSettingsOnStartup?: boolean; // Show settings panel when frontend initializes
   promptSettings?: PromptSettings; // Prompt templates/scripts configuration
   letterPromptSettings?: PromptSettings; // Letter prompt templates/scripts configuration
   actionSettings?: ActionSettings;

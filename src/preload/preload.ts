@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   savePauseOnRegenerationSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:savePauseOnRegenerationSetting', enabled),
   saveGenerateFollowingMessagesSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGenerateFollowingMessagesSetting', enabled),
   saveMessageFontSize: (fontSize: number): Promise<void> => ipcRenderer.invoke('llm:saveMessageFontSize', fontSize),
+  saveShowSettingsOnStartupSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveShowSettingsOnStartupSetting', enabled),
   getCurrentContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getCurrentContextLength'),
   getMaxContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getMaxContextLength'),
   setCustomContextLength: (contextLength: number): Promise<void> => ipcRenderer.invoke('llm:setCustomContextLength', contextLength),

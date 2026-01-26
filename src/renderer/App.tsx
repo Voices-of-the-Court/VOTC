@@ -21,6 +21,14 @@ function App() {
   }, [appSettings?.messageFontSize]);
 
   useEffect(() => {
+    // Show settings panel on frontend initialization if the setting is enabled
+    // Only run this once when appSettings are first loaded
+    if (appSettings && appSettings.showSettingsOnStartup !== false && !showConfig) {
+      setShowConfig(true);
+    }
+  }, [appSettings]); // Only depend on appSettings, not showConfig
+
+  useEffect(() => {
     // Listen for VOTC:IN event to show chat
     const cleanupChatEvent = window.electronAPI.onChatReset(() => {
       console.log('Chat reset - showing chat interface');

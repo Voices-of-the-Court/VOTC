@@ -83,6 +83,10 @@ const schema: Schema<AppSettings> = {
     type: 'number',
     default: 1.1
   },
+  showSettingsOnStartup: {
+    type: 'boolean',
+    default: true
+  },
   promptSettings: {
     type: 'object',
     default: {} as PromptSettings,
@@ -216,6 +220,9 @@ export class SettingsRepository {
     if (currentAppSettings.messageFontSize === undefined) {
         this.store.set('messageFontSize', 1.1); // Default font size
     }
+    if (currentAppSettings.showSettingsOnStartup === undefined) {
+        this.store.set('showSettingsOnStartup', true); // Default to showing settings on startup
+    }
   }
 
   private getDefaultPromptSettings(): PromptSettings {
@@ -261,6 +268,7 @@ export class SettingsRepository {
       pauseOnRegeneration: this.getPauseOnRegenerationSetting(),
       generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),
       messageFontSize: this.getMessageFontSize(),
+      showSettingsOnStartup: this.getShowSettingsOnStartup(),
       promptSettings: this.getPromptSettings(),
       letterPromptSettings: this.getLetterPromptSettings(),
       actionSettings: this.getActionSettings()
@@ -334,6 +342,15 @@ export class SettingsRepository {
   saveMessageFontSize(fontSize: number): void {
     this.store.set('messageFontSize', fontSize);
     console.log('Message font size saved:', fontSize);
+  }
+
+  getShowSettingsOnStartup(): boolean {
+    return this.store.get('showSettingsOnStartup', true); // Default to true
+  }
+
+  saveShowSettingsOnStartupSetting(enabled: boolean): void {
+    this.store.set('showSettingsOnStartup', enabled);
+    console.log('Show settings on startup setting saved:', enabled);
   }
 
   // --- Prompt settings ---

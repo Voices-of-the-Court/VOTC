@@ -310,6 +310,10 @@ const setupIpcHandlers = () => {
     settingsRepository.saveMessageFontSize(fontSize);
   });
 
+  ipcMain.handle('llm:saveShowSettingsOnStartupSetting', (_, enabled: boolean) => {
+    settingsRepository.saveShowSettingsOnStartupSetting(enabled);
+  });
+
   ipcMain.handle('llm:getCurrentContextLength', async () => {
     try {
       return await llmManager.getCurrentContextLength();
