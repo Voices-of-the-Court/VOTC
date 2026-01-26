@@ -174,6 +174,8 @@ export class Conversation {
 
         // Create AbortController for this stream
         this.currentStreamController = new AbortController();
+        let wasCancelled = false;
+        let streamCompleted = false;
 
         try {
             const result = await llmManager.sendChatRequest(llmMessages, this.currentStreamController.signal);
@@ -182,25 +184,39 @@ export class Conversation {
                 typeof result === 'object' &&
                 typeof (result as any)[Symbol.asyncIterator] === 'function') {
                 // Handle streaming response
-                for await (const chunk of result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void>) {
-                    if (chunk.delta?.content) {
-                        placeholder.content += chunk.delta.content;
-                        this.emitUpdate();
+                try {
+                    for await (const chunk of result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void>) {
+                        if (chunk.delta?.content) {
+                            placeholder.content += chunk.delta.content;
+                            this.emitUpdate();
+                        }
                     }
+                    streamCompleted = true;
+                } catch (streamError) {
+                    // Stream was aborted
+                    if (streamError instanceof Error && streamError.message === 'AbortError: Message cancelled') {
+                        wasCancelled = true;
+                        throw streamError;
+                    }
+                    throw streamError;
                 }
+                
                 placeholder.isStreaming = false;
                 
-                // Execute actions and collect feedback
-                const actionResults = await ActionEngine.evaluateForCharacter(this, npc);
-                this.addActionFeedback(msgId, actionResults);
+                // Only execute actions if stream completed successfully (not cancelled)
+                if (streamCompleted && !wasCancelled) {
+                    const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
+                    this.addActionFeedback(msgId, actionResults);
+                }
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
                 placeholder.content = result.content;
                 this.emitUpdate();
                 placeholder.isStreaming = false;
+                streamCompleted = true;
                 
                 // Execute actions and collect feedback
-                const actionResults = await ActionEngine.evaluateForCharacter(this, npc);
+                const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
                 this.addActionFeedback(msgId, actionResults);
             } else {
                 throw new Error('Bad LLM response format');
@@ -212,7 +228,9 @@ export class Conversation {
             this.messages = this.messages.filter(msg => msg.id !== msgId);
 
             // Check if this was an abort (user cancelled)
-            if (error instanceof Error && error.message !== 'AbortError: Message cancelled') {
+            if (error instanceof Error && error.message === 'AbortError: Message cancelled') {
+                wasCancelled = true;
+            } else {
                 const err = createError({
                     id: this.nextId++,
                     content: `Failed to get response from ${npc.shortName}`,
@@ -225,7 +243,11 @@ export class Conversation {
                 this.pauseConversation();
             }
         } finally {
-            // Clean up the AbortController
+            // Clear pause state if queue is empty and this was a cancellation
+            if (wasCancelled && this.npcQueue.length === 0 && this.isPaused) {
+                this.isPaused = false;
+            }
+            
             this.emitUpdate();
             this.currentStreamController = null;
         }
@@ -318,8 +340,12 @@ export class Conversation {
             await this.respondAs(npc);
         }
 
-        if (this.npcQueue.length === 0 && !this.isPaused) {
-            console.log('Queue processing complete');
+        // Clear pause state if queue is now empty (handles case where queue was emptied during processing)
+        if (this.npcQueue.length === 0 && this.isPaused) {
+            this.isPaused = false;
+        }
+
+        if (this.npcQueue.length === 0) {
             this.emitUpdate();
         }
     }
@@ -404,7 +430,7 @@ export class Conversation {
             if (latestUserIndex >= 0) {
                 // Get all characters who haven't responded after the latest user message
                 const respondedCharacters = new Set<string>();
-                for (let i = latestUserIndex + 1; i < targetIndex; i++) { // targetIndex is now where we cut off
+                for (let i = latestUserIndex + 1; i < targetIndex; i++) {
                     const msg = this.messages[i] as Message;
                     if (msg.role === 'assistant' && msg.name) {
                         respondedCharacters.add(msg.name);

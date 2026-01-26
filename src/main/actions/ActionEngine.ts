@@ -19,13 +19,22 @@ export class ActionEngine {
    * - Runs the resolved actions (writing CK3 effects with proper scoping)
    * - Returns array of execution results with feedback
    */
-  static async evaluateForCharacter(conv: Conversation, npc: Character): Promise<ActionExecutionResult[]> {
+  static async evaluateForCharacter(conv: Conversation, npc: Character, signal?: AbortSignal): Promise<ActionExecutionResult[]> {
     try {
+      // Check if cancelled before starting
+      if (signal?.aborted) {
+        return [];
+      }
       // 1) Build candidate actions for this source character
       const loaded = actionRegistry.getAllActions(/* includeDisabled = */ false);
 
       const available: SchemaBuildInput["availableActions"] = [];
       for (const act of loaded) {
+        // Check for cancellation during action gathering
+        if (signal?.aborted) {
+          return [];
+        }
+
         try {
           const checkResult = await act.definition.check({
             gameData: conv.gameData,
@@ -72,14 +81,20 @@ export class ActionEngine {
         return [];
       }
 
+      // Check for cancellation before LLM request
+      if (signal?.aborted) {
+        console.log('[DEBUG] ActionEngine: Aborted before LLM request');
+        return [];
+      }
+
       // 2) Build messages and schema for LLM structured output
       const messages = ActionPromptBuilder.buildActionMessages(conv, npc, available);
-      console.log("[ActionEngine] Available actions for LLM:", available.map(a => ({
-        id: a.signature,
-        requiresTarget: a.requiresTarget,
-        validTargets: a.validTargetCharacterIds?.length ?? 0,
-        args: a.args.map(arg => `${arg.name}:${arg.type}`)
-      })));
+      // console.log("[ActionEngine] Available actions for LLM:", available.map(a => ({
+      //   id: a.signature,
+      //   requiresTarget: a.requiresTarget,
+      //   validTargets: a.validTargetCharacterIds?.length ?? 0,
+      //   args: a.args.map(arg => `${arg.name}:${arg.type}`)
+      // })));
 
       // Primary schema (JSON Schema for provider)
       const jsonSchema = buildStructuredResponseJsonSchema({
@@ -91,24 +106,37 @@ export class ActionEngine {
         availableActions: available
       });
 
-      // 3) Request LLM with native structured output
+      // 3) Request LLM with native structured output (pass abort signal)
       
       const output = await llmManager.sendActionsRequest(
         messages,
         "votc_actions",
-        jsonSchema
+        jsonSchema,
+        signal
       );
+
+      // Check for cancellation after LLM request
+      if (signal?.aborted) {
+        console.log('[DEBUG] ActionEngine: Aborted after LLM request');
+        return [];
+      }
 
       // Handle non-stream result
       const result = await output as any; // ILLMCompletionResponse
-      console.log("[ActionEngine] Raw LLM result:", JSON.stringify(result, null, 2));
+      // console.log("[ActionEngine] Raw LLM result:", JSON.stringify(result, null, 2));
       
       const content = (result && typeof result === "object") ? result.content : null;
-      console.log("[ActionEngine] Extracted content:", content);
+      // console.log("[ActionEngine] Extracted content:", content);
 
       if (!content || typeof content !== "string") {
         // In some providers content may be null/empty despite schema. Fail gracefully.
-        console.log("[ActionEngine] No valid content received from LLM");
+        // console.log("[ActionEngine] No valid content received from LLM");
+        return [];
+      }
+
+      // Check for cancellation before parsing
+      if (signal?.aborted) {
+        console.log('[DEBUG] ActionEngine: Aborted before parsing response');
         return [];
       }
 
@@ -119,29 +147,29 @@ export class ActionEngine {
         const maybeJson = healJsonResponseWithLogging(content, "ActionEngine");
         
         if (!maybeJson) {
-          console.error("[ActionEngine] Failed to heal JSON response");
-          console.error("[ActionEngine] Error details:", {
-            receivedContent: content,
-            expectedFormat: "{ actions: [{ actionId: string, targetCharacterId?: number, args: {} }] }",
-            availableActionIds: available.map(a => a.signature)
-          });
+          // console.error("[ActionEngine] Failed to heal JSON response");
+          // console.error("[ActionEngine] Error details:", {
+          //   receivedContent: content,
+          //   expectedFormat: "{ actions: [{ actionId: string, targetCharacterId?: number, args: {} }] }",
+          //   availableActionIds: available.map(a => a.signature)
+          // });
           return [];
         }
         
-        console.log("[ActionEngine] Healed JSON from LLM:", JSON.stringify(maybeJson, null, 2));
-        console.log("[ActionEngine] Expected structure: { actions: [{ actionId, targetCharacterId?, args }] }");
+        // console.log("[ActionEngine] Healed JSON from LLM:", JSON.stringify(maybeJson, null, 2));
+        // console.log("[ActionEngine] Expected structure: { actions: [{ actionId, targetCharacterId?, args }] }");
         
         const validated = zodSchema.parse(maybeJson);
         parsed = validated;
-        console.log("[ActionEngine] Successfully validated against schema");
+        // console.log("[ActionEngine] Successfully validated against schema");
       } catch (err) {
         // If validation fails, do not run any actions
-        console.error("[ActionEngine] Validation error:", err);
-        console.error("[ActionEngine] Error details:", {
-          receivedContent: content,
-          expectedFormat: "{ actions: [{ actionId: string, targetCharacterId?: number, args: {} }] }",
-          availableActionIds: available.map(a => a.signature)
-        });
+        // console.error("[ActionEngine] Validation error:", err);
+        // console.error("[ActionEngine] Error details:", {
+        //   receivedContent: content,
+        //   expectedFormat: "{ actions: [{ actionId: string, targetCharacterId?: number, args: {} }] }",
+        //   availableActionIds: available.map(a => a.signature)
+        // });
         return [];
       }
 
@@ -149,15 +177,32 @@ export class ActionEngine {
         return [];
       }
 
+      // Check for cancellation before running actions
+      if (signal?.aborted) {
+        console.log('[DEBUG] ActionEngine: Aborted before running actions');
+        return [];
+      }
+
       // 5) Resolve and run actions, collecting results
       const results: ActionExecutionResult[] = [];
       for (const inv of parsed.actions) {
+        // Check for cancellation before each action
+        if (signal?.aborted) {
+          console.log('[DEBUG] ActionEngine: Aborted during action execution, stopped at', results.length, 'of', parsed.actions.length, 'actions');
+          break;
+        }
+
         const result = await this.runInvocation(conv, npc, inv);
         results.push(result);
       }
       
       return results;
     } catch (err) {
+      // Check if this was an abort
+      if (signal?.aborted) {
+        console.log('[DEBUG] ActionEngine: Caught abort signal in error handler');
+        return [];
+      }
       // silent guard: action engine should never crash the conversation loop
       console.error("ActionEngine error:", err);
       return [];
@@ -179,7 +224,7 @@ export class ActionEngine {
     const targetId = inv.targetCharacterId ?? null;
     const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
 
-    console.log("Running action:", inv.actionId, { source: npc.id, target: targetId, args: inv.args });
+    // console.log("Running action:", inv.actionId, { source: npc.id, target: targetId, args: inv.args });
     const runGameEffect = (effectBody: string) => {
       ActionEffectWriter.writeEffect(
         conv.gameData,
@@ -204,7 +249,7 @@ export class ActionEngine {
       // Handle different return types
       let feedback: ActionExecutionResult['feedback'] = undefined;
       if (result) {
-        console.log(`Action ${inv.actionId} executed successfully with result:`, result);
+        // console.log(`Action ${inv.actionId} executed successfully with result:`, result);
         if (typeof result === 'string') {
           // Simple string feedback - default to neutral sentiment
           feedback = { message: result, sentiment: 'neutral' };
