@@ -457,6 +457,16 @@ const setupIpcHandlers = () => {
     return true;
   });
 
+  ipcMain.handle('shell:openExternal', async (_, url: string) => {
+    try {
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to open external URL:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---

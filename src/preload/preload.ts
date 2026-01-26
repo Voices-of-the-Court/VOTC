@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => {
     ipcRenderer.removeListener('updater-status', callback);
   },
+  openExternal: (url: string): Promise<{ success: boolean; error?: string }> => 
+    ipcRenderer.invoke('shell:openExternal', url),
 });
 
 contextBridge.exposeInMainWorld('llmConfigAPI', {

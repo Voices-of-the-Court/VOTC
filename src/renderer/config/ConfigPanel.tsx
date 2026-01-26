@@ -5,6 +5,8 @@ import ConnectionView from './ConnectionView';
 import SettingsView from './SettingsView';
 import ActionsView from './ActionsView';
 import PromptsView from './PromptsView';
+import discordIcon from '../assets/discord-icon.svg';
+import tooltipIcon from '../assets/tooltip2.png';
 
 type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts';
 
@@ -33,6 +35,14 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
     window.electronAPI?.setIgnoreMouseEvents(true);
   };
 
+  const handleDiscordClick = async () => {
+    try {
+      await window.electronAPI?.openExternal('https://discord.gg/ESYt5cvrKs');
+    } catch (error) {
+      console.error('Failed to open Discord link:', error);
+    }
+  };
+
   return (
     <div
       className="config-panel-container"
@@ -41,7 +51,18 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
       style={{ pointerEvents: 'auto' }}
     >
       <header className="config-header">
-        <button className="config-close-button" onClick={onClose}>✕</button>
+        <div className="discord-container">
+          <button className="tooltip-button" title="Discord">
+            <img src={tooltipIcon} alt="?" className="tooltip-icon" />
+          </button>
+          <button 
+            className="discord-button visible" 
+            onClick={handleDiscordClick} 
+            title="Join our Discord"
+          >
+            <img src={discordIcon} alt="Discord" className="discord-icon" />
+          </button>
+        </div>
         <button
           onClick={() => setCurrentTab('connection')}
           className={currentTab === 'connection' ? 'active' : ''}
@@ -67,6 +88,7 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         >
           Prompts
         </button>
+        <button className="config-close-button" onClick={onClose}>✕</button>
       </header>
       <main className="config-main-content">
         {currentTab === 'connection' && <ConnectionView />}

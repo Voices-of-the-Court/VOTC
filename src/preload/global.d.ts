@@ -29,6 +29,7 @@ declare global {
       updaterInstallUpdate: () => Promise<boolean>;
       onUpdaterStatus: (callback: (event: any, status: string) => void) => () => void;
       removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => void;
+      openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;

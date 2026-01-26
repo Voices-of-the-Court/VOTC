@@ -55,6 +55,72 @@
     width: auto;
     height: auto;
   }
+
+  .discord-button {
+    background: none;
+    border: none;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease, width 0.3s ease;
+    pointer-events: none;
+    
+    &.visible {
+      opacity: 1;
+      width: 34px; /* 24px icon + 10px padding */
+      pointer-events: auto;
+    }
+    
+    .discord-icon {
+      width: 24px;
+      height: 24px;
+      filter: brightness(0) invert(0.9); /* Makes the SVG white */
+      transition: transform 0.2s ease;
+    }
+    
+    &:hover .discord-icon {
+      transform: scale(1.1);
+    }
+  }
+
+  .discord-container {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    overflow: hidden;
+    max-width: 30px; /* Just enough for the tooltip button */
+    transition: max-width 0.3s ease;
+  }
+
+  .discord-container:hover {
+    max-width: 70px; /* Enough for both buttons */
+  }
+
+  .tooltip-button {
+    background: none;
+    border: none;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    
+    .tooltip-icon {
+      width: 20px;
+      height: 20px;
+      filter: brightness(0) invert(0.9); /* Makes the PNG white */
+      transition: transform 0.2s ease;
+    }
+    
+    &:hover .tooltip-icon {
+      transform: scale(1.1);
+    }
+  }
 }
 
 .config-main-content {
