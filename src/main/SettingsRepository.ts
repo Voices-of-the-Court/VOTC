@@ -140,7 +140,7 @@ export class SettingsRepository {
   private store: Store<AppSettings>;
 
   constructor() {
-    this.store = new Store<AppSettings>({ schema, name: 'revotc-llm-config' });
+    this.store = new Store<AppSettings>({ schema, name: 'votc-llm-config' });
     console.log('SettingsRepository initialized. Settings path:', this.store.path);
     this.initializeDefaultSettings();
   }

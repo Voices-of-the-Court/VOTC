@@ -1,5 +1,5 @@
-appId: com.mrandropc.revotc
-productName: reVOTC
+appId: com.mrandropc.votc
+productName: VOTC
 directories:
   buildResources: build
 asar: false
@@ -20,7 +20,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: reVOTC
+  executableName: VOTC
   icon: build/icon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
@@ -32,8 +32,8 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
-  owner: MrAndroPC
-  repo: reVOTC
+  owner: Voices-of-the-Court
+  repo: VOTC
   private: false
   releaseType: release
 # electronDownload:

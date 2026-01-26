@@ -92,7 +92,6 @@ export class ActionEngine {
       });
 
       // 3) Request LLM with native structured output
-      console.log("[ActionEngine] Requesting structured output with schema:", JSON.stringify(jsonSchema, null, 2));
       
       const output = await llmManager.sendActionsRequest(
         messages,

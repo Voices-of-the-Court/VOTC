@@ -1,4 +1,4 @@
-# reVOTC - Reimagined Voices of the Court
+# Voices of the Court 2.0
 
 A modern reimplementation of the Voices of the Court mod for Crusader Kings III, providing an enhanced AI-powered conversational experience with your characters.
 
@@ -12,19 +12,20 @@ A modern reimplementation of the Voices of the Court mod for Crusader Kings III,
 
 ## Installation
 
-1. Download the latest release from the [Releases](https://github.com/MrAndroPC/reVOTC/releases) page
-2. Run the installer (`re-voices-of-the-court-1.0.0-setup.exe` for Windows)
-3. Launch the application and configure your LLM provider settings
+1. Download the latest release from the [Releases](https://github.com/Voices-of-the-Court/VOTC/releases) page
+2. Run the installer
+3. Launch the application (please, wait for some time for initialization)
+4. Press `Ctrl+Shift+H` or click right mouse button on tray icon to open configuration menu.
 
 ## Configuration
 
 ### LLM Provider Setup
 
-The application supports multiple LLM providers:
+The application supports these LLM providers:
 
 - **OpenAI**: Requires API key from OpenAI
 - **OpenRouter**: Requires API key from OpenRouter
-- **Ollama**: Local LLM server (no API key required)
+- **Ollama**: Local LLM server (untested for long time, might now work, report)
 - **Custom OpenAI-Compatible**: Any OpenAI-compatible API endpoint
 
 Configure your provider in the Settings panel within the application.
@@ -34,7 +35,7 @@ Configure your provider in the Settings panel within the application.
 ### Prerequisites
 
 - Node.js 18 or higher
-- npm or pnpm
+- npm
 
 ### Setup
 
@@ -65,7 +66,3 @@ npm run build:win
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-Based on the original Voices of the Court mod for Crusader Kings III.
