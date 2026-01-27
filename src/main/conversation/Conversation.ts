@@ -178,6 +178,7 @@ export class Conversation {
         let streamCompleted = false;
 
         try {
+            console.log(`Message from ${npc.fullName}:`, llmMessages);
             const result = await llmManager.sendChatRequest(llmMessages, this.currentStreamController.signal);
 
             if (settingsRepository.getGlobalStreamSetting() &&
@@ -505,8 +506,14 @@ export class Conversation {
                         this.messages.splice(i, 1);
                     }
                 }
-                // Trigger message processing again
-                await this.sendMessage(latestUserMessage.content);
+                
+                // Refill the NPC queue and process without adding a duplicate user message
+                if (this.npcQueue.length === 0) {
+                    this.fillNpcQueue();
+                }
+                
+                this.emitUpdate();
+                this.resumeConversation();
             }
         }
         
