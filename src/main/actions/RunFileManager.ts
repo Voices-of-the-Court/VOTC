@@ -1,41 +1,86 @@
 import fs from 'fs';
+import path from 'path';
 import { settingsRepository } from '../SettingsRepository';
 
 export class RunFileManager{
-    path: string;
+    private ck3UserPath: string | null;
+    private path: string | null;
 
     constructor(){
-        this.path = settingsRepository.getCK3UserFolderPath()+"\\run\\votc.txt";
-
-        this.createRunFolder(settingsRepository.getCK3UserFolderPath()!);
+        this.ck3UserPath = settingsRepository.getCK3UserFolderPath() || null;
+        console.log(`RunFileManager: CK3 user path from settings: ${this.ck3UserPath}`);
+        
+        if (this.ck3UserPath) {
+            this.path = path.join(this.ck3UserPath, 'run', 'votc.txt');
+            console.log(`RunFileManager: Resolved votc.txt path: ${this.path}`);
+            this.createRunFolder(this.ck3UserPath);
+        } else {
+            console.warn('RunFileManager: CK3 user folder path is not configured. Run file operations will be disabled.');
+            this.path = null;
+        }
     }
 
     write(text: string): void{
-        fs.writeFileSync(this.path, text);
-    
-        console.log("wrote to run file: "+text)
+        if (!this.path) {
+            console.warn('RunFileManager: Cannot write - CK3 user folder is not configured');
+            return;
+        }
+        
+        try {
+            fs.writeFileSync(this.path, text);
+            console.log(`RunFileManager: wrote to run file: ${text}`);
+        } catch (error) {
+            console.error(`RunFileManager: Failed to write to file ${this.path}:`, error);
+        }
     }
 
     append(text: string): void{
-        fs.appendFileSync(this.path, text)
+        if (!this.path) {
+            console.warn('RunFileManager: Cannot append - CK3 user folder is not configured');
+            return;
+        }
+        
+        try {
+            fs.appendFileSync(this.path, text);
+            console.log(`RunFileManager: appended to run file: ${text}`);
+        } catch (error) {
+            console.error(`RunFileManager: Failed to append to file ${this.path}:`, error);
+        }
     }
     
     clear(): void{
-        fs.writeFileSync(this.path, "");
-        console.log("Run File cleared")
+        if (!this.path) {
+            console.warn('RunFileManager: Cannot clear - CK3 user folder is not configured');
+            return;
+        }
+        
+        try {
+            fs.writeFileSync(this.path, "");
+            console.log("RunFileManager: Run File cleared");
+        } catch (error) {
+            console.error(`RunFileManager: Failed to clear file ${this.path}:`, error);
+        }
     }
     
-    async createRunFolder(userFolderPath: string){
-
-        if(userFolderPath && !fs.existsSync(userFolderPath+'\\run')){
-            try{
-                fs.mkdirSync(userFolderPath+"\\run");
+    private createRunFolder(userFolderPath: string): void {
+        const runFolderPath = path.join(userFolderPath, 'run');
+        console.log(`RunFileManager: Checking run folder path: ${runFolderPath}`);
+        
+        if (!fs.existsSync(runFolderPath)) {
+            try {
+                fs.mkdirSync(runFolderPath, { recursive: true });
+                console.log(`RunFileManager: Created run folder: ${runFolderPath}`);
+            } catch (err) {
+                console.error(`RunFileManager: Error creating run folder ${runFolderPath}:`, err);
             }
-            catch(err){
-                console.log("RunFileManager error: "+err)
-            }
-            
+        } else {
+            console.log(`RunFileManager: Run folder already exists: ${runFolderPath}`);
         }
+    }
+
+    // Method to check if run file operations are available
+    isAvailable(): boolean {
+        return this.path !== null;
     }
 }
 

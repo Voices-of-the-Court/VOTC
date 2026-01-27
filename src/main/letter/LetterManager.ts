@@ -26,14 +26,19 @@ export class LetterManager {
    * Start tailing the debug.log file to track VOTC:DATE updates
    */
   private async startLogTailing(): Promise<void> {
+    const ck3UserPath = settingsRepository.getCK3UserFolderPath();
+    console.log(`LetterManager: CK3 user path from settings: ${ck3UserPath}`);
+    
     const debugLogPath = settingsRepository.getCK3DebugLogPath();
+    console.log(`LetterManager: Resolved debug log path: ${debugLogPath}`);
+    
     if (!debugLogPath) {
-      console.warn("CK3 debug log path is not configured; cannot start log tailing.");
+      console.warn("LetterManager: CK3 debug log path is not configured; cannot start log tailing.");
       return;
     }
 
     if (!fs.existsSync(debugLogPath)) {
-      console.warn(`Debug log file does not exist: ${debugLogPath}`);
+      console.warn(`LetterManager: Debug log file does not exist: ${debugLogPath}`);
       return;
     }
 
@@ -262,8 +267,10 @@ export class LetterManager {
 
   private async writeLetterEffect(reply: string, letter: LetterData): Promise<void> {
     const ck3Folder = settingsRepository.getCK3UserFolderPath();
+    console.log(`LetterManager.writeLetterEffect: CK3 user path: ${ck3Folder}`);
+    
     if (!ck3Folder) {
-      console.warn("CK3 user folder is not configured; skipping writing letter effect.");
+      console.warn("LetterManager.writeLetterEffect: CK3 user folder is not configured; skipping writing letter effect.");
       return;
     }
 
@@ -271,8 +278,18 @@ export class LetterManager {
     // this.updateLocalizationFile(reply);
 
     const runFolder = path.join(ck3Folder, "run");
-    fs.mkdirSync(runFolder, { recursive: true });
+    console.log(`LetterManager.writeLetterEffect: Run folder path: ${runFolder}`);
+    
+    try {
+      fs.mkdirSync(runFolder, { recursive: true });
+      console.log(`LetterManager.writeLetterEffect: Run folder created/verified`);
+    } catch (error) {
+      console.error(`LetterManager.writeLetterEffect: Failed to create run folder:`, error);
+      return;
+    }
+    
     const letterFilePath = path.join(runFolder, `letters.txt`);
+    console.log(`LetterManager.writeLetterEffect: Letter file path: ${letterFilePath}`);
 
     const escapedReply = reply.replace(/"/g, '\\"');
     const gameCommand = `debug_log = "[Localize('talk_event.9999.desc')]"
@@ -301,13 +318,16 @@ trigger_event = message_event.362`;
    */
   public clearLettersFile(): void {
     const ck3Folder = settingsRepository.getCK3UserFolderPath();
+    console.log(`LetterManager.clearLettersFile: CK3 user path: ${ck3Folder}`);
+    
     if (!ck3Folder) {
-      console.warn("CK3 user folder is not configured; cannot clear letters file.");
+      console.warn("LetterManager.clearLettersFile: CK3 user folder is not configured; cannot clear letters file.");
       return;
     }
 
     const runFolder = path.join(ck3Folder, "run");
     const letterFilePath = path.join(runFolder, "letters.txt");
+    console.log(`LetterManager.clearLettersFile: Letter file path: ${letterFilePath}`);
 
     if (fs.existsSync(letterFilePath)) {
       fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");

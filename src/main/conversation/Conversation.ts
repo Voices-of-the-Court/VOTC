@@ -39,9 +39,33 @@ export class Conversation {
     }
 
     private async initializeGameData(): Promise<void> {
-        runFileManager.clear();
+        const ck3DebugPath = settingsRepository.getCK3DebugLogPath();
+        console.log(`Conversation.initializeGameData: CK3 debug log path: ${ck3DebugPath}`);
+        
+        // Only clear run file if it's available
+        if (runFileManager.isAvailable()) {
+            console.log('Conversation.initializeGameData: Clearing run file');
+            runFileManager.clear();
+        } else {
+            console.warn('Conversation.initializeGameData: RunFileManager not available - CK3 path not configured');
+        }
+        
+        if (!ck3DebugPath) {
+            console.error('Conversation.initializeGameData: CK3 debug log path is not configured');
+            this.isActive = false;
+            
+            const initError = createError({
+                id: this.nextId++,
+                content: 'CK3 debug log path is not configured',
+                details: 'Please configure the CK3 user folder path in settings'
+            });
+            this.messages.push(initError);
+            this.emitUpdate();
+            return;
+        }
+        
         try {
-            this.gameData = await parseLog(settingsRepository.getCK3DebugLogPath()!);
+            this.gameData = await parseLog(ck3DebugPath);
             console.log('GameData initialized with', this.gameData.characters.size, 'characters');
             this.gameData.loadCharactersSummaries();
             this.isActive = true;

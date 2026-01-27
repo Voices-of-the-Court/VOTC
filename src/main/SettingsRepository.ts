@@ -295,15 +295,20 @@ export class SettingsRepository {
   }
 
   getCK3UserFolderPath(): string | null | undefined {
-     return this.store.get('ck3UserFolderPath');
+     const path = this.store.get('ck3UserFolderPath');
+     console.log(`SettingsRepository.getCK3UserFolderPath: Returning ${path}`);
+     return path;
   }
 
   getCK3DebugLogPath(): string | null {
      const ck3Folder = this.getCK3UserFolderPath();
-     return ck3Folder ? path.join(ck3Folder, 'logs', 'debug.log') : null;
+     const debugPath = ck3Folder ? path.join(ck3Folder, 'logs', 'debug.log') : null;
+     console.log(`SettingsRepository.getCK3DebugLogPath: ck3Folder=${ck3Folder}, debugPath=${debugPath}`);
+     return debugPath;
   }
 
   setCK3UserFolderPath(path: string | null): void {
+    console.log(`SettingsRepository.setCK3UserFolderPath: Setting path to ${path}`);
     this.store.set('ck3UserFolderPath', path);
     console.log('CK3 User Folder Path saved:', path);
   }

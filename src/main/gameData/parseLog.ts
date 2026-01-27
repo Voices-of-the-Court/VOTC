@@ -5,6 +5,7 @@ const fs = require('fs');
 const readline = require('readline');
 
 export async function parseLog(debugLogPath: string): Promise<GameData>{
+    console.log(`parseLog: Processing debug log at path: ${debugLogPath}`);
     let gameData!: GameData
 
     //some data are passed through multiple lines
