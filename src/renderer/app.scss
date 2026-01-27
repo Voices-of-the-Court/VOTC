@@ -252,7 +252,7 @@ select {
   border: 1px solid #EFB16A;
   border-radius: 10px;
   font-family: 'GitanLatin-Regular';
-  font-size: 1rem;
+  font-size: var(--message-font-size, 1.1rem);
   box-sizing: border-box;
   cursor: url('assets/cursor.png'), none;
   transition:

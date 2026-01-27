@@ -200,7 +200,7 @@ const PromptsView: React.FC = () => {
             </select>
             <div className="mini-buttons">
               <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
-              <button onClick={openPromptsFolder}>Folder</button>
+              <button onClick={() => openPromptFile('character_description')}>Folder</button>
             </div>
           </div>
         );
@@ -217,7 +217,7 @@ const PromptsView: React.FC = () => {
             </select>
             <div className="mini-buttons">
               <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
-              <button onClick={openPromptsFolder}>Folder</button>
+              <button onClick={() => openPromptFile('example_messages')}>Folder</button>
             </div>
           </div>
         );
