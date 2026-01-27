@@ -42,6 +42,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('shell:openExternal', url),
   collectAndOpenLogs: (): Promise<{ success: boolean; path?: string; error?: string }> =>
     ipcRenderer.invoke('logs:collectAndOpen'),
+  onOverlayVisibilityChange: (callback) => {
+    const subscription = (_event, value) => callback(value);
+    ipcRenderer.on('overlay-visibility-change', subscription);
+    // Return a function to remove the listener
+    return () => ipcRenderer.removeListener('overlay-visibility-change', subscription);
+  },
+
 });
 
 contextBridge.exposeInMainWorld('llmConfigAPI', {

@@ -12,6 +12,7 @@ import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR } from './utils/paths';
 import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 import { appUpdater } from './AutoUpdater';
+import { focusMonitor } from './FocusMonitor';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
@@ -70,9 +71,9 @@ const createWindow = (): BrowserWindow => {
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    alwaysOnTop: true, // Keep window on top
+    // alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
-    fullscreen: true,
+    fullscreen: false,
     webPreferences: {
       partition: 'persist:chat',
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
@@ -82,11 +83,11 @@ const createWindow = (): BrowserWindow => {
   });
 
   // Make the window initially click-through
-  chatWindow.setAlwaysOnTop(true, 'screen-saver');
+  // chatWindow.setAlwaysOnTop(true, 'screen-saver');
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Set fullscreen (optional, might conflict with alwaysOnTop/transparency goals depending on OS/WM)
-  chatWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
+  // chatWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
 
   // and load the index.html of the app.
 if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
@@ -687,6 +688,33 @@ const setupIpcHandlers = () => {
   console.log('Conversation IPC handlers registered successfully');
 };
 
+/**
+ * Set up focus monitoring to adjust overlay level based on active window
+ */
+const setupFocusMonitoring = (window: BrowserWindow) => {
+  focusMonitor.on('overlay-state-changed', (isOverlay: boolean) => {
+    if (!window || window.isDestroyed()) return;
+
+    // Send visibility state to Renderer
+    window.webContents.send('overlay-visibility-change', isOverlay);
+
+    if (isOverlay) {
+      // 1. App/Game Active: Ensure on top
+      window.setAlwaysOnTop(true, 'screen-saver');
+      
+    } else {
+      // 2. Alt-Tabbed away:
+      window.setIgnoreMouseEvents(true, { forward: true });
+    }
+  });
+
+  window.on('focus', () => {
+    window.setAlwaysOnTop(true, 'screen-saver');
+  });
+
+  focusMonitor.start();
+};
+
 app.on('ready', () => {
   console.log(app.getPath('userData'));
   clearLog();
@@ -706,6 +734,9 @@ app.on('ready', () => {
   actionRegistry.setSettings(settingsRepository.getActionSettings());
   actionRegistry.reloadActions().catch(err => console.error('Failed to reload actions on startup:', err));
 
+  // Set up focus monitoring for dynamic overlay behavior
+  setupFocusMonitoring(chatWindow);
+
   console.log('Current __dirname:', __dirname);
   console.log('Process resources:', process.resourcesPath);
   console.log('App path:', app.getAppPath());
@@ -722,8 +753,12 @@ app.on('ready', () => {
     {
       label: 'Open Settings',
       click: () => {
-        // Send toggle settings event to renderer
-        if (chatWindow) {
+        // Ensure window exists and is focused
+        if (chatWindow && !chatWindow.isDestroyed()) {
+          // Show and focus the window first
+          chatWindow.show();
+          chatWindow.focus();
+          // Then send toggle settings event to renderer
           chatWindow.webContents.send('toggle-settings');
         }
       }
@@ -790,6 +825,9 @@ app.on('ready', () => {
   const ret = globalShortcut.register('Control+H', () => {
     if (chatWindow && !chatWindow.isDestroyed() && conversationManager.hasActiveConversation()) {
       console.log('Ctrl+H pressed - toggling minimize');
+      // Focus the window before sending the event
+      chatWindow.show();
+      chatWindow.focus();
       chatWindow.webContents.send('toggle-minimize');
     }
   });
@@ -801,6 +839,9 @@ app.on('ready', () => {
   const reta = globalShortcut.register('Control+Shift+H', () => {
     if (chatWindow && !chatWindow.isDestroyed()) {
       console.log('Ctrl+Shift+H pressed - toggling settings');
+      // Focus the window before sending the event
+      chatWindow.show();
+      chatWindow.focus();
       chatWindow.webContents.send('toggle-settings');
     }
   });
@@ -823,6 +864,8 @@ app.on('before-quit', () => {
   tray?.destroy();
   // Stop letter manager log tailing
   letterManager.stopLogTailing();
+  // Stop focus monitoring
+  focusMonitor.stop();
 });
 
 app.on('activate', () => {
