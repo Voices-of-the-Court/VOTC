@@ -675,6 +675,26 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // Summary import IPC handlers
+  ipcMain.handle('conversation:acceptSummaryImport', async (_, { characterId, sourcePlayerId }) => {
+    const conversation = conversationManager.getCurrentConversation();
+    if (!conversation) throw new Error('No active conversation');
+    await conversation.acceptSummaryImport(characterId, sourcePlayerId);
+    return { success: true };
+  });
+
+  ipcMain.handle('conversation:declineSummaryImport', async (_, { characterId, sourcePlayerId }) => {
+    const conversation = conversationManager.getCurrentConversation();
+    if (!conversation) throw new Error('No active conversation');
+    await conversation.declineSummaryImport(characterId, sourcePlayerId);
+    return { success: true };
+  });
+
+  ipcMain.handle('conversation:openSummaryFile', async (_, { filePath }) => {
+    await shell.openPath(filePath);
+    return { success: true };
+  });
+
   // Set up conversation update listener
   const conversationUpdateCallback = (entries: any[]) => {
       if (chatWindow && !chatWindow.isDestroyed()) {

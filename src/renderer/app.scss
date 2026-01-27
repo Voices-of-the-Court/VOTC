@@ -2,6 +2,9 @@
   margin: 30px;
 }
 
+// Import SummaryImportNotification styles
+@import './chat/components/SummaryImportNotification.scss';
+
 :root {
   --message-font-size: 1.1rem;
 }

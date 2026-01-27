@@ -28,4 +28,14 @@ export interface ActionFeedbackEntry extends BaseEntry {
   }>;
 }
 
-export type ChatEntry = MessageEntry | ErrorEntry | ActionFeedbackEntry;
+export interface SummaryImportEntry extends BaseEntry {
+  type: 'summary-import';
+  sourcePlayerId: string;
+  characterId: number;
+  characterName: string;
+  summaryCount: number;
+  sourceFilePath: string;
+  status: 'pending' | 'accepted' | 'declined';
+}
+
+export type ChatEntry = MessageEntry | ErrorEntry | ActionFeedbackEntry | SummaryImportEntry;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import StreamingMarkdown from './StreamingMarkdown';
 import ActionFeedbackItem from './ActionFeedbackItem';
+import SummaryImportNotification from './SummaryImportNotification';
 import { ChatEntry } from '../types';
 import AlertIcon from '../../assets/Alert.png';
 
@@ -85,6 +86,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
 
   if (entry.type === 'action-feedback') {
     return <ActionFeedbackItem entry={entry} />;
+  }
+
+  if (entry.type === 'summary-import') {
+    return <SummaryImportNotification entry={entry} />;
   }
 
   // Handle message entries

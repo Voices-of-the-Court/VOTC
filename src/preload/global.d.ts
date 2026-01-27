@@ -14,6 +14,9 @@ declare global {
       regenerateMessage: (messageId: number) => Promise<{success: boolean, error?: string}>;
       editUserMessage: (messageId: number, newContent: string) => Promise<{success: boolean, error?: string}>;
       regenerateError: (messageId: number) => Promise<{success: boolean, error?: string}>;
+      acceptSummaryImport: (characterId: number, sourcePlayerId: string) => Promise<{success: boolean, error?: string}>;
+      declineSummaryImport: (characterId: number, sourcePlayerId: string) => Promise<{success: boolean, error?: string}>;
+      openSummaryFile: (filePath: string) => Promise<{success: boolean, error?: string}>;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;

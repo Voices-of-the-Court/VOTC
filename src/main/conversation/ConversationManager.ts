@@ -128,6 +128,19 @@ export class ConversationManager {
                     })),
                     datetime: entry.datetime
                 };
+            } else if (entry.type === 'summary-import') {
+                // Summary import entry
+                return {
+                    type: 'summary-import',
+                    id: entry.id,
+                    sourcePlayerId: entry.sourcePlayerId,
+                    characterId: entry.characterId,
+                    characterName: entry.characterName,
+                    summaryCount: entry.summaryCount,
+                    sourceFilePath: entry.sourceFilePath,
+                    status: entry.status,
+                    datetime: entry.datetime
+                };
             } else {
                 // Error entry
                 return {
