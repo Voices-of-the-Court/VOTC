@@ -77,6 +77,8 @@ const createWindow = (): BrowserWindow => {
     fullscreen: false,
     thickFrame: false,
     hasShadow: false,
+    resizable: false, // Disable resizing to prevent border artifacts
+    roundedCorners: false, // Disable Windows 11 rounded corners that cause border
     backgroundColor: '#00000000', // Fully transparent background
     webPreferences: {
       partition: 'persist:chat',
