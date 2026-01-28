@@ -1,6 +1,7 @@
 import { Conversation } from "./Conversation";
 import { ILLMStreamChunk } from "../llmProviders/types";
 import { EventEmitter } from "events";
+import { PromptBuilder } from "./PromptBuilder";
 
 export class ConversationManager {
     private static instance: ConversationManager;
@@ -243,6 +244,56 @@ export class ConversationManager {
      */
     offConversationUpdate(callback: (entries: any[]) => void): void {
         this.eventEmitter.off('conversation-updated', callback);
+    }
+
+    /**
+     * Get active conversation data
+     */
+    getActiveConversationData(): any | null {
+        if (!this.currentConversation || !this.currentConversation.isActive) {
+            return null;
+        }
+
+        const characters = Array.from(this.currentConversation.gameData.characters.values()).map(char => ({
+            id: char.id,
+            fullName: char.fullName,
+            shortName: char.shortName
+        }));
+
+        return {
+            characters,
+            playerID: this.currentConversation.gameData.playerID,
+            aiID: this.currentConversation.gameData.aiID,
+            historyLength: this.currentConversation.getHistory().length
+        };
+    }
+
+    /**
+     * Get prompt preview for a specific character
+     */
+    getPromptPreview(characterId: number): any | null {
+        if (!this.currentConversation || !this.currentConversation.isActive) {
+            return null;
+        }
+
+        const character = this.currentConversation.gameData.characters.get(characterId);
+        if (!character) {
+            return null;
+        }
+
+        const history = this.currentConversation.getHistory();
+        const result = PromptBuilder.buildMessagesWithTokenCount(
+            history,
+            character,
+            this.currentConversation.gameData,
+            this.currentConversation.currentSummary
+        );
+
+        return {
+            characterId,
+            characterName: character.fullName,
+            ...result
+        };
     }
 }
 

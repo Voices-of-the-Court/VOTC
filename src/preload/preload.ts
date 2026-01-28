@@ -145,6 +145,10 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     ipcRenderer.invoke('conversation:declineSummaryImport', { characterId, sourcePlayerId }),
   openSummaryFile: (filePath: string): Promise<{success: boolean, error?: string}> =>
     ipcRenderer.invoke('conversation:openSummaryFile', { filePath }),
+  getActiveConversationData: (): Promise<any> =>
+    ipcRenderer.invoke('conversation:getActiveConversationData'),
+  getPromptPreview: (characterId: number): Promise<any> =>
+    ipcRenderer.invoke('conversation:getPromptPreview', { characterId }),
  });
  
  // Actions API exposed to renderer

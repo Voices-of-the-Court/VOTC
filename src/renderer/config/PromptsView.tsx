@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useConfigStore } from './store/useConfigStore';
 import type { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
+import PromptPreview from './components/PromptPreview';
 
 type BlockUpdater = (block: PromptBlock) => PromptBlock;
 
@@ -28,6 +29,7 @@ const PromptsView: React.FC = () => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [presetName, setPresetName] = useState<string>('');
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const [promptSettingsVersion, setPromptSettingsVersion] = useState<number>(0);
 
   useEffect(() => {
     loadPromptSettings();
@@ -79,10 +81,12 @@ const PromptsView: React.FC = () => {
     }
     if (immediate) {
       (mode === 'conversation' ? savePromptSettings : saveLetterPromptSettings)(next);
+      setPromptSettingsVersion(v => v + 1); // Trigger preview refresh
       return;
     }
     saveTimer.current = setTimeout(() => {
       (mode === 'conversation' ? savePromptSettings : saveLetterPromptSettings)(next);
+      setPromptSettingsVersion(v => v + 1); // Trigger preview refresh
       saveTimer.current = null;
     }, 400);
   };
@@ -492,6 +496,15 @@ const PromptsView: React.FC = () => {
           />
         )}
       </div>
+
+      {mode === 'conversation' && (
+        <PromptPreview
+          promptSettingsVersion={promptSettingsVersion}
+          onCharacterChange={(characterId) => {
+            console.log('Selected character ID:', characterId);
+          }}
+        />
+      )}
     </div>
   );
 };

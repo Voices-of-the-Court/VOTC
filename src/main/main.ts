@@ -697,6 +697,15 @@ const setupIpcHandlers = () => {
     return { success: true };
   });
 
+  // Prompt preview IPC handlers
+  ipcMain.handle('conversation:getActiveConversationData', () => {
+    return conversationManager.getActiveConversationData();
+  });
+
+  ipcMain.handle('conversation:getPromptPreview', (_, { characterId }) => {
+    return conversationManager.getPromptPreview(characterId);
+  });
+
   // Set up conversation update listener
   const conversationUpdateCallback = (entries: any[]) => {
       if (chatWindow && !chatWindow.isDestroyed()) {

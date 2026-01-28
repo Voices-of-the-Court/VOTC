@@ -11,6 +11,7 @@ import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
 import { runFileManager } from "../actions/RunFileManager";
 import { shell } from "electron";
+import { TokenCounter } from "../utils/TokenCounter";
 
 export class Conversation {
     id = v4();
@@ -166,13 +167,11 @@ export class Conversation {
      * Estimate token count (simple approximation)
      */
     private estimateTokenCount(messages: any[]): number {
-        const text = JSON.stringify(messages);
-        return Math.ceil(text.length / 4); // Rough estimate: 1 token ≈ 4 characters
+        return TokenCounter.calculateTotalTokens(messages);
     }
     
     private estimateMessageTokens(message: Message): number {
-        const text = `${message.name}: ${message.content}`;
-        return Math.ceil(text.length / 4);
+        return TokenCounter.estimateMessageTokens(message);
     }
 
     // Get list of all NPCs (characters except the player)

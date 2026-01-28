@@ -17,6 +17,8 @@ declare global {
       acceptSummaryImport: (characterId: number, sourcePlayerId: string) => Promise<{success: boolean, error?: string}>;
       declineSummaryImport: (characterId: number, sourcePlayerId: string) => Promise<{success: boolean, error?: string}>;
       openSummaryFile: (filePath: string) => Promise<{success: boolean, error?: string}>;
+      getActiveConversationData: () => Promise<any>;
+      getPromptPreview: (characterId: number) => Promise<any>;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
