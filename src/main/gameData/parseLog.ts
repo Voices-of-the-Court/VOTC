@@ -446,22 +446,25 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                         multiLineType = "relations";
                     }
                 break;
-                case "new_relations":
-                var tmpTargetId = Number(data[1])
-                if(line.split('#')[1] !== ''){
-                    console.log("Adding new relation for char "+rootID+" towards "+tmpTargetId+": "+removeTooltip(line.split('#')[1]))
-                    console.log(gameData!.characters)
-                    gameData!.characters.get(rootID)!.relationsToCharacters.push({id: tmpTargetId, relations: [removeTooltip(line.split('#')[1])]})
-                    //gameData!.characters.get(rootID)!.relationsToPlayer = [removeTooltip(line.split('#')[1])]
-                }
-                
-                if(!line.includes("#ENDMULTILINE")){
-                    multiLineTempStorage = gameData!.characters.get(rootID)!.relationsToCharacters.find(x => x.id == tmpTargetId)!.relations
-                    isWaitingForMultiLine = true;
-                    multiLineType = "new_relations";
-                }
-                break;
+                case "new_relations": {
+                    const tmpTargetId = Number(data[1]);
+                    const ch = gameData!.characters.get(rootID);
+                    if (!ch || Number.isNaN(tmpTargetId)) break;
 
+                    const relObj = { id: tmpTargetId, relations: [] as string[] };
+                    ch.relationsToCharacters.push(relObj);
+
+                    const firstChunk = (line.split('#')[1] ?? '');
+                    const cleaned = removeTooltip(firstChunk).trim();
+                    if (cleaned) relObj.relations.push(cleaned);
+
+                    if (!line.includes("#ENDMULTILINE")) {
+                        multiLineTempStorage = relObj.relations;  // no find()
+                        isWaitingForMultiLine = true;
+                        multiLineType = "new_relations";
+                    }
+                    break;
+                }
                 case "opinionBreakdown":
                     currentTargetID = Number(data[1]);
                     let breakdownEntry = gameData!.characters.get(rootID)!.opinionBreakdowns.find(ob => ob.id === currentTargetID);

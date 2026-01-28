@@ -146,6 +146,7 @@ export class Conversation {
         const summaryPrompt = PromptBuilder.buildResummarizePrompt(messagesToSummarize, this.currentSummary);
         
         try {
+            console.log('[TOKEN_COUNT] Rolling summary: ', this.estimateTokenCount(summaryPrompt));
             const result = await llmManager.sendSummaryRequest(summaryPrompt);
             
             if (result && typeof result === 'object' && 'content' in result) {
@@ -211,6 +212,7 @@ export class Conversation {
 
         try {
             console.log(`Message from ${npc.fullName}:`, llmMessages);
+            console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, this.estimateTokenCount(llmMessages));
             const result = await llmManager.sendChatRequest(llmMessages, this.currentStreamController.signal);
 
             if (settingsRepository.getGlobalStreamSetting() &&
@@ -632,6 +634,7 @@ export class Conversation {
         }
 
         try {
+            console.log(`[TOKEN_COUNT] Final summary prompt tokens: ${estimatedTokens}`);
             const result = await llmManager.sendSummaryRequest(summaryPrompt);
 
             if (result && typeof result === 'object' && 'content' in result) {

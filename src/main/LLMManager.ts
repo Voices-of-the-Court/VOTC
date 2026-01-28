@@ -7,7 +7,7 @@ import {
 } from './llmProviders/types';
 import { settingsRepository } from './SettingsRepository';
 import { providerRegistry } from './llmProviders/ProviderRegistry';
-
+import { TokenCounter } from './utils/TokenCounter';
 
 export class LLMManager {
   private providers: Map<string, ILLMProvider>; // Cache instantiated providers
@@ -139,6 +139,8 @@ export class LLMManager {
       }
     };
 
+    console.log(`[LLMManager] Sending structured request: ${JSON.stringify(request)}`);
+    console.log(`[TOKEN_COUNT] Structured request ${TokenCounter.estimateTokens(JSON.stringify(request))}`);
     return await provider.chatCompletion(request, config);
   }
 

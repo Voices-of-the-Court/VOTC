@@ -80,19 +80,6 @@ export class PromptBuilder {
         return "You are characters in a medieval strategy game. Engage in conversation naturally.";
     }
 
-    /**
-     * Build the full LLM messages array for a character response
-     */
-    // static buildMessages(history: Message[], char: Character, gameData: GameData): any[] {
-    //     const systemPrompt = this.generateSystemPrompt(char, gameData);
-    //     const llmMessages: any[] = [
-    //         { role: 'system', content: systemPrompt },
-    //         ...history.map(m => ({ role: m.role, content: `${m.name}: ${m.content}` })),
-    //         { role: 'user', content: `[Write next reply only as ${char.shortName}]`}
-    //     ];
-    //     return llmMessages;
-    // }
-
 
     static buildMessages(
         history: Message[], 

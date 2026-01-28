@@ -9,6 +9,7 @@ import { letterPromptBuilder } from "./LetterPromptBuilder";
 import { LetterData, StoredLetter } from "./types";
 import { GameData } from "../gameData/GameData";
 import type { ILLMMessage } from "../llmProviders/types";
+import { TokenCounter } from "../utils/TokenCounter";
 
 export class LetterManager {
   private currentTotalDays: number = 0;
@@ -257,6 +258,8 @@ export class LetterManager {
     ];
 
     try {
+      console.log(`[TOKEN_COUNT] Letter summary prompt tokens: ${TokenCounter.estimateMessageTokens(summaryPrompt[0])}`);
+      console.log(`[TOKEN_COUNT] Letter summary letters letters content tokens: ${TokenCounter.estimateMessageTokens(summaryPrompt[1])}`);
       const summaryResult = await llmManager.sendSummaryRequest(summaryPrompt);
       if (summaryResult && typeof summaryResult === "object" && "content" in summaryResult) {
         const summary = (summaryResult as any).content as string;
