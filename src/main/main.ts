@@ -73,7 +73,7 @@ const createWindow = (): BrowserWindow => {
     frame: false, // Remove window frame
     // alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
-    fullscreen: false,
+    fullscreen: true,
     thickFrame: false,
     hasShadow: false,
     webPreferences: {
