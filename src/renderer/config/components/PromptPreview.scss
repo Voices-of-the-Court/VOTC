@@ -1,7 +1,7 @@
 .prompt-preview {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #333;
+  border-top: 1px solid #EFB16A;
   
   .prompt-preview-header {
     display: flex;
@@ -11,7 +11,9 @@
     
     h3 {
       margin: 0;
-      color: #fff;
+      color: #EFB16A;
+      border-bottom: none;
+      padding-bottom: 0;
     }
     
     .character-selector {
@@ -21,24 +23,24 @@
       
       label {
         font-weight: bold;
-        color: #ddd;
+        color: #EFB16A;
       }
       
       select {
-        padding: 5px 10px;
-        background: #444;
-        color: #fff;
-        border: 1px solid #555;
-        border-radius: 3px;
+        padding: 8px 10px;
+        background: rgba(0, 0, 0, 0.4);
+        color: #ddd;
+        border: 1px solid #EFB16A;
+        border-radius: 10px;
         cursor: pointer;
         
         &:hover {
-          background: #4a4a4a;
+          border-color: #FFA500;
         }
         
         &:focus {
           outline: none;
-          border-color: #4fc3f7;
+          border-color: #FFA500;
         }
       }
     }
@@ -46,7 +48,7 @@
   
   .prompt-preview-content {
     .muted-text {
-      color: #aaa;
+      color: #bfbfbf;
       font-style: italic;
       padding: 20px;
       text-align: center;
@@ -56,15 +58,17 @@
       color: #ff6b6b;
       padding: 10px;
       background: rgba(255, 107, 107, 0.1);
-      border-radius: 5px;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 10px;
       margin-bottom: 10px;
     }
     
     .preview-results {
       .token-summary {
-        background: #2a2a2a;
+        background: rgba(0, 0, 0, 0.25);
         padding: 15px;
-        border-radius: 5px;
+        border: 1px solid #EFB16A;
+        border-radius: 10px;
         margin-bottom: 15px;
         display: flex;
         justify-content: space-between;
@@ -72,29 +76,31 @@
         
         h4 {
           margin: 0;
-          color: #fff;
+          color: #ddd;
           display: flex;
           align-items: center;
           gap: 10px;
           
           .token-count-large {
-            color: #4fc3f7;
+            color: #EFB16A;
             font-size: 1.2em;
             font-weight: bold;
           }
         }
         
         .toggle-all-btn {
-          padding: 5px 15px;
-          background: #444;
-          color: #fff;
-          border: 1px solid #555;
-          border-radius: 3px;
+          padding: 8px 15px;
+          background: rgba(0, 0, 0, 0.5);
+          color: #ddd;
+          border: 1px solid #EFB16A;
+          border-radius: 10px;
           cursor: pointer;
           font-size: 0.9em;
+          transition: all 0.2s ease;
           
           &:hover {
-            background: #4a4a4a;
+            background: rgba(0, 0, 0, 0.7);
+            border-color: #FFA500;
           }
         }
       }
@@ -102,23 +108,24 @@
       .preview-blocks {
         h4 {
           margin-bottom: 10px;
-          color: #fff;
+          color: #ddd;
         }
         
         .preview-block {
-          background: #2a2a2a;
-          border-radius: 5px;
+          background: rgba(0, 0, 0, 0.1);
+          border-radius: 10px;
           margin-bottom: 10px;
           overflow: hidden;
-          border: 1px solid #333;
-          transition: border-color 0.2s;
+          border: 1px solid #EFB16A;
+          transition: border-color 0.2s, box-shadow 0.2s;
           
           &:hover {
-            border-color: #444;
+            border-color: #FFA500;
           }
           
           &.expanded {
-            border-color: #4fc3f7;
+            border-color: #FFA500;
+            box-shadow: 0 0 8px rgba(239, 177, 106, 0.4);
           }
           
           .block-header {
@@ -126,12 +133,13 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px 15px;
-            background: #333;
+            background: rgba(0, 0, 0, 0.1);
             cursor: pointer;
             user-select: none;
+            transition: background 0.2s ease;
             
             &:hover {
-              background: #3a3a3a;
+              background: rgba(0, 0, 0, 0.1);
             }
             
             .block-title {
@@ -141,31 +149,33 @@
               flex: 1;
               
               .expand-icon {
-                color: #4fc3f7;
+                color: #EFB16A;
                 font-size: 0.8em;
                 width: 12px;
                 display: inline-block;
               }
               
               strong {
-                color: #fff;
+                color: #ddd;
               }
               
               .badge {
-                background: #555;
-                color: #fff;
+                background: rgba(0, 0, 0, 0.4);
+                color: #EFB16A;
                 padding: 2px 8px;
-                border-radius: 3px;
+                border: 1px solid #EFB16A;
+                border-radius: 6px;
                 font-size: 0.8em;
                 font-weight: normal;
               }
             }
             
             .token-count {
-              background: #4fc3f7;
-              color: #000;
-              padding: 3px 10px;
-              border-radius: 3px;
+              background: rgba(239, 177, 106, 0.2);
+              color: #EFB16A;
+              padding: 4px 10px;
+              border: 1px solid #EFB16A;
+              border-radius: 6px;
               font-size: 0.85em;
               font-weight: bold;
               white-space: nowrap;
@@ -174,25 +184,22 @@
           
           .block-content {
             padding: 15px;
-            background: #1e1e1e;
-            border-top: 1px solid #333;
+            background: rgba(0, 0, 0, 0.1);
+            border-top: 1px solid #EFB16A;
             max-height: 400px;
             overflow-y: auto;
             
             &::-webkit-scrollbar {
-              width: 8px;
-            }
-            
-            &::-webkit-scrollbar-track {
-              background: #2a2a2a;
+              width: 10px;
+              background-color: rgba(0, 0, 0, 0.1);
             }
             
             &::-webkit-scrollbar-thumb {
-              background: #555;
-              border-radius: 4px;
+              background-color: #EFB16A;
+              border-radius: 10px;
               
               &:hover {
-                background: #666;
+                background-color: #FFA500;
               }
             }
             
@@ -200,8 +207,8 @@
               white-space: pre-wrap;
               word-wrap: break-word;
               margin: 0;
-              font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-              font-size: 0.85em;
+              font-family: 'GitanLatin-Regular', 'Consolas', 'Monaco', 'Courier New', monospace;
+              font-size: 0.9em;
               line-height: 1.5;
               color: #ddd;
             }

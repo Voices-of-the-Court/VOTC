@@ -28,7 +28,7 @@ select {
   position: absolute;
   top: 10px;
   right: 10px;
-  color: #fff;
+  color: #ddd;
   font-size: 20px;
   height: 30px;
   width: 30px;
@@ -107,7 +107,7 @@ select {
   -moz-hyphens: auto;
   -ms-hyphens: auto;
   -o-hyphens: auto;
-  color: #fff;
+  color: #ddd;
   position: relative;
   font-size: var(--message-font-size, 1.1rem);
 
@@ -124,7 +124,7 @@ select {
   }
 
   p {
-    color: #fff;
+    color: #ddd;
     margin: 0;
     padding: 0px 0px 5px 0px;
   }
@@ -346,7 +346,7 @@ button {
 
   .help-text {
     font-size: 1rem;
-    color: #fff;
+    color: #ddd;
     margin-bottom: 0.5rem;
   }
 
@@ -364,7 +364,7 @@ button {
   border-left: 2px solid #EFB16A;
   border-radius: 5px;
   font-size: 0.9em;
-  color: #fff;
+  color: #ddd;
 }
 
 .action-feedback-list {
@@ -573,7 +573,7 @@ button {
 
 .update-notification-content {
   padding: 16px;
-  color: #fff;
+  color: #ddd;
   font-family: 'GitanLatin-Regular', sans-serif;
 }
 
@@ -663,7 +663,7 @@ button {
 
   &.primary {
     border-color: #4a6da7;
-    color: #fff;
+    color: #ddd;
 
     &:hover {
       border-color: #5a7dc7;

@@ -153,7 +153,7 @@ select {
   border-radius: 10px;
   box-sizing: border-box;
   background-color: rgba(0, 0, 0, 0.4);
-  color: #fff;
+  color: #d8d8d8;
 
   &:focus {
     outline: none;
@@ -197,7 +197,7 @@ hr {
   max-height: 150px;
   overflow-y: auto;
   position: absolute;
-  color: #fff;
+  color: #ddd;
   background-color: #1a1a1a;
   width: 380px; /* Match input width, adjust if needed */
   box-sizing: border-box;
@@ -218,7 +218,7 @@ hr {
 }
 
 .settings-view {
-  color: #fff;
+  color: #ddd;
 }
 
 .settings-view .form-group label {
@@ -401,7 +401,7 @@ hr {
       background-color: rgba(0, 0, 0, 0.4);
       border: 1px solid #EFB16A;
       border-radius: 6px;
-      color: #fff;
+      color: #ddd;
       font-size: 0.9em;
       cursor: pointer;
       
@@ -412,7 +412,7 @@ hr {
       
       option {
         background-color: #1a1a1a;
-        color: #fff;
+        color: #ddd;
       }
     }
   }
@@ -492,7 +492,7 @@ hr {
 
 .clear-custom-btn:hover {
   background-color: rgba(239, 177, 106, 0.2);
-  color: #fff;
+  color: #ddd;
 }
 
 .context-length-warning {
@@ -533,7 +533,7 @@ hr {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  color: #fff;
+  color: #ddd;
 }
 
 .header-row {
@@ -692,7 +692,7 @@ hr {
 .prompts-view textarea {
   width: 100%;
   background: rgba(0, 0, 0, 0.35);
-  color: #fff;
+  color: #ddd;
   border: 1px solid #EFB16A;
   border-radius: 8px;
   padding: 8px;
@@ -708,7 +708,7 @@ hr {
 .prompts-view select {
   width: 100%;
   background: rgba(0, 0, 0, 0.35);
-  color: #fff;
+  color: #ddd;
   border: 1px solid #EFB16A;
   border-radius: 8px;
   padding: 8px;
@@ -752,7 +752,7 @@ hr {
   min-width: 350px;
   max-width: 80%;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
-  color: #fff;
+  color: #ddd;
   
   h4 {
     margin-top: 0;
@@ -763,7 +763,7 @@ hr {
   }
   
   p {
-    color: #fff;
+    color: #ddd;
     margin-bottom: 15px;
     line-height: 1.5;
   }
@@ -782,7 +782,7 @@ hr {
       width: 100%;
       padding: 10px;
       background-color: rgba(0, 0, 0, 0.4);
-      color: #fff;
+      color: #ddd;
       border: 1px solid #EFB16A;
       border-radius: 8px;
       font-size: 14px;
@@ -805,7 +805,7 @@ hr {
     button {
       padding: 10px 20px;
       background-color: rgba(0, 0, 0, 0.5);
-      color: #fff;
+      color: #ddd;
       border: 1px solid #EFB16A;
       border-radius: 8px;
       cursor: pointer;
@@ -830,7 +830,7 @@ hr {
       &.button-danger {
         background-color: rgba(220, 53, 69, 0.3);
         border-color: #dc3545;
-        color: #fff;
+        color: #ddd;
         
         &:hover {
           background-color: rgba(220, 53, 69, 0.5);
