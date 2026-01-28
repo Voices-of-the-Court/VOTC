@@ -8,6 +8,7 @@ import PromptsView from './PromptsView';
 import discordIcon from '../assets/discord-icon.svg';
 import tooltipIcon from '../assets/tooltip2.png';
 import logsIcon from '../assets/folder.svg';
+import { useDraggableResizable } from '../hooks/useDraggableResizable';
 
 type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts';
 
@@ -19,6 +20,21 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
   const loadSettings = useConfigStore((state) => state.loadSettings);
   const appSettings = useConfigStore((state) => state.appSettings);
   const [currentTab, setCurrentTab] = useState<CurrentTab>('connection');
+
+  const {
+    position,
+    size,
+    isDragging,
+    isResizing,
+    handleDragStart,
+    handleResizeStart,
+  } = useDraggableResizable({
+    initialPosition: { x: window.innerWidth - 30 - Math.min(window.innerWidth * 0.4, 700), y: 30 },
+    initialSize: { width: Math.min(window.innerWidth * 0.4, 700), height: window.innerHeight - 60 },
+    minWidth: 400,
+    minHeight: 400,
+    storageKey: 'config-panel-state',
+  });
 
   useEffect(() => {
     loadSettings();
@@ -62,10 +78,139 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
       className="config-panel-container"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      style={{ pointerEvents: 'auto' }}
+      style={{
+        pointerEvents: 'auto',
+        position: 'absolute',
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
+        cursor: isDragging ? 'grabbing' : isResizing ? 'nwse-resize' : 'default',
+      }}
     >
+      {/* Drag handle */}
+      <div
+        className="panel-drag-handle"
+        onMouseDown={handleDragStart}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '40px',
+          cursor: 'grab',
+          zIndex: 10,
+        }}
+      />
+      
+      {/* Resize handles */}
+      <div
+        className="resize-handle resize-e"
+        onMouseDown={(e) => handleResizeStart(e, 'e')}
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: '8px',
+          cursor: 'ew-resize',
+          zIndex: 10,
+        }}
+      />
+      <div
+        className="resize-handle resize-s"
+        onMouseDown={(e) => handleResizeStart(e, 's')}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '8px',
+          cursor: 'ns-resize',
+          zIndex: 10,
+        }}
+      />
+      <div
+        className="resize-handle resize-se"
+        onMouseDown={(e) => handleResizeStart(e, 'se')}
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 0,
+          width: '16px',
+          height: '16px',
+          cursor: 'nwse-resize',
+          zIndex: 11,
+        }}
+      />
+      <div
+        className="resize-handle resize-w"
+        onMouseDown={(e) => handleResizeStart(e, 'w')}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '8px',
+          cursor: 'ew-resize',
+          zIndex: 10,
+        }}
+      />
+      <div
+        className="resize-handle resize-n"
+        onMouseDown={(e) => handleResizeStart(e, 'n')}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '8px',
+          cursor: 'ns-resize',
+          zIndex: 10,
+        }}
+      />
+      <div
+        className="resize-handle resize-nw"
+        onMouseDown={(e) => handleResizeStart(e, 'nw')}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: '16px',
+          height: '16px',
+          cursor: 'nwse-resize',
+          zIndex: 11,
+        }}
+      />
+      <div
+        className="resize-handle resize-ne"
+        onMouseDown={(e) => handleResizeStart(e, 'ne')}
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          width: '16px',
+          height: '16px',
+          cursor: 'nesw-resize',
+          zIndex: 11,
+        }}
+      />
+      <div
+        className="resize-handle resize-sw"
+        onMouseDown={(e) => handleResizeStart(e, 'sw')}
+        style={{
+          position: 'absolute',
+          left: 0,
+          bottom: 0,
+          width: '16px',
+          height: '16px',
+          cursor: 'nesw-resize',
+          zIndex: 11,
+        }}
+      />
+      
       <header className="config-header">
-        <div className="discord-container">
+        <div className="discord-container" style={{ zIndex: 12 }}>
           <button className="tooltip-button" title="Help section">
             <img src={tooltipIcon} alt="?" className="tooltip-icon" />
           </button>
@@ -87,12 +232,14 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         <button
           onClick={() => setCurrentTab('connection')}
           className={currentTab === 'connection' ? 'active' : ''}
+          style={{ zIndex: 12 }}
         >
           Connection
         </button>
         <button
           onClick={() => setCurrentTab('settings')}
           className={currentTab === 'settings' ? 'active' : ''}
+          style={{ zIndex: 12 }}
         >
           Settings
         </button>
@@ -100,12 +247,14 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
           onClick={() => setCurrentTab('actions')}
           className={currentTab === 'actions' ? 'active' : ''}
           title="Manage detected Actions"
+          style={{ zIndex: 12 }}
         >
           Actions
         </button>
         <button
           onClick={() => setCurrentTab('prompts')}
           className={currentTab === 'prompts' ? 'active' : ''}
+          style={{ zIndex: 12 }}
         >
           Prompts
         </button>

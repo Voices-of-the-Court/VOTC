@@ -139,6 +139,12 @@ contextBridge.exposeInMainWorld('conversationAPI', {
   regenerateError: (messageId: number): Promise<{success: boolean, error?: string}> => {
     return ipcRenderer.invoke('conversation:regenerateError', { messageId });
   },
+  acceptSummaryImport: (characterId: number, sourcePlayerId: string): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:acceptSummaryImport', { characterId, sourcePlayerId }),
+  declineSummaryImport: (characterId: number, sourcePlayerId: string): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:declineSummaryImport', { characterId, sourcePlayerId }),
+  openSummaryFile: (filePath: string): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:openSummaryFile', { filePath }),
  });
  
  // Actions API exposed to renderer

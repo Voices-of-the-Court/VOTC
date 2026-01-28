@@ -1,15 +1,16 @@
-import { GameData } from "../gameData/GameData";
+import { GameData, SummaryImportResult } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
 import { parseLog, cleanLogFile } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
-import { ConversationEntry, Message, createError, createMessage, createActionFeedback } from "./types";
+import { ConversationEntry, Message, createError, createMessage, createActionFeedback, createSummaryImport } from "./types";
 import { PromptBuilder } from "./PromptBuilder";
 import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
 import { runFileManager } from "../actions/RunFileManager";
+import { shell } from "electron";
 
 export class Conversation {
     id = v4();
@@ -32,6 +33,10 @@ export class Conversation {
     customQueue: Character[] | null = null;
     isPaused: boolean = false;
     persistCustomQueue: boolean = false;
+
+    // Summary import management
+    private pendingSummaryImports: Map<string, SummaryImportResult> = new Map(); // Key: "characterId_sourcePlayerId"
+    private hasAcceptedImports: Set<number> = new Set(); // Track which characters have accepted imports
 
     constructor() {
         this.eventEmitter = new EventEmitter();
@@ -68,6 +73,10 @@ export class Conversation {
             this.gameData = await parseLog(ck3DebugPath);
             console.log('GameData initialized with', this.gameData.characters.size, 'characters');
             this.gameData.loadCharactersSummaries();
+            
+            // Check for summaries from other players
+            await this.checkForOtherPlayerSummaries();
+            
             this.isActive = true;
         } catch (error) {
             console.error('Failed to parse log file:', error);
@@ -669,5 +678,136 @@ export class Conversation {
     // Unsubscribe from conversation updates
     offConversationUpdate(callback: (entries: ConversationEntry[]) => void): void {
         this.eventEmitter.off('conversation-updated', callback);
+    }
+
+    /**
+     * Check for conversation summaries from other player characters
+     */
+    private async checkForOtherPlayerSummaries(): Promise<void> {
+        try {
+            const importResults = await this.gameData.checkForSummariesFromOtherPlayers();
+            
+            for (const result of importResults) {
+                // Create a unique key for each character+sourcePlayer combination
+                const importKey = `${result.characterId}_${result.sourcePlayerId}`;
+                
+                // Only show import notification if we haven't already handled this specific import
+                if (!this.pendingSummaryImports.has(importKey)) {
+                    
+                    // Store the import result using a composite key to handle multiple sources per character
+                    this.pendingSummaryImports.set(importKey, result);
+                    
+                    const importEntry = createSummaryImport({
+                        id: this.nextId++,
+                        sourcePlayerId: result.sourcePlayerId,
+                        characterId: result.characterId,
+                        characterName: result.characterName,
+                        summaryCount: result.summaryCount,
+                        sourceFilePath: result.sourceFilePath,
+                        status: 'pending'
+                    });
+                    
+                    this.messages.push(importEntry);
+                }
+            }
+            
+            if (importResults.length > 0) {
+                this.emitUpdate();
+            }
+        } catch (error) {
+            console.error('Error checking for other player summaries:', error);
+        }
+    }
+
+    /**
+     * Accept summary import for a character
+     */
+    async acceptSummaryImport(characterId: number, sourcePlayerId: string): Promise<void> {
+        const importKey = `${characterId}_${sourcePlayerId}`;
+        const importResult = this.pendingSummaryImports.get(importKey);
+        if (!importResult) {
+            throw new Error(`No pending import found for character ${characterId} from player ${sourcePlayerId}`);
+        }
+
+        try {
+            // Check if we already have summaries for this character (merge case)
+            const character = this.gameData.characters.get(characterId);
+            const mergeWithExisting = character && character.conversationSummaries.length > 0;
+            
+            await this.gameData.importSummariesFromOtherPlayer(
+                characterId,
+                importResult.sourcePlayerId,
+                mergeWithExisting
+            );
+            
+            // Mark as accepted for this character (allows future imports to be merged)
+            this.hasAcceptedImports.add(characterId);
+            
+            // Remove from pending imports
+            this.pendingSummaryImports.delete(importKey);
+            
+            // Find and remove the specific entry (not all entries for this character)
+            const entryIndex = this.messages.findIndex(
+                msg => msg.type === 'summary-import' &&
+                'characterId' in msg &&
+                'sourcePlayerId' in msg &&
+                msg.characterId === characterId &&
+                msg.sourcePlayerId === importResult.sourcePlayerId
+            );
+            
+            if (entryIndex !== -1) {
+                // Remove the entry as requested
+                this.messages.splice(entryIndex, 1);
+                this.emitUpdate();
+            }
+            
+            console.log(`Accepted summary import for character ${characterId} from player ${importResult.sourcePlayerId}`);
+        } catch (error) {
+            console.error(`Failed to accept summary import for character ${characterId}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Decline summary import for a character
+     */
+    async declineSummaryImport(characterId: number, sourcePlayerId: string): Promise<void> {
+        const importKey = `${characterId}_${sourcePlayerId}`;
+        const importResult = this.pendingSummaryImports.get(importKey);
+        if (!importResult) {
+            throw new Error(`No pending import found for character ${characterId} from player ${sourcePlayerId}`);
+        }
+
+        // Remove from pending
+        this.pendingSummaryImports.delete(importKey);
+        
+        // Find and remove the specific entry (not all entries for this character)
+        const entryIndex = this.messages.findIndex(
+            msg => msg.type === 'summary-import' &&
+            'characterId' in msg &&
+            'sourcePlayerId' in msg &&
+            msg.characterId === characterId &&
+            msg.sourcePlayerId === importResult.sourcePlayerId
+        );
+        
+        if (entryIndex !== -1) {
+            // Remove the entry as requested
+            this.messages.splice(entryIndex, 1);
+            this.emitUpdate();
+        }
+        
+        console.log(`Declined summary import for character ${characterId} from player ${importResult.sourcePlayerId}`);
+    }
+
+    /**
+     * Open summary file in default editor
+     */
+    async openSummaryFile(filePath: string): Promise<void> {
+        try {
+            await shell.openPath(filePath);
+        } catch (error) {
+            console.error('Failed to open summary file:', error);
+            throw error;
+        }
     }
 }

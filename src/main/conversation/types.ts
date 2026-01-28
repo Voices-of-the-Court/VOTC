@@ -53,4 +53,22 @@ export function createActionFeedback(input: Omit<ActionFeedbackEntry, 'type' | '
     };
 }
 
-export type ConversationEntry = Message | ErrorEntry | ActionFeedbackEntry;
+export interface SummaryImportEntry extends BaseEntry {
+    type: 'summary-import';
+    sourcePlayerId: string;
+    characterId: number;
+    characterName: string;
+    summaryCount: number;
+    sourceFilePath: string;
+    status: 'pending' | 'accepted' | 'declined';
+}
+
+export function createSummaryImport(input: Omit<SummaryImportEntry, 'type' | 'datetime'>): SummaryImportEntry {
+    return {
+        ...input,
+        type: 'summary-import',
+        datetime: new Date()
+    };
+}
+
+export type ConversationEntry = Message | ErrorEntry | ActionFeedbackEntry | SummaryImportEntry;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChatEntry, MessageEntry, ErrorEntry, ActionFeedbackEntry } from '../types';
+import { ChatEntry, MessageEntry, ErrorEntry, ActionFeedbackEntry, SummaryImportEntry } from '../types';
 
 interface UseConversationEntriesReturn {
   entries: ChatEntry[];
@@ -35,6 +35,18 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
               feedbacks: entry.feedbacks,
               datetime: new Date(entry.datetime)
             } as ActionFeedbackEntry;
+          } else if (entry.type === 'summary-import') {
+            return {
+              id: entry.id.toString(),
+              type: entry.type,
+              sourcePlayerId: entry.sourcePlayerId,
+              characterId: entry.characterId,
+              characterName: entry.characterName,
+              summaryCount: entry.summaryCount,
+              sourceFilePath: entry.sourceFilePath,
+              status: entry.status,
+              datetime: new Date(entry.datetime)
+            } as SummaryImportEntry;
           } else {
             return {
               id: entry.id.toString(),
@@ -78,6 +90,18 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
             feedbacks: entry.feedbacks,
             datetime: new Date(entry.datetime)
           } as ActionFeedbackEntry;
+        } else if (entry.type === 'summary-import') {
+          return {
+            id: entry.id.toString(),
+            type: entry.type,
+            sourcePlayerId: entry.sourcePlayerId,
+            characterId: entry.characterId,
+            characterName: entry.characterName,
+            summaryCount: entry.summaryCount,
+            sourceFilePath: entry.sourceFilePath,
+            status: entry.status,
+            datetime: new Date(entry.datetime)
+          } as SummaryImportEntry;
         } else {
           return {
             id: entry.id.toString(),

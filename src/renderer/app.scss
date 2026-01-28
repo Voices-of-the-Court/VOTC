@@ -2,6 +2,9 @@
   margin: 30px;
 }
 
+// Import SummaryImportNotification styles
+@import './chat/components/SummaryImportNotification.scss';
+
 :root {
   --message-font-size: 1.1rem;
 }
@@ -252,7 +255,7 @@ select {
   border: 1px solid #EFB16A;
   border-radius: 10px;
   font-family: 'GitanLatin-Regular';
-  font-size: 1rem;
+  font-size: var(--message-font-size, 1.1rem);
   box-sizing: border-box;
   cursor: url('assets/cursor.png'), none;
   transition:

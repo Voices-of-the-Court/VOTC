@@ -74,6 +74,8 @@ const createWindow = (): BrowserWindow => {
     // alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
     fullscreen: false,
+    thickFrame: false,
+    hasShadow: false,
     webPreferences: {
       partition: 'persist:chat',
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
@@ -673,6 +675,26 @@ const setupIpcHandlers = () => {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  });
+
+  // Summary import IPC handlers
+  ipcMain.handle('conversation:acceptSummaryImport', async (_, { characterId, sourcePlayerId }) => {
+    const conversation = conversationManager.getCurrentConversation();
+    if (!conversation) throw new Error('No active conversation');
+    await conversation.acceptSummaryImport(characterId, sourcePlayerId);
+    return { success: true };
+  });
+
+  ipcMain.handle('conversation:declineSummaryImport', async (_, { characterId, sourcePlayerId }) => {
+    const conversation = conversationManager.getCurrentConversation();
+    if (!conversation) throw new Error('No active conversation');
+    await conversation.declineSummaryImport(characterId, sourcePlayerId);
+    return { success: true };
+  });
+
+  ipcMain.handle('conversation:openSummaryFile', async (_, { filePath }) => {
+    await shell.openPath(filePath);
+    return { success: true };
   });
 
   // Set up conversation update listener
