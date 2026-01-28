@@ -407,7 +407,6 @@ Please summarize the conversation into only a single paragraph.`
         promptSettings: PromptSettings
     ): PromptBlockWithTokens | null {
         const { character, gameData, summary } = baseContext;
-        const startLength = messages.length;
         
         switch (block.type) {
             case 'main': {
