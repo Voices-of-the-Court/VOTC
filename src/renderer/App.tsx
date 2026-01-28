@@ -8,7 +8,6 @@ function App() {
   const [showChat, setShowChat] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
-  const [isOverlayVisible, setIsOverlayVisible] = useState(true);
   const loadSettings = useConfigStore((state) => state.loadSettings);
   const appSettings = useAppSettings();
 
@@ -94,10 +93,7 @@ function App() {
   useEffect(() => {
     const cleanup = window.electronAPI?.onOverlayVisibilityChange((isVisible: boolean) => {
       console.log('Overlay visibility changed:', isVisible);
-      setIsOverlayVisible(isVisible);
-
       // Safety: If hidden, force "ignore mouse" to ensure click-through
-      // (The display:none below stops mouse events, but this is a good backup)
       if (!isVisible) {
         window.electronAPI?.setIgnoreMouseEvents(true);
       }
