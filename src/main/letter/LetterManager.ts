@@ -33,14 +33,6 @@ export class LetterManager {
     const debugLogPath = settingsRepository.getCK3DebugLogPath();
     console.log(`LetterManager: Resolved debug log path: ${debugLogPath}`);
     
-    if (ck3UserPath) {
-        const runFolder = path.join(ck3UserPath, "run");
-        const letterFilePath = path.join(runFolder, "letters.txt");
-        console.log(`LetterManager: Resolved letters.txt path: ${letterFilePath}`);
-        fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");
-        console.log("Created letters.txt file");
-    }
-
     if (!debugLogPath) {
       console.warn("LetterManager: CK3 debug log path is not configured; cannot start log tailing.");
       return;
@@ -158,6 +150,18 @@ export class LetterManager {
    * Process a new letter: generate response immediately but store it for delayed delivery
    */
   async processLatestLetter(): Promise<string | null> {
+    const ck3UserPath = settingsRepository.getCK3UserFolderPath();
+
+    if (ck3UserPath) {
+        const runFolder = path.join(ck3UserPath, "run");
+        const letterFilePath = path.join(runFolder, "letters.txt");
+        console.log(`LetterManager: Resolved letters.txt path: ${letterFilePath}`);
+        fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");
+        console.log("Created letters.txt file");
+    }
+
+
+
     const context = await this.loadLatestGameDataWithLetter();
     if (!context) return null;
     const { gameData, letter } = context;
