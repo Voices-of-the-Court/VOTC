@@ -87,6 +87,12 @@ const createWindow = (): BrowserWindow => {
     },
   });
 
+  // Disable Windows 11 DWM backdrop effects that cause dark borders on transparent windows
+  // This API is available in Electron 22+ for Windows 11 22H2+
+  if (process.platform === 'win32') {
+    chatWindow.setBackgroundMaterial('none');
+  }
+
   // Make the window initially click-through
   // chatWindow.setAlwaysOnTop(true, 'screen-saver');
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
