@@ -74,6 +74,8 @@ const createWindow = (): BrowserWindow => {
     // alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
     fullscreen: false,
+    thickFrame: false,
+    hasShadow: false,
     webPreferences: {
       partition: 'persist:chat',
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output

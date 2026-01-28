@@ -179,6 +179,8 @@ export function useDraggableResizable(options: UseDraggableResizableOptions = {}
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
+    
+    return undefined;
   }, [state.isDragging, state.isResizing, handleMouseMove, handleMouseUp]);
 
   return {
