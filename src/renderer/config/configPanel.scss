@@ -47,13 +47,14 @@
 
   .config-close-button {
     margin-left: auto;
-    background: none;
-    border: none;
-    font-size: 18px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid #EFB16A;
+    font-size: 24px;
     color: #EFB16A;
     padding: 0;
-    width: auto;
-    height: auto;
+    width: 40px;
+    height: 40px;
+    z-index: 12;
   }
 
   .discord-button {
@@ -453,18 +454,30 @@ hr {
 
 /* Context Length Field Styles */
 .context-length-input-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  position: relative;
+  /* Match the exact width of other inputs */
+  width: calc(100% - 18px);
+  /* Use container for the bottom margin */
+  margin-bottom: 10px;
 }
 
 .context-length-input-container input {
-  flex: 1;
+  /* Override global input width to fill the container */
+  width: 100% !important;
+  margin-bottom: 0 !important;
+  /* Make room for the button inside the input */
+  padding-right: 35px;
 }
 
 .clear-custom-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  
+  /* Visual styling */
   background: none;
-  border: 1px solid #EFB16A;
+  border: none;
   border-radius: 4px;
   width: 24px;
   height: 24px;
@@ -472,25 +485,21 @@ hr {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px; /* Slightly smaller X looks cleaner inside */
   color: #EFB16A;
-  
-  &:hover {
-    background-color: rgba(239, 177, 106, 0.2);
-    color: #fff;
-  }
+  z-index: 5;
 }
 
-.custom-indicator {
-  color: #FFA500;
-  margin-left: 4px;
-  font-size: 14px;
+.clear-custom-btn:hover {
+  background-color: rgba(239, 177, 106, 0.2);
+  color: #fff;
 }
 
 .context-length-warning {
   color: #f44336;
   font-size: 12px;
-  margin-top: 4px;
+  margin-top: -5px; /* Pull closer since margin-bottom moved to container */
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 4px;
