@@ -27,12 +27,6 @@ initLogger();
 let chatWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
-// Disable hardware acceleration to fix transparent window issues on Windows 11
-// This must be called before app is ready
-if (process.platform === 'win32') {
-  app.disableHardwareAcceleration();
-}
-
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -732,16 +726,19 @@ const setupFocusMonitoring = (window: BrowserWindow) => {
   focusMonitor.on('overlay-state-changed', (isOverlay: boolean) => {
     if (!window || window.isDestroyed()) return;
 
-    // Send visibility state to Renderer
+    // Send visibility state to Renderer (for internal state tracking)
     window.webContents.send('overlay-visibility-change', isOverlay);
 
     if (isOverlay) {
-      // 1. App/Game Active: Ensure on top
+      // 1. App/Game Active: Show window and ensure on top
+      if (!window.isVisible()) {
+        window.showInactive(); // Show without stealing focus from game
+      }
       window.setAlwaysOnTop(true, 'screen-saver');
-
     } else {
-      // 2. Alt-Tabbed away:
+      // 2. Alt-Tabbed away: Hide the entire window to remove the border artifact
       window.setIgnoreMouseEvents(true, { forward: true });
+      window.hide(); // Completely hide the window - this removes the DWM border issue
     }
   });
 
