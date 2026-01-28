@@ -9,13 +9,8 @@ body,
   overflow: hidden;
 }
 
-// Border overflow value must match BORDER_OVERFLOW in main.ts (20px)
-// This offsets the content so it stays within the visible screen area
-$border-overflow: 20px;
-
 .App {
-  // Original margin (30px) + border overflow to keep content in visible area
-  margin: calc(30px + #{$border-overflow});
+  margin: 30px;
   background: transparent;
 }
 
@@ -60,7 +55,7 @@ select {
   position: absolute;
   padding: 9px;
   width: 50%;
-  height: calc(100vh - 60px - #{$border-overflow} * 2);
+  height: calc(100vh - 60px);
   background-image:
     url('assets/background_area_light.png');
   background-repeat: repeat;
@@ -576,8 +571,8 @@ button {
 // Update Notification Styles
 .update-notification {
   position: fixed;
-  top: calc(20px + #{$border-overflow});
-  right: calc(20px + #{$border-overflow});
+  top: 20px;
+  right: 20px;
   width: 350px;
   background-image: url('assets/background_area_light.png');
   background-repeat: repeat;

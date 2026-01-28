@@ -27,6 +27,12 @@ initLogger();
 let chatWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
+// Disable hardware acceleration to fix transparent window issues on Windows 11
+// This must be called before app is ready
+if (process.platform === 'win32') {
+  app.disableHardwareAcceleration();
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -60,34 +66,29 @@ const exportPromptsZip = (destination: string, settings: PromptSettings, presets
 };
 
 const createWindow = (): BrowserWindow => {
-  // Get primary display dimensions - use full bounds for overlay to cover entire screen
+  // Get primary display dimensions
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width, height } = primaryDisplay.bounds;
-
-  // Extend window beyond screen bounds to hide DWM border artifacts on Windows 11
-  // The border will be outside the visible screen area
-  const BORDER_OVERFLOW = 20;
+  const { width, height } = primaryDisplay.workAreaSize;
 
   // Create the browser window.
   const chatWindow = new BrowserWindow({
-    x: -BORDER_OVERFLOW,
-    y: -BORDER_OVERFLOW,
-    width: width + BORDER_OVERFLOW * 2,
-    height: height + BORDER_OVERFLOW * 2,
-    show: true, // Start hidden
+    x: 0,
+    y: 0,
+    width,
+    height,
+    show: true,
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    // alwaysOnTop: true, // Keep window on top
     skipTaskbar: true, // Don't show in taskbar - overlay window
     fullscreen: false,
     thickFrame: false,
     hasShadow: false,
-    backgroundColor: '#00000000', // Fully transparent background for Windows 11
+    backgroundColor: '#00000000', // Fully transparent background
     webPreferences: {
       partition: 'persist:chat',
-      preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
-      nodeIntegration: false, // Best practice: disable nodeIntegration
-      contextIsolation: true, // Best practice: enable contextIsolation
+      preload: path.join(__dirname, '../preload/preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
     },
   });
 

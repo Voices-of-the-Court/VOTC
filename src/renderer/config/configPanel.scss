@@ -1,16 +1,13 @@
 /* Config Panel Styles with Fantasy Theme Adaptation */
 
-// Border overflow value must match BORDER_OVERFLOW in main.ts (20px)
-$border-overflow: 20px;
-
 .config-panel-container {
   position: absolute;
-  top: calc(30px + #{$border-overflow});
-  /* Match App margin + border overflow */
-  right: calc(30px + #{$border-overflow});
+  top: 30px;
+  /* Match App margin */
+  right: 30px;
   width: 40%;
   /* Wider than chat, but leave space */
-  height: calc(100vh - 60px - #{$border-overflow} * 2);
+  height: calc(100vh - 60px);
   background-image: url('../assets/background_area_light.png');
   background-repeat: repeat;
   background-size: 200px 200px;
