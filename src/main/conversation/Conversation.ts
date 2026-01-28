@@ -11,6 +11,7 @@ import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
 import { runFileManager } from "../actions/RunFileManager";
 import { shell } from "electron";
+import { TokenCounter } from "../utils/TokenCounter";
 
 export class Conversation {
     id = v4();
@@ -145,6 +146,7 @@ export class Conversation {
         const summaryPrompt = PromptBuilder.buildResummarizePrompt(messagesToSummarize, this.currentSummary);
         
         try {
+            console.log('[TOKEN_COUNT] Rolling summary: ', this.estimateTokenCount(summaryPrompt));
             const result = await llmManager.sendSummaryRequest(summaryPrompt);
             
             if (result && typeof result === 'object' && 'content' in result) {
@@ -166,13 +168,11 @@ export class Conversation {
      * Estimate token count (simple approximation)
      */
     private estimateTokenCount(messages: any[]): number {
-        const text = JSON.stringify(messages);
-        return Math.ceil(text.length / 4); // Rough estimate: 1 token ≈ 4 characters
+        return TokenCounter.calculateTotalTokens(messages);
     }
     
     private estimateMessageTokens(message: Message): number {
-        const text = `${message.name}: ${message.content}`;
-        return Math.ceil(text.length / 4);
+        return TokenCounter.estimateMessageTokens(message);
     }
 
     // Get list of all NPCs (characters except the player)
@@ -212,6 +212,7 @@ export class Conversation {
 
         try {
             console.log(`Message from ${npc.fullName}:`, llmMessages);
+            console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, this.estimateTokenCount(llmMessages));
             const result = await llmManager.sendChatRequest(llmMessages, this.currentStreamController.signal);
 
             if (settingsRepository.getGlobalStreamSetting() &&
@@ -633,6 +634,7 @@ export class Conversation {
         }
 
         try {
+            console.log(`[TOKEN_COUNT] Final summary prompt tokens: ${estimatedTokens}`);
             const result = await llmManager.sendSummaryRequest(summaryPrompt);
 
             if (result && typeof result === 'object' && 'content' in result) {

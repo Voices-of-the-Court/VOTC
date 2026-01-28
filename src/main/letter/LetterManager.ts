@@ -9,6 +9,7 @@ import { letterPromptBuilder } from "./LetterPromptBuilder";
 import { LetterData, StoredLetter } from "./types";
 import { GameData } from "../gameData/GameData";
 import type { ILLMMessage } from "../llmProviders/types";
+import { TokenCounter } from "../utils/TokenCounter";
 
 export class LetterManager {
   private currentTotalDays: number = 0;
@@ -32,6 +33,14 @@ export class LetterManager {
     const debugLogPath = settingsRepository.getCK3DebugLogPath();
     console.log(`LetterManager: Resolved debug log path: ${debugLogPath}`);
     
+    if (ck3UserPath) {
+        const runFolder = path.join(ck3UserPath, "run");
+        const letterFilePath = path.join(runFolder, "letters.txt");
+        console.log(`LetterManager: Resolved letters.txt path: ${letterFilePath}`);
+        fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");
+        console.log("Created letters.txt file");
+    }
+
     if (!debugLogPath) {
       console.warn("LetterManager: CK3 debug log path is not configured; cannot start log tailing.");
       return;
@@ -249,6 +258,8 @@ export class LetterManager {
     ];
 
     try {
+      console.log(`[TOKEN_COUNT] Letter summary prompt tokens: ${TokenCounter.estimateMessageTokens(summaryPrompt[0])}`);
+      console.log(`[TOKEN_COUNT] Letter summary letters letters content tokens: ${TokenCounter.estimateMessageTokens(summaryPrompt[1])}`);
       const summaryResult = await llmManager.sendSummaryRequest(summaryPrompt);
       if (summaryResult && typeof summaryResult === "object" && "content" in summaryResult) {
         const summary = (summaryResult as any).content as string;

@@ -1,0 +1,213 @@
+.prompt-preview {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #333;
+  
+  .prompt-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    
+    h3 {
+      margin: 0;
+      color: #fff;
+    }
+    
+    .character-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      
+      label {
+        font-weight: bold;
+        color: #ddd;
+      }
+      
+      select {
+        padding: 5px 10px;
+        background: #444;
+        color: #fff;
+        border: 1px solid #555;
+        border-radius: 3px;
+        cursor: pointer;
+        
+        &:hover {
+          background: #4a4a4a;
+        }
+        
+        &:focus {
+          outline: none;
+          border-color: #4fc3f7;
+        }
+      }
+    }
+  }
+  
+  .prompt-preview-content {
+    .muted-text {
+      color: #aaa;
+      font-style: italic;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .error-text {
+      color: #ff6b6b;
+      padding: 10px;
+      background: rgba(255, 107, 107, 0.1);
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    
+    .preview-results {
+      .token-summary {
+        background: #2a2a2a;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        h4 {
+          margin: 0;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          
+          .token-count-large {
+            color: #4fc3f7;
+            font-size: 1.2em;
+            font-weight: bold;
+          }
+        }
+        
+        .toggle-all-btn {
+          padding: 5px 15px;
+          background: #444;
+          color: #fff;
+          border: 1px solid #555;
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 0.9em;
+          
+          &:hover {
+            background: #4a4a4a;
+          }
+        }
+      }
+      
+      .preview-blocks {
+        h4 {
+          margin-bottom: 10px;
+          color: #fff;
+        }
+        
+        .preview-block {
+          background: #2a2a2a;
+          border-radius: 5px;
+          margin-bottom: 10px;
+          overflow: hidden;
+          border: 1px solid #333;
+          transition: border-color 0.2s;
+          
+          &:hover {
+            border-color: #444;
+          }
+          
+          &.expanded {
+            border-color: #4fc3f7;
+          }
+          
+          .block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #333;
+            cursor: pointer;
+            user-select: none;
+            
+            &:hover {
+              background: #3a3a3a;
+            }
+            
+            .block-title {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 1;
+              
+              .expand-icon {
+                color: #4fc3f7;
+                font-size: 0.8em;
+                width: 12px;
+                display: inline-block;
+              }
+              
+              strong {
+                color: #fff;
+              }
+              
+              .badge {
+                background: #555;
+                color: #fff;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-size: 0.8em;
+                font-weight: normal;
+              }
+            }
+            
+            .token-count {
+              background: #4fc3f7;
+              color: #000;
+              padding: 3px 10px;
+              border-radius: 3px;
+              font-size: 0.85em;
+              font-weight: bold;
+              white-space: nowrap;
+            }
+          }
+          
+          .block-content {
+            padding: 15px;
+            background: #1e1e1e;
+            border-top: 1px solid #333;
+            max-height: 400px;
+            overflow-y: auto;
+            
+            &::-webkit-scrollbar {
+              width: 8px;
+            }
+            
+            &::-webkit-scrollbar-track {
+              background: #2a2a2a;
+            }
+            
+            &::-webkit-scrollbar-thumb {
+              background: #555;
+              border-radius: 4px;
+              
+              &:hover {
+                background: #666;
+              }
+            }
+            
+            pre {
+              white-space: pre-wrap;
+              word-wrap: break-word;
+              margin: 0;
+              font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+              font-size: 0.85em;
+              line-height: 1.5;
+              color: #ddd;
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -73,7 +73,7 @@ const createWindow = (): BrowserWindow => {
     frame: false, // Remove window frame
     // alwaysOnTop: true, // Keep window on top
     // skipTaskbar: true, // Don't show in taskbar
-    fullscreen: false,
+    fullscreen: true,
     thickFrame: false,
     hasShadow: false,
     webPreferences: {
@@ -695,6 +695,15 @@ const setupIpcHandlers = () => {
   ipcMain.handle('conversation:openSummaryFile', async (_, { filePath }) => {
     await shell.openPath(filePath);
     return { success: true };
+  });
+
+  // Prompt preview IPC handlers
+  ipcMain.handle('conversation:getActiveConversationData', () => {
+    return conversationManager.getActiveConversationData();
+  });
+
+  ipcMain.handle('conversation:getPromptPreview', (_, { characterId }) => {
+    return conversationManager.getPromptPreview(characterId);
   });
 
   // Set up conversation update listener
