@@ -76,6 +76,8 @@ const createWindow = (): BrowserWindow => {
     fullscreen: true,
     thickFrame: false,
     hasShadow: false,
+    resizable: false,
+    roundedCorners: false,
     webPreferences: {
       partition: 'persist:chat',
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
