@@ -1,5 +1,15 @@
+// Ensure complete transparency for overlay on Windows 11
+html, body, #root {
+  background: transparent !important;
+  background-color: transparent !important;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 .App {
   margin: 30px;
+  background: transparent;
 }
 
 // Import SummaryImportNotification styles

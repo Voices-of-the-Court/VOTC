@@ -60,22 +60,25 @@ const exportPromptsZip = (destination: string, settings: PromptSettings, presets
 };
 
 const createWindow = (): BrowserWindow => {
-  // Get primary display dimensions
+  // Get primary display dimensions - use full bounds for overlay to cover entire screen
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width, height } = primaryDisplay.workAreaSize;
+  const { width, height } = primaryDisplay.bounds;
 
   // Create the browser window.
   const chatWindow = new BrowserWindow({
+    x: 0,
+    y: 0,
     width,
     height,
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
     // alwaysOnTop: true, // Keep window on top
-    // skipTaskbar: true, // Don't show in taskbar
+    skipTaskbar: true, // Don't show in taskbar - overlay window
     fullscreen: false,
     thickFrame: false,
     hasShadow: false,
+    backgroundColor: '#00000000', // Fully transparent background for Windows 11
     webPreferences: {
       partition: 'persist:chat',
       preload: path.join(__dirname, '../preload/preload.js'), // Adjusted path for Vite output
@@ -92,13 +95,13 @@ const createWindow = (): BrowserWindow => {
   // chatWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
 
   // and load the index.html of the app.
-if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-  chatWindow.loadURL(process.env['ELECTRON_RENDERER_URL']); 
-} else {
-  chatWindow.loadFile(
-    path.join(__dirname, '../renderer/index.html') // see below for prod
-  );
-}
+  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+    chatWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+  } else {
+    chatWindow.loadFile(
+      path.join(__dirname, '../renderer/index.html') // see below for prod
+    );
+  }
 
   // // Open the DevTools.
   // chatWindow.webContents.openDevTools(
@@ -274,8 +277,8 @@ const setupIpcHandlers = () => {
   });
 
   ipcMain.handle('llm:testConnection', async () => {
-     return await llmManager.testProviderConnection();
-     // Errors are caught within testProviderConnection and returned in the result object
+    return await llmManager.testProviderConnection();
+    // Errors are caught within testProviderConnection and returned in the result object
   });
 
   ipcMain.handle('llm:setCK3Folder', (_, path: string | null) => {
@@ -371,16 +374,16 @@ const setupIpcHandlers = () => {
   });
 
   ipcMain.handle('llm:importLegacySummaries', async () => {
-  try {
-    return await importLegacySummaries();
-  } catch (error) {
-    console.error('Import legacy summaries error:', error);
-    return {
-      success: false,
-      message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    };
-  }
-});
+    try {
+      return await importLegacySummaries();
+    } catch (error) {
+      console.error('Import legacy summaries error:', error);
+      return {
+        success: false,
+        message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  });
 
 
   console.log('Setting up action system IPC handlers...');
@@ -476,10 +479,10 @@ const setupIpcHandlers = () => {
       const os = require('os');
       const path = require('path');
       const fs = require('fs');
-      
+
       // Use a fixed folder path for logs
       const logsFolder = path.join(os.tmpdir(), 'VOTC-all-logs');
-      
+
       // Clear the folder if it exists
       if (fs.existsSync(logsFolder)) {
         const files = fs.readdirSync(logsFolder);
@@ -491,11 +494,11 @@ const setupIpcHandlers = () => {
         // Create the folder if it doesn't exist
         fs.mkdirSync(logsFolder, { recursive: true });
       }
-      
+
       // Get app logs directory
       const userDataPath = app.getPath('userData');
       const appLogsPath = path.join(userDataPath, 'votc_data', 'logs');
-      
+
       // Copy app logs if they exist
       if (fs.existsSync(appLogsPath)) {
         const appLogFiles = fs.readdirSync(appLogsPath);
@@ -505,31 +508,31 @@ const setupIpcHandlers = () => {
           fs.copyFileSync(srcPath, destPath);
         }
       }
-      
+
       // Get CK3 logs path from settings
       const ck3Path = settingsRepository.getCK3UserFolderPath();
       if (ck3Path) {
         const ck3LogsPath = path.join(ck3Path, 'logs');
-        
+
         // Copy debug.log
         const debugLogPath = path.join(ck3LogsPath, 'debug.log');
         if (fs.existsSync(debugLogPath)) {
           fs.copyFileSync(debugLogPath, path.join(logsFolder, 'debug.log'));
         }
-        
+
         // Copy game.log
         const gameLogPath = path.join(ck3LogsPath, 'game.log');
         if (fs.existsSync(gameLogPath)) {
           fs.copyFileSync(gameLogPath, path.join(logsFolder, 'game.log'));
         }
-        
+
         // Copy error.log
         const errorLogPath = path.join(ck3LogsPath, 'error.log');
         if (fs.existsSync(errorLogPath)) {
           fs.copyFileSync(errorLogPath, path.join(logsFolder, 'error.log'));
         }
       }
-      
+
       // Create a summary file with system information
       const summary = {
         timestamp: new Date().toISOString(),
@@ -540,24 +543,24 @@ const setupIpcHandlers = () => {
         appVersion: app.getVersion(),
         ck3Path: ck3Path || 'Not set'
       };
-      
+
       fs.writeFileSync(
         path.join(logsFolder, 'system-info.json'),
         JSON.stringify(summary, null, 2)
       );
-      
+
       // Open the folder for the user
       await shell.openPath(logsFolder);
-      
-      return { 
-        success: true, 
-        path: logsFolder 
+
+      return {
+        success: true,
+        path: logsFolder
       };
     } catch (error: any) {
       console.error('Failed to collect logs:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Unknown error' 
+      return {
+        success: false,
+        error: error.message || 'Unknown error'
       };
     }
   });
@@ -567,7 +570,8 @@ const setupIpcHandlers = () => {
   // --- Conversation Management IPC Handlers ---
 
   ipcMain.handle('conversation:sendMessage', async (_, requestArgs: {
-    message: string  }) => {
+    message: string
+  }) => {
     const { message } = requestArgs;
 
     try {
@@ -699,9 +703,9 @@ const setupIpcHandlers = () => {
 
   // Set up conversation update listener
   const conversationUpdateCallback = (entries: any[]) => {
-      if (chatWindow && !chatWindow.isDestroyed()) {
-          chatWindow.webContents.send('conversation:updated', entries);
-      }
+    if (chatWindow && !chatWindow.isDestroyed()) {
+      chatWindow.webContents.send('conversation:updated', entries);
+    }
   };
 
   // Subscribe to conversation updates
@@ -723,7 +727,7 @@ const setupFocusMonitoring = (window: BrowserWindow) => {
     if (isOverlay) {
       // 1. App/Game Active: Ensure on top
       window.setAlwaysOnTop(true, 'screen-saver');
-      
+
     } else {
       // 2. Alt-Tabbed away:
       window.setIgnoreMouseEvents(true, { forward: true });
@@ -743,15 +747,15 @@ app.on('ready', () => {
   promptConfigManager.seedDefaults();
   setupIpcHandlers(); // Setup handlers first
   chatWindow = createWindow(); // Create the main chat window and assign to global
-  
+
   // Set up auto-updater
   appUpdater.setMainWindow(chatWindow);
-  
+
   // Check for updates on startup
   if (app.isPackaged) {
     appUpdater.checkForUpdates();
   }
-  
+
   // Initialize actions registry with saved settings and preload actions
   actionRegistry.setSettings(settingsRepository.getActionSettings());
   actionRegistry.reloadActions().catch(err => console.error('Failed to reload actions on startup:', err));
@@ -799,7 +803,7 @@ app.on('ready', () => {
   // Create and start clipboard listener
   const clipboardListener = new ClipboardListener();
   clipboardListener.start();
-  
+
   clipboardListener.on('VOTC:IN', () => {
     console.log('VOTC:IN triggered - showing chat interface');
 
@@ -834,7 +838,7 @@ app.on('ready', () => {
       console.error('Failed to clear letters file:', error);
     }
   });
-  
+
   // Add IPC handler for hiding chat UI (not window - window stays persistent)
   ipcMain.on('chat-hide', () => {
     // Send event to renderer to hide both chat and config panels
@@ -892,5 +896,6 @@ app.on('before-quit', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();  }
+    createWindow();
+  }
 });
