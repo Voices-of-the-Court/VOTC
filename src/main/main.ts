@@ -64,12 +64,16 @@ const createWindow = (): BrowserWindow => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.bounds;
 
+  // Extend window beyond screen bounds to hide DWM border artifacts on Windows 11
+  // The border will be outside the visible screen area
+  const BORDER_OVERFLOW = 20;
+
   // Create the browser window.
   const chatWindow = new BrowserWindow({
-    x: 0,
-    y: 0,
-    width,
-    height,
+    x: -BORDER_OVERFLOW,
+    y: -BORDER_OVERFLOW,
+    width: width + BORDER_OVERFLOW * 2,
+    height: height + BORDER_OVERFLOW * 2,
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame

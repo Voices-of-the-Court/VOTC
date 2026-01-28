@@ -1,5 +1,7 @@
 // Ensure complete transparency for overlay on Windows 11
-html, body, #root {
+html,
+body,
+#root {
   background: transparent !important;
   background-color: transparent !important;
   margin: 0;
@@ -7,8 +9,13 @@ html, body, #root {
   overflow: hidden;
 }
 
+// Border overflow value must match BORDER_OVERFLOW in main.ts (20px)
+// This offsets the content so it stays within the visible screen area
+$border-overflow: 20px;
+
 .App {
-  margin: 30px;
+  // Original margin (30px) + border overflow to keep content in visible area
+  margin: calc(30px + #{$border-overflow});
   background: transparent;
 }
 
@@ -53,7 +60,7 @@ select {
   position: absolute;
   padding: 9px;
   width: 50%;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 60px - #{$border-overflow} * 2);
   background-image:
     url('assets/background_area_light.png');
   background-repeat: repeat;
@@ -569,8 +576,8 @@ button {
 // Update Notification Styles
 .update-notification {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: calc(20px + #{$border-overflow});
+  right: calc(20px + #{$border-overflow});
   width: 350px;
   background-image: url('assets/background_area_light.png');
   background-repeat: repeat;
