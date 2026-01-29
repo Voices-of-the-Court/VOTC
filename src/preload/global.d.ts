@@ -40,6 +40,7 @@ declare global {
       removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => void;
       openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
       collectAndOpenLogs: () => Promise<{ success: boolean; path?: string; error?: string }>;
+      getAppVersion: () => Promise<string>;
       onOverlayVisibilityChange: (callback: (isVisible: boolean) => void) => () => void;
     };
     llmConfigAPI: {

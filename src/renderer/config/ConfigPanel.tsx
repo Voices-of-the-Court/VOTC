@@ -20,6 +20,7 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
   const loadSettings = useConfigStore((state) => state.loadSettings);
   const appSettings = useConfigStore((state) => state.appSettings);
   const [currentTab, setCurrentTab] = useState<CurrentTab>('connection');
+  const [appVersion, setAppVersion] = useState<string>('');
 
   const {
     position,
@@ -38,6 +39,18 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
 
   useEffect(() => {
     loadSettings();
+    
+    // Load app version
+    const loadAppVersion = async () => {
+      try {
+        const version = await window.electronAPI.getAppVersion();
+        setAppVersion(version);
+      } catch (error) {
+        console.error('Failed to get app version:', error);
+      }
+    };
+    
+    loadAppVersion();
   }, [loadSettings]);
 
   if (!appSettings) {
@@ -266,6 +279,10 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         {currentTab === 'actions' && <ActionsView />}
         {currentTab === 'prompts' && <PromptsView />}
       </main>
+      
+      <div className="app-version">
+        v{appVersion}
+      </div>
     </div>
   );
 }

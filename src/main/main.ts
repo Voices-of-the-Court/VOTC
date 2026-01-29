@@ -569,6 +569,11 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // App version handler
+  ipcMain.handle('app:getVersion', () => {
+    return app.getVersion();
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---

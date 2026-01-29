@@ -13,8 +13,21 @@
   border-radius: 20px;
   box-sizing: border-box;
   padding: 10px;
+  padding-bottom: 16px;
   display: flex;
   flex-direction: column;
+
+      /* App version styling */
+    .app-version {
+      position: absolute;
+      bottom: 0px;
+      right: 22px;
+      font-size: 0.8em;
+      color: #999;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+      z-index: 5;
+    }
+
 }
 
 .config-header {
@@ -899,6 +912,7 @@ hr {
         }
       }
     }
+    
   }
 }
 

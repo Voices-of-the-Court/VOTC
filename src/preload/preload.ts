@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('shell:openExternal', url),
   collectAndOpenLogs: (): Promise<{ success: boolean; path?: string; error?: string }> =>
     ipcRenderer.invoke('logs:collectAndOpen'),
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
   onOverlayVisibilityChange: (callback) => {
     const subscription = (_event, value) => callback(value);
     ipcRenderer.on('overlay-visibility-change', subscription);
