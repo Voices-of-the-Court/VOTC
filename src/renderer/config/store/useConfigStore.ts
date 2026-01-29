@@ -241,6 +241,17 @@ export const useConfigStore = create<ConfigStore>()(
         // Set active provider
         await window.llmConfigAPI.setActiveProvider(type);
         
+        // Update appSettings to reflect the new active provider
+        set({
+          appSettings: {
+            ...appSettings,
+            llmSettings: {
+              ...appSettings.llmSettings,
+              activeProviderInstanceId: type
+            }
+          }
+        });
+        
         // Fetch models if not cached
         get().fetchModels(config);
       },
@@ -263,6 +274,17 @@ export const useConfigStore = create<ConfigStore>()(
         
         // Set active provider
         await window.llmConfigAPI.setActiveProvider(id);
+        
+        // Update appSettings to reflect the new active provider
+        set({
+          appSettings: {
+            ...appSettings,
+            llmSettings: {
+              ...appSettings.llmSettings,
+              activeProviderInstanceId: id
+            }
+          }
+        });
         
         // Fetch models if not cached
         get().fetchModels(preset);
