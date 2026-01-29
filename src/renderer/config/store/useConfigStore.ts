@@ -73,6 +73,8 @@ interface ConfigStore {
   updateModLocationPath: (path: string) => Promise<void>;
   selectModLocationPath: () => Promise<void>;
   importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
+  openSummariesFolder: () => Promise<{success: boolean, error?: string}>;
+  clearSummaries: () => Promise<{success: boolean, error?: string}>;
 
   // Prompt actions
   loadPromptSettings: () => Promise<void>;
@@ -529,6 +531,34 @@ export const useConfigStore = create<ConfigStore>()(
         }
         
         return result;
+        },
+        
+        openSummariesFolder: async () => {
+          try {
+            const result = await window.conversationAPI.openSummariesFolder();
+            return result;
+          } catch (error) {
+            console.error('Failed to open summaries folder:', error);
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+          }
+        },
+        
+        clearSummaries: async () => {
+          try {
+            const result = await window.conversationAPI.clearSummaries();
+            
+            // Show feedback to user
+            if (result.success) {
+              console.log('Summaries cleared successfully');
+            } else {
+              console.error('Failed to clear summaries:', result.error);
+            }
+            
+            return result;
+          } catch (error) {
+            console.error('Failed to clear summaries:', error);
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+          }
         },
   
         updateMessageFontSize: async (fontSize) => {

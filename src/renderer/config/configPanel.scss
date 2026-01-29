@@ -225,6 +225,67 @@ hr {
   color: #EFB16A;
 }
 
+.settings-view .summary-management {
+  .help-text {
+    color: #bfbfbf;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+  }
+  
+  .clear-result {
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 10px;
+    
+    &.success {
+      background-color: rgba(40, 167, 69, 0.2);
+      border: 1px solid #28a745;
+      color: #28a745;
+    }
+    
+    &.error {
+      background-color: rgba(220, 53, 69, 0.2);
+      border: 1px solid #dc3545;
+      color: #dc3545;
+    }
+  }
+}
+
+.settings-view .legacy-data-import {
+  .help-text {
+    color: #bfbfbf;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+  }
+  
+  .import-result {
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 10px;
+    
+    &.success {
+      background-color: rgba(40, 167, 69, 0.2);
+      border: 1px solid #28a745;
+      color: #28a745;
+    }
+    
+    &.error {
+      background-color: rgba(220, 53, 69, 0.2);
+      border: 1px solid #dc3545;
+      color: #dc3545;
+      
+      .error-list {
+        margin-top: 8px;
+        
+        ul {
+          margin: 4px 0;
+          padding-left: 20px;
+        }
+      }
+    }
+  }
+}
+
 /* Scrollbar styling for fantasy theme */
 .config-main-content::-webkit-scrollbar {
   width: 10px;

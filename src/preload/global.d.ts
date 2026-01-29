@@ -19,6 +19,8 @@ declare global {
       openSummaryFile: (filePath: string) => Promise<{success: boolean, error?: string}>;
       getActiveConversationData: () => Promise<any>;
       getPromptPreview: (characterId: number) => Promise<any>;
+      openSummariesFolder: () => Promise<{success: boolean, error?: string}>;
+      clearSummaries: () => Promise<{success: boolean, error?: string}>;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;

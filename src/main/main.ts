@@ -8,7 +8,7 @@ import { LLMProviderConfig, PromptPreset, PromptSettings } from './llmProviders/
 import { ClipboardListener } from './ClipboardListener';
 import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
-import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR } from './utils/paths';
+import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR, VOTC_SUMMARIES_DIR } from './utils/paths';
 import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 import { appUpdater } from './AutoUpdater';
@@ -697,6 +697,57 @@ const setupIpcHandlers = () => {
   ipcMain.handle('conversation:openSummaryFile', async (_, { filePath }) => {
     await shell.openPath(filePath);
     return { success: true };
+  });
+
+  ipcMain.handle('conversation:openSummariesFolder', async () => {
+    try {
+      await shell.openPath(VOTC_SUMMARIES_DIR);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to open summaries folder:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('conversation:clearSummaries', async () => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Clear summaries for all players
+      if (fs.existsSync(VOTC_SUMMARIES_DIR)) {
+        const playerDirs = fs.readdirSync(VOTC_SUMMARIES_DIR, { withFileTypes: true })
+          .filter(dirent => dirent.isDirectory())
+          .map(dirent => dirent.name);
+        
+        let totalFilesDeleted = 0;
+        for (const playerDir of playerDirs) {
+          const playerPath = path.join(VOTC_SUMMARIES_DIR, playerDir);
+          const files = fs.readdirSync(playerPath);
+          
+          for (const file of files) {
+            fs.unlinkSync(path.join(playerPath, file));
+            totalFilesDeleted++;
+          }
+          
+          // Remove the player directory after clearing all files
+          fs.rmdirSync(playerPath);
+        }
+        
+        console.log(`Cleared ${totalFilesDeleted} summary files and removed ${playerDirs.length} player directories`);
+      }
+      
+      // Reload characters in active conversation if one exists
+      const conversation = conversationManager.getCurrentConversation();
+      if (conversation) {
+        conversation.gameData.loadCharactersSummaries();
+      }
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to clear summaries:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
   });
 
   // Prompt preview IPC handlers

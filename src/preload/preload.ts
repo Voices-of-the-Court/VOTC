@@ -149,6 +149,10 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     ipcRenderer.invoke('conversation:getActiveConversationData'),
   getPromptPreview: (characterId: number): Promise<any> =>
     ipcRenderer.invoke('conversation:getPromptPreview', { characterId }),
+  openSummariesFolder: (): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:openSummariesFolder'),
+  clearSummaries: (): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:clearSummaries'),
  });
  
  // Actions API exposed to renderer
