@@ -46,7 +46,7 @@ const ActionApprovalItem: React.FC<ActionApprovalItemProps> = ({ entry }) => {
       : 'No parameters';
 
   return (
-    <div className="action-feedback-container approval">
+    <div className={`action-feedback-container approval ${isPending ? 'pending' : 'resolved'}`}>
       <div className="action-feedback-list">
         <div
           className={`action-feedback-item ${sentiment} ${isPending ? 'pending' : 'resolved'} ${action.isDestructive ? 'destructive' : ''}`}
@@ -77,22 +77,24 @@ const ActionApprovalItem: React.FC<ActionApprovalItemProps> = ({ entry }) => {
         </div>
       </div>
 
-      <div className="approval-hover">
-        <div className="hover-row">
-          <span className="label">From</span>
-          <span>{action.sourceCharacterName}</span>
-        </div>
-        {hasTarget && (
+      {isPending && (
+        <div className="approval-hover">
           <div className="hover-row">
-            <span className="label">To</span>
-            <span>{action.targetCharacterName}</span>
+            <span className="label">From</span>
+            <span>{action.sourceCharacterName}</span>
           </div>
-        )}
-        <div className="hover-row">
-          <span className="label">Args</span>
-          <span className="args">{argsDisplay}</span>
+          {hasTarget && (
+            <div className="hover-row">
+              <span className="label">To</span>
+              <span>{action.targetCharacterName}</span>
+            </div>
+          )}
+          <div className="hover-row">
+            <span className="label">Args</span>
+            <span className="args">{argsDisplay}</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

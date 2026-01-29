@@ -63,7 +63,8 @@
   }
 }
 
-.approval-hover {
+  
+.action-feedback-container.approval.pending .approval-hover {
   margin-top: 4px;
   padding: 0 10px;
   background: rgba(0, 0, 0, 0.35);
@@ -81,10 +82,10 @@
   pointer-events: none;
 }
 
-.action-feedback-container.approval:hover .approval-hover {
-  max-height: 160px;
+.action-feedback-container.approval.pending:hover .approval-hover {
+  max-height: 140px;
   opacity: 1;
-  padding: 6px 10px 6px 12px;
+  padding: 4px 10px 6px 12px;
 }
 
 .approval-hover .hover-row {
