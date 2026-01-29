@@ -15,11 +15,11 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
       try {
         const backendEntries = await window.conversationAPI.getConversationEntries();
 
-        // Convert backend entries to frontend format (number id -> string id)
+        // Convert backend entries to frontend format (preserve numeric IDs)
         const convertedEntries: ChatEntry[] = backendEntries.map(entry => {
           if (entry.type === 'message') {
             return {
-              id: entry.id.toString(),
+              id: entry.id,
               type: entry.type,
               role: entry.role,
               name: entry.name,
@@ -29,15 +29,24 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
             } as MessageEntry;
           } else if (entry.type === 'action-feedback') {
             return {
-              id: entry.id.toString(),
+              id: entry.id,
               type: entry.type,
-              associatedMessageId: entry.associatedMessageId.toString(),
+              associatedMessageId: entry.associatedMessageId,
               feedbacks: entry.feedbacks,
               datetime: new Date(entry.datetime)
             } as ActionFeedbackEntry;
+          } else if (entry.type === 'action-approval') {
+            return {
+              id: entry.id,
+              type: entry.type,
+              associatedMessageId: entry.associatedMessageId,
+              actions: entry.actions,
+              status: entry.status,
+              datetime: new Date(entry.datetime)
+            } as ChatEntry; // ActionApprovalEntry
           } else if (entry.type === 'summary-import') {
             return {
-              id: entry.id.toString(),
+              id: entry.id,
               type: entry.type,
               sourcePlayerId: entry.sourcePlayerId,
               characterId: entry.characterId,
@@ -49,7 +58,7 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
             } as SummaryImportEntry;
           } else {
             return {
-              id: entry.id.toString(),
+              id: entry.id,
               type: entry.type,
               content: entry.content,
               datetime: new Date(entry.datetime), // Ensure Date object
@@ -74,7 +83,7 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
       const convertedEntries: ChatEntry[] = backendEntries.map(entry => {
         if (entry.type === 'message') {
           return {
-            id: entry.id.toString(),
+            id: entry.id,
             type: entry.type,
             role: entry.role,
             name: entry.name,
@@ -84,15 +93,24 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
           } as MessageEntry;
         } else if (entry.type === 'action-feedback') {
           return {
-            id: entry.id.toString(),
+            id: entry.id,
             type: entry.type,
-            associatedMessageId: entry.associatedMessageId.toString(),
+            associatedMessageId: entry.associatedMessageId,
             feedbacks: entry.feedbacks,
             datetime: new Date(entry.datetime)
           } as ActionFeedbackEntry;
+        } else if (entry.type === 'action-approval') {
+          return {
+            id: entry.id,
+            type: entry.type,
+            associatedMessageId: entry.associatedMessageId,
+            actions: entry.actions,
+            status: entry.status,
+            datetime: new Date(entry.datetime)
+          } as ChatEntry; // ActionApprovalEntry
         } else if (entry.type === 'summary-import') {
           return {
-            id: entry.id.toString(),
+            id: entry.id,
             type: entry.type,
             sourcePlayerId: entry.sourcePlayerId,
             characterId: entry.characterId,
@@ -104,7 +122,7 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
           } as SummaryImportEntry;
         } else {
           return {
-            id: entry.id.toString(),
+            id: entry.id,
             type: entry.type,
             content: entry.content,
             datetime: new Date(entry.datetime), // Ensure Date object

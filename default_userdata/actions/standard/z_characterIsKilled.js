@@ -2,6 +2,7 @@
 module.exports = {
   signature: "characterIsKilled",
   title: "Source Character Is Killed",
+  isDestructive: true,
 
   /**
    * @param {object} params

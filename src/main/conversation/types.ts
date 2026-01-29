@@ -1,3 +1,5 @@
+import { ActionArgumentValues } from "../actions/types";
+
 export interface BaseEntry {
     id: number;
     datetime: Date;
@@ -53,6 +55,46 @@ export function createActionFeedback(input: Omit<ActionFeedbackEntry, 'type' | '
     };
 }
 
+export interface ActionApprovalEntry extends BaseEntry {
+    type: 'action-approval';
+    associatedMessageId: number;
+    actions: Array<{
+        actionId: string;
+        actionTitle?: string;
+        sourceCharacterId: number;
+        sourceCharacterName: string;
+        targetCharacterId?: number;
+        targetCharacterName?: string;
+        args: ActionArgumentValues;
+        isDestructive: boolean;
+    }>;
+    status: 'pending' | 'approved' | 'declined';
+}
+
+export function createActionApproval(params: {
+  id: number;
+  associatedMessageId: number;
+  actions: Array<{
+    actionId: string;
+    actionTitle?: string;
+    sourceCharacterId: number;
+    sourceCharacterName: string;
+    targetCharacterId?: number;
+    targetCharacterName?: string;
+    args: ActionArgumentValues;
+    isDestructive: boolean;
+  }>;
+}): ActionApprovalEntry {
+  return {
+    type: 'action-approval',
+    id: params.id,
+    associatedMessageId: params.associatedMessageId,
+    actions: params.actions,
+    status: 'pending',
+    datetime: new Date()
+  };
+}
+
 export interface SummaryImportEntry extends BaseEntry {
     type: 'summary-import';
     sourcePlayerId: string;
@@ -71,4 +113,4 @@ export function createSummaryImport(input: Omit<SummaryImportEntry, 'type' | 'da
     };
 }
 
-export type ConversationEntry = Message | ErrorEntry | ActionFeedbackEntry | SummaryImportEntry;
+export type ConversationEntry = Message | ErrorEntry | ActionFeedbackEntry | SummaryImportEntry | ActionApprovalEntry;

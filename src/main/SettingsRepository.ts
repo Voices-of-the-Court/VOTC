@@ -7,6 +7,7 @@ import {
   LLMProviderConfig,
   ActionSettings,
   PromptSettings,
+  ActionApprovalSettings,
 } from './llmProviders/types';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 
@@ -137,6 +138,21 @@ const schema: Schema<AppSettings> = {
         default: {}
       }
     }
+  },
+  actionApprovalSettings: {
+    type: 'object',
+    default: { approvalMode: 'none', pauseOnApproval: true },
+    properties: {
+      approvalMode: {
+        type: 'string',
+        enum: ['none', 'non-destructive', 'all'],
+        default: 'none'
+      },
+      pauseOnApproval: {
+        type: 'boolean',
+        default: true
+      }
+    }
   }
 };
 
@@ -223,6 +239,12 @@ export class SettingsRepository {
     if (currentAppSettings.showSettingsOnStartup === undefined) {
         this.store.set('showSettingsOnStartup', true); // Default to showing settings on startup
     }
+    if ((currentAppSettings as any).actionApprovalSettings === undefined) {
+        this.store.set('actionApprovalSettings', {
+            approvalMode: 'none',
+            pauseOnApproval: true
+        });
+    }
   }
 
   private getDefaultPromptSettings(): PromptSettings {
@@ -271,7 +293,8 @@ export class SettingsRepository {
       showSettingsOnStartup: this.getShowSettingsOnStartup(),
       promptSettings: this.getPromptSettings(),
       letterPromptSettings: this.getLetterPromptSettings(),
-      actionSettings: this.getActionSettings()
+      actionSettings: this.getActionSettings(),
+      actionApprovalSettings: this.getActionApprovalSettings()
     };
   }
 
@@ -411,6 +434,30 @@ export class SettingsRepository {
   saveActionSettings(settings: ActionSettings): void {
     this.store.set('actionSettings', settings as any);
     console.log('Action settings saved.');
+  }
+
+  // --- Action Approval Settings ---
+  getActionApprovalSettings(): ActionApprovalSettings {
+    return this.store.get('actionApprovalSettings', {
+      approvalMode: 'none',
+      pauseOnApproval: true
+    });
+  }
+
+  saveActionApprovalSettings(settings: ActionApprovalSettings): void {
+    this.store.set('actionApprovalSettings', settings);
+    console.log('Action approval settings saved:', settings);
+  }
+
+  getPauseOnActionApprovalSetting(): boolean {
+    const settings = this.getActionApprovalSettings();
+    return settings.pauseOnApproval ?? true;
+  }
+
+  savePauseOnActionApprovalSetting(enabled: boolean): void {
+    const settings = this.getActionApprovalSettings();
+    settings.pauseOnApproval = enabled;
+    this.saveActionApprovalSettings(settings);
   }
 
   // --- Provider Configuration and Preset Management ---

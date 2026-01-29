@@ -142,6 +142,16 @@ export class ConversationManager {
                     status: entry.status,
                     datetime: entry.datetime
                 };
+            } else if (entry.type === 'action-approval') {
+                // Action approval entry
+                return {
+                    type: 'action-approval',
+                    id: entry.id,
+                    associatedMessageId: entry.associatedMessageId,
+                    actions: entry.actions,
+                    status: entry.status,
+                    datetime: entry.datetime
+                };
             } else {
                 // Error entry
                 return {

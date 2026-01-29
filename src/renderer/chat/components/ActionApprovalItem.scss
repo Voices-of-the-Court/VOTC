@@ -1,0 +1,126 @@
+.action-approval-container {
+  margin: 0.5rem 0;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+
+  &.destructive {
+    border-color: var(--warning-color, #ff9800);
+    background-color: var(--warning-bg, rgba(255, 152, 0, 0.1));
+  }
+
+  .action-approval-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+
+    .warning-icon {
+      margin-right: 0.5rem;
+      color: var(--warning-color, #ff9800);
+    }
+
+    .approval-status {
+      font-size: 0.9rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+
+      &.approved {
+        background-color: var(--success-bg, rgba(76, 175, 80, 0.1));
+        color: var(--success-color, #4caf50);
+      }
+
+      &.declined {
+        background-color: var(--error-bg, rgba(244, 67, 54, 0.1));
+        color: var(--error-color, #f44336);
+      }
+    }
+  }
+
+  .action-approval-list {
+    margin-bottom: 1rem;
+
+    .action-approval-item {
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 6px;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+
+      &.destructive {
+        border-left: 4px solid var(--warning-color, #ff9800);
+      }
+
+      .action-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+
+        .destructive-badge {
+          font-size: 0.75rem;
+          padding: 0.2rem 0.4rem;
+          border-radius: 3px;
+          background-color: var(--warning-color, #ff9800);
+          color: white;
+          font-weight: 600;
+        }
+      }
+
+      .action-details {
+        font-size: 0.9rem;
+        color: var(--text-secondary, #666);
+
+        .action-args {
+          margin-top: 0.5rem;
+          padding: 0.5rem;
+          background-color: var(--bg-tertiary, #f5f5f5);
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 0.85rem;
+          white-space: pre-wrap;
+        }
+      }
+    }
+  }
+
+  .action-approval-buttons {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+
+    button {
+      padding: 0.5rem 1.5rem;
+      border-radius: 6px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      &.approve-button {
+        background-color: var(--success-color, #4caf50);
+        color: white;
+
+        &:hover:not(:disabled) {
+          background-color: var(--success-hover, #45a049);
+        }
+      }
+
+      &.decline-button {
+        background-color: var(--error-color, #f44336);
+        color: white;
+
+        &:hover:not(:disabled) {
+          background-color: var(--error-hover, #da190b);
+        }
+      }
+    }
+  }
+}

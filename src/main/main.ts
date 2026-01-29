@@ -86,12 +86,7 @@ const createWindow = (): BrowserWindow => {
     },
   });
 
-  // Make the window initially click-through
-  // chatWindow.setAlwaysOnTop(true, 'screen-saver');
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
-
-  // Set fullscreen (optional, might conflict with alwaysOnTop/transparency goals depending on OS/WM)
-  // chatWindow.setFullScreen(true); // Consider if truly needed, as size is already set to screen dimensions
 
   // and load the index.html of the app.
 if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
@@ -102,10 +97,10 @@ if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   );
 }
 
-  // // Open the DevTools.
-  // chatWindow.webContents.openDevTools(
-  //   { mode: 'detach' }
-  // );
+  // Open the DevTools.
+  chatWindow.webContents.openDevTools(
+    { mode: 'detach' }
+  );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
@@ -370,6 +365,16 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('llm:setSummaryProviderId', (_, instanceId: string | null) => {
     settingsRepository.setSummaryProviderInstanceId(instanceId);
+  });
+
+  // Action approval settings IPC handlers
+  ipcMain.handle('llm:getActionApprovalSettings', () => {
+    return settingsRepository.getActionApprovalSettings();
+  });
+
+  ipcMain.handle('llm:saveActionApprovalSettings', (_, settings) => {
+    settingsRepository.saveActionApprovalSettings(settings);
+    return true;
   });
 
   ipcMain.handle('llm:importLegacySummaries', async () => {
@@ -748,6 +753,21 @@ const setupIpcHandlers = () => {
       console.error('Failed to clear summaries:', error);
       return { success: false, error: error.message || 'Unknown error' };
     }
+  });
+
+  // Action approval IPC handlers
+  ipcMain.handle('conversation:approveActions', async (_, { approvalEntryId }) => {
+    const conversation = conversationManager.getCurrentConversation();
+    if (!conversation) throw new Error('No active conversation');
+    await conversation.approveActions(approvalEntryId);
+    return { success: true };
+  });
+
+  ipcMain.handle('conversation:declineActions', async (_, { approvalEntryId }) => {
+    const conversation = conversationManager.getCurrentConversation();
+    if (!conversation) throw new Error('No active conversation');
+    await conversation.declineActions(approvalEntryId);
+    return { success: true };
   });
 
   // Prompt preview IPC handlers

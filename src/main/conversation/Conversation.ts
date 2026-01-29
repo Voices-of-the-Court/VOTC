@@ -5,13 +5,14 @@ import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
 import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
-import { ConversationEntry, Message, createError, createMessage, createActionFeedback, createSummaryImport } from "./types";
+import { ConversationEntry, Message, createError, createMessage, createActionFeedback, createSummaryImport, createActionApproval } from "./types";
 import { PromptBuilder } from "./PromptBuilder";
 import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
 import { runFileManager } from "../actions/RunFileManager";
 import { shell } from "electron";
 import { TokenCounter } from "../utils/TokenCounter";
+import type { ActionInvocation } from "../actions/types";
 
 export class Conversation {
     id = v4();
@@ -38,6 +39,24 @@ export class Conversation {
     // Summary import management
     private pendingSummaryImports: Map<string, SummaryImportResult> = new Map(); // Key: "characterId_sourcePlayerId"
     private hasAcceptedImports: Set<number> = new Set(); // Track which characters have accepted imports
+    
+    // Action approval management
+    private pendingActionApprovals: Map<number, {
+        npc: Character;
+        actions: Array<{
+            actionId: string;
+            actionTitle?: string;
+            sourceCharacterId: number;
+            sourceCharacterName: string;
+            targetCharacterId?: number;
+            targetCharacterName?: string;
+            args: Record<string, any>;
+            isDestructive: boolean;
+            invocation: ActionInvocation;
+        }>;
+        approvalEntryId: number;
+    }> = new Map();
+
 
     constructor() {
         this.eventEmitter = new EventEmitter();
@@ -241,7 +260,7 @@ export class Conversation {
                 // Only execute actions if stream completed successfully (not cancelled)
                 if (streamCompleted && !wasCancelled) {
                     const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
-                    this.addActionFeedback(msgId, actionResults);
+                    this.handleActionResults(msgId, npc, actionResults);
                 }
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
@@ -252,7 +271,7 @@ export class Conversation {
                 
                 // Execute actions and collect feedback
                 const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
-                this.addActionFeedback(msgId, actionResults);
+                this.handleActionResults(msgId, npc, actionResults);
             } else {
                 throw new Error('Bad LLM response format');
             }
@@ -285,6 +304,55 @@ export class Conversation {
             
             this.emitUpdate();
             this.currentStreamController = null;
+        }
+    }
+
+    /**
+     * Handle action results from ActionEngine - separate auto-approved from needs-approval
+     */
+    private handleActionResults(
+        associatedMessageId: number,
+        npc: Character,
+        actionResults: import("../actions/ActionEngine").ActionEvaluationResult
+    ): void {
+        // Add feedback for auto-approved actions
+        if (actionResults.autoApproved.length > 0) {
+            this.addActionFeedback(associatedMessageId, actionResults.autoApproved);
+        }
+
+        // Create approval entry for actions that need approval
+        if (actionResults.needsApproval.length > 0) {
+            const approvalEntry = createActionApproval({
+                id: this.nextId++,
+                associatedMessageId,
+                actions: actionResults.needsApproval.map(action => ({
+                    actionId: action.actionId,
+                    actionTitle: action.actionTitle,
+                    sourceCharacterId: action.sourceCharacterId,
+                    sourceCharacterName: action.sourceCharacterName,
+                    targetCharacterId: action.targetCharacterId,
+                    targetCharacterName: action.targetCharacterName,
+                    args: action.args,
+                    isDestructive: action.isDestructive
+                }))
+            });
+
+            this.messages.push(approvalEntry);
+
+            // Store pending actions for later execution
+            this.pendingActionApprovals.set(approvalEntry.id, {
+                npc,
+                actions: actionResults.needsApproval,
+                approvalEntryId: approvalEntry.id
+            });
+
+            // Pause conversation if setting is enabled
+            const approvalSettings = settingsRepository.getActionApprovalSettings();
+            if (approvalSettings.pauseOnApproval && this.npcQueue.length > 0) {
+                this.pauseConversation();
+            }
+
+            this.emitUpdate();
         }
     }
 
@@ -810,6 +878,93 @@ export class Conversation {
         } catch (error) {
             console.error('Failed to open summary file:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Approve actions for pending approval
+     */
+    async approveActions(approvalEntryId: number): Promise<void> {
+        const pending = this.pendingActionApprovals.get(approvalEntryId);
+        if (!pending) {
+            throw new Error(`No pending approval found for ID ${approvalEntryId}`);
+        }
+
+        // Find the approval entry in messages
+        const entryIndex = this.messages.findIndex(
+            msg => msg.type === 'action-approval' && msg.id === approvalEntryId
+        );
+
+        if (entryIndex === -1) {
+            throw new Error(`Approval entry not found for ID ${approvalEntryId}`);
+        }
+
+        const approvalEntry = this.messages[entryIndex];
+        if (approvalEntry.type !== 'action-approval') {
+            throw new Error(`Entry ${approvalEntryId} is not an action-approval entry`);
+        }
+
+        // Update status to approved
+        approvalEntry.status = 'approved';
+        this.emitUpdate();
+
+        // Execute the approved actions using the private runInvocation method
+        const actionResults: import("../actions/types").ActionExecutionResult[] = [];
+        for (const action of pending.actions) {
+            // We need to access the private method, so we'll use a workaround
+            const result = await (ActionEngine as any).runInvocation(this, pending.npc, action.invocation);
+            actionResults.push(result);
+        }
+
+        // Add feedback for executed actions
+        if (actionResults.length > 0) {
+            this.addActionFeedback(approvalEntry.associatedMessageId, actionResults);
+        }
+
+        // Remove from pending
+        this.pendingActionApprovals.delete(approvalEntryId);
+
+        // Resume conversation if it was paused
+        const approvalSettings = settingsRepository.getActionApprovalSettings();
+        if (approvalSettings.pauseOnApproval && this.isPaused && this.npcQueue.length > 0) {
+            this.resumeConversation();
+        }
+    }
+
+    /**
+     * Decline actions for pending approval
+     */
+    async declineActions(approvalEntryId: number): Promise<void> {
+        const pending = this.pendingActionApprovals.get(approvalEntryId);
+        if (!pending) {
+            throw new Error(`No pending approval found for ID ${approvalEntryId}`);
+        }
+
+        // Find the approval entry in messages
+        const entryIndex = this.messages.findIndex(
+            msg => msg.type === 'action-approval' && msg.id === approvalEntryId
+        );
+
+        if (entryIndex === -1) {
+            throw new Error(`Approval entry not found for ID ${approvalEntryId}`);
+        }
+
+        const approvalEntry = this.messages[entryIndex];
+        if (approvalEntry.type !== 'action-approval') {
+            throw new Error(`Entry ${approvalEntryId} is not an action-approval entry`);
+        }
+
+        // Update status to declined
+        approvalEntry.status = 'declined';
+        this.emitUpdate();
+
+        // Remove from pending
+        this.pendingActionApprovals.delete(approvalEntryId);
+
+        // Resume conversation if it was paused
+        const approvalSettings = settingsRepository.getActionApprovalSettings();
+        if (approvalSettings.pauseOnApproval && this.isPaused && this.npcQueue.length > 0) {
+            this.resumeConversation();
         }
     }
 }
