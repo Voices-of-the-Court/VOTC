@@ -35,16 +35,20 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
               feedbacks: entry.feedbacks,
               datetime: new Date(entry.datetime)
             } as ActionFeedbackEntry;
-          } else if (entry.type === 'action-approval') {
-            return {
-              id: entry.id,
-              type: entry.type,
-              associatedMessageId: entry.associatedMessageId,
-              actions: entry.actions,
-              status: entry.status,
-              datetime: new Date(entry.datetime)
-            } as ChatEntry; // ActionApprovalEntry
-          } else if (entry.type === 'summary-import') {
+        } else if (entry.type === 'action-approval') {
+          return {
+            id: entry.id,
+            type: entry.type,
+            associatedMessageId: entry.associatedMessageId,
+            action: entry.action,
+            status: entry.status,
+            previewFeedback: entry.previewFeedback,
+            previewSentiment: entry.previewSentiment,
+            resultFeedback: entry.resultFeedback,
+            resultSentiment: entry.resultSentiment,
+            datetime: new Date(entry.datetime)
+          } as ChatEntry; // ActionApprovalEntry
+        } else if (entry.type === 'summary-import') {
             return {
               id: entry.id,
               type: entry.type,
@@ -104,8 +108,12 @@ const useConversationEntries = (): UseConversationEntriesReturn => {
             id: entry.id,
             type: entry.type,
             associatedMessageId: entry.associatedMessageId,
-            actions: entry.actions,
+            action: entry.action,
             status: entry.status,
+            previewFeedback: entry.previewFeedback,
+            previewSentiment: entry.previewSentiment,
+            resultFeedback: entry.resultFeedback,
+            resultSentiment: entry.resultSentiment,
             datetime: new Date(entry.datetime)
           } as ChatEntry; // ActionApprovalEntry
         } else if (entry.type === 'summary-import') {

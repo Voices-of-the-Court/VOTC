@@ -26,6 +26,10 @@ export interface ActionEvaluationResult {
   }>;
 }
 
+export interface ActionRunOptions {
+  dryRun?: boolean;
+}
+
 export class ActionEngine {
   /**
    * Evaluate actions for the given NPC (as source) based on recent conversation state.
@@ -256,7 +260,15 @@ export class ActionEngine {
     }
   }
 
-  private static async runInvocation(conv: Conversation, npc: Character, inv: ActionInvocation): Promise<ActionExecutionResult> {
+  /**
+   * Execute an action invocation. When dryRun is true, game effects are not written.
+   */
+  static async runInvocation(
+    conv: Conversation,
+    npc: Character,
+    inv: ActionInvocation,
+    options?: ActionRunOptions
+  ): Promise<ActionExecutionResult> {
     const loaded = actionRegistry.getById(inv.actionId);
     if (!loaded || !loaded.validation.valid) {
       return {
@@ -273,6 +285,10 @@ export class ActionEngine {
 
     // console.log("Running action:", inv.actionId, { source: npc.id, target: targetId, args: inv.args });
     const runGameEffect = (effectBody: string) => {
+      // In dry runs we avoid writing to the game run file
+      if (options?.dryRun) {
+        return;
+      }
       ActionEffectWriter.writeEffect(
         conv.gameData,
         npc.id,

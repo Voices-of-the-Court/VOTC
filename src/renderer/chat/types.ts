@@ -41,7 +41,7 @@ export interface SummaryImportEntry extends BaseEntry {
 export interface ActionApprovalEntry extends BaseEntry {
   type: 'action-approval';
   associatedMessageId: number;
-  actions: Array<{
+  action: {
     actionId: string;
     actionTitle?: string;
     sourceCharacterId: number;
@@ -50,8 +50,12 @@ export interface ActionApprovalEntry extends BaseEntry {
     targetCharacterName?: string;
     args: Record<string, any>;
     isDestructive: boolean;
-  }>;
-  status: 'pending' | 'approved' | 'declined';
+  };
+  status: 'pending' | 'approved';
+  previewFeedback?: string;
+  previewSentiment?: 'positive' | 'negative' | 'neutral';
+  resultFeedback?: string;
+  resultSentiment?: 'positive' | 'negative' | 'neutral';
 }
 
 export type ChatEntry = MessageEntry | ErrorEntry | ActionFeedbackEntry | SummaryImportEntry | ActionApprovalEntry;

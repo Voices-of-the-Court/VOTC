@@ -43,7 +43,7 @@ export class Conversation {
     // Action approval management
     private pendingActionApprovals: Map<number, {
         npc: Character;
-        actions: Array<{
+        action: {
             actionId: string;
             actionTitle?: string;
             sourceCharacterId: number;
@@ -53,7 +53,9 @@ export class Conversation {
             args: Record<string, any>;
             isDestructive: boolean;
             invocation: ActionInvocation;
-        }>;
+        };
+        previewFeedback?: string;
+        previewSentiment?: 'positive' | 'negative' | 'neutral';
         approvalEntryId: number;
     }> = new Map();
 
@@ -260,7 +262,7 @@ export class Conversation {
                 // Only execute actions if stream completed successfully (not cancelled)
                 if (streamCompleted && !wasCancelled) {
                     const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
-                    this.handleActionResults(msgId, npc, actionResults);
+                    await this.handleActionResults(msgId, npc, actionResults);
                 }
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
@@ -271,7 +273,7 @@ export class Conversation {
                 
                 // Execute actions and collect feedback
                 const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
-                this.handleActionResults(msgId, npc, actionResults);
+                await this.handleActionResults(msgId, npc, actionResults);
             } else {
                 throw new Error('Bad LLM response format');
             }
@@ -310,22 +312,37 @@ export class Conversation {
     /**
      * Handle action results from ActionEngine - separate auto-approved from needs-approval
      */
-    private handleActionResults(
+    private async handleActionResults(
         associatedMessageId: number,
         npc: Character,
         actionResults: import("../actions/ActionEngine").ActionEvaluationResult
-    ): void {
-        // Add feedback for auto-approved actions
-        if (actionResults.autoApproved.length > 0) {
-            this.addActionFeedback(associatedMessageId, actionResults.autoApproved);
-        }
+    ): Promise<void> {
+        const autoFeedbackResults: import("../actions/types").ActionExecutionResult[] = [...actionResults.autoApproved];
 
-        // Create approval entry for actions that need approval
-        if (actionResults.needsApproval.length > 0) {
+        // Process actions that need approval individually
+        for (const action of actionResults.needsApproval) {
+            // Try to build a preview without writing any effects
+            let previewFeedback: string | undefined;
+            let previewSentiment: 'positive' | 'negative' | 'neutral' | undefined;
+            try {
+                const previewResult = await ActionEngine.runInvocation(this, npc, action.invocation, { dryRun: true });
+                if (previewResult.feedback?.message) {
+                    previewFeedback = previewResult.feedback.message;
+                    previewSentiment = previewResult.feedback.sentiment || 'neutral';
+                } else {
+                    // Treat actions without feedback as background and auto-approve immediately
+                    const executed = await ActionEngine.runInvocation(this, npc, action.invocation);
+                    autoFeedbackResults.push(executed);
+                    continue;
+                }
+            } catch (err) {
+                console.error('[Conversation] Preview action failed:', err);
+            }
+
             const approvalEntry = createActionApproval({
                 id: this.nextId++,
                 associatedMessageId,
-                actions: actionResults.needsApproval.map(action => ({
+                action: {
                     actionId: action.actionId,
                     actionTitle: action.actionTitle,
                     sourceCharacterId: action.sourceCharacterId,
@@ -334,24 +351,35 @@ export class Conversation {
                     targetCharacterName: action.targetCharacterName,
                     args: action.args,
                     isDestructive: action.isDestructive
-                }))
+                },
+                previewFeedback,
+                previewSentiment
             });
 
             this.messages.push(approvalEntry);
 
-            // Store pending actions for later execution
+            // Store pending action for later execution
             this.pendingActionApprovals.set(approvalEntry.id, {
                 npc,
-                actions: actionResults.needsApproval,
+                action,
+                previewFeedback,
+                previewSentiment,
                 approvalEntryId: approvalEntry.id
             });
+        }
 
-            // Pause conversation if setting is enabled
-            const approvalSettings = settingsRepository.getActionApprovalSettings();
-            if (approvalSettings.pauseOnApproval && this.npcQueue.length > 0) {
-                this.pauseConversation();
-            }
+        // Add feedback for auto-approved/background actions
+        if (autoFeedbackResults.length > 0) {
+            this.addActionFeedback(associatedMessageId, autoFeedbackResults);
+        }
 
+        // Pause conversation if setting is enabled and we have pending approvals
+        const approvalSettings = settingsRepository.getActionApprovalSettings();
+        if (this.pendingActionApprovals.size > 0 && approvalSettings.pauseOnApproval && this.npcQueue.length > 0) {
+            this.pauseConversation();
+        }
+
+        if (this.pendingActionApprovals.size > 0) {
             this.emitUpdate();
         }
     }
@@ -904,25 +932,15 @@ export class Conversation {
             throw new Error(`Entry ${approvalEntryId} is not an action-approval entry`);
         }
 
-        // Update status to approved
+        // Execute the approved action (with real effect)
+        const result = await ActionEngine.runInvocation(this, pending.npc, pending.action.invocation);
+
+        // Update status and attach final feedback for UI morph
         approvalEntry.status = 'approved';
-        this.emitUpdate();
-
-        // Execute the approved actions using the private runInvocation method
-        const actionResults: import("../actions/types").ActionExecutionResult[] = [];
-        for (const action of pending.actions) {
-            // We need to access the private method, so we'll use a workaround
-            const result = await (ActionEngine as any).runInvocation(this, pending.npc, action.invocation);
-            actionResults.push(result);
-        }
-
-        // Add feedback for executed actions
-        if (actionResults.length > 0) {
-            this.addActionFeedback(approvalEntry.associatedMessageId, actionResults);
-        }
-
-        // Remove from pending
+        approvalEntry.resultFeedback = result.feedback?.message || pending.previewFeedback || pending.action.actionTitle || pending.action.actionId;
+        approvalEntry.resultSentiment = result.feedback?.sentiment || pending.previewSentiment || 'neutral';
         this.pendingActionApprovals.delete(approvalEntryId);
+        this.emitUpdate();
 
         // Resume conversation if it was paused
         const approvalSettings = settingsRepository.getActionApprovalSettings();
@@ -954,12 +972,10 @@ export class Conversation {
             throw new Error(`Entry ${approvalEntryId} is not an action-approval entry`);
         }
 
-        // Update status to declined
-        approvalEntry.status = 'declined';
-        this.emitUpdate();
-
-        // Remove from pending
+        // Remove approval entry entirely on decline
+        this.messages.splice(entryIndex, 1);
         this.pendingActionApprovals.delete(approvalEntryId);
+        this.emitUpdate();
 
         // Resume conversation if it was paused
         const approvalSettings = settingsRepository.getActionApprovalSettings();

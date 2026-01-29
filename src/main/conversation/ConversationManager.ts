@@ -148,8 +148,12 @@ export class ConversationManager {
                     type: 'action-approval',
                     id: entry.id,
                     associatedMessageId: entry.associatedMessageId,
-                    actions: entry.actions,
+                    action: entry.action,
                     status: entry.status,
+                    previewFeedback: entry.previewFeedback,
+                    previewSentiment: entry.previewSentiment,
+                    resultFeedback: entry.resultFeedback,
+                    resultSentiment: entry.resultSentiment,
                     datetime: entry.datetime
                 };
             } else {

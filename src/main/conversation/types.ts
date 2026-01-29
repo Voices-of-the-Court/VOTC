@@ -58,7 +58,7 @@ export function createActionFeedback(input: Omit<ActionFeedbackEntry, 'type' | '
 export interface ActionApprovalEntry extends BaseEntry {
     type: 'action-approval';
     associatedMessageId: number;
-    actions: Array<{
+    action: {
         actionId: string;
         actionTitle?: string;
         sourceCharacterId: number;
@@ -67,14 +67,20 @@ export interface ActionApprovalEntry extends BaseEntry {
         targetCharacterName?: string;
         args: ActionArgumentValues;
         isDestructive: boolean;
-    }>;
-    status: 'pending' | 'approved' | 'declined';
+    };
+    status: 'pending' | 'approved';
+    // Optional preview generated via dry-run (no game effect written)
+    previewFeedback?: string;
+    previewSentiment?: 'positive' | 'negative' | 'neutral';
+    // Actual execution result once approved
+    resultFeedback?: string;
+    resultSentiment?: 'positive' | 'negative' | 'neutral';
 }
 
 export function createActionApproval(params: {
   id: number;
   associatedMessageId: number;
-  actions: Array<{
+  action: {
     actionId: string;
     actionTitle?: string;
     sourceCharacterId: number;
@@ -83,14 +89,18 @@ export function createActionApproval(params: {
     targetCharacterName?: string;
     args: ActionArgumentValues;
     isDestructive: boolean;
-  }>;
+  };
+  previewFeedback?: string;
+  previewSentiment?: 'positive' | 'negative' | 'neutral';
 }): ActionApprovalEntry {
   return {
     type: 'action-approval',
     id: params.id,
     associatedMessageId: params.associatedMessageId,
-    actions: params.actions,
+    action: params.action,
     status: 'pending',
+    previewFeedback: params.previewFeedback,
+    previewSentiment: params.previewSentiment,
     datetime: new Date()
   };
 }
