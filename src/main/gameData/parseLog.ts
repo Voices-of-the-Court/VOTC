@@ -694,6 +694,20 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                     // End of block for sibling - reset currentSibling
                     currentSibling = null;
                 break;
+                case "persona_numbers":
+                    const character = gameData!.characters.get(rootID);
+                    if (character) {
+                        character.boldness = Number(data[1]);
+                        character.compassion = Number(data[2]);
+                        character.energy = Number(data[3]);
+                        character.greed = Number(data[4]); // Update existing greed property
+                        character.honor = Number(data[5]);
+                        character.rationality = Number(data[6]);
+                        character.sociability = Number(data[7]);
+                        character.vengefulness = Number(data[8]);
+                        character.zeal = Number(data[9]);
+                    }
+                break;
             }
         }
     } 

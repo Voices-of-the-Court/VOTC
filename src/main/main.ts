@@ -97,10 +97,10 @@ if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   );
 }
 
-  // Open the DevTools.
-  chatWindow.webContents.openDevTools(
-    { mode: 'detach' }
-  );
+  // // Open the DevTools.
+  // chatWindow.webContents.openDevTools(
+  //   { mode: 'detach' }
+  // );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {

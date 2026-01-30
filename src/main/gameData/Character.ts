@@ -21,6 +21,14 @@ export class Character {
     sexuality: string;
     personality: string;
     greed: number;
+    boldness: number;
+    compassion: number;
+    energy: number;
+    honor: number;
+    rationality: number;
+    sociability: number;
+    vengefulness: number;
+    zeal: number;
     isIndependentRuler: boolean;
     liege: string;
     consort: string;
@@ -77,6 +85,14 @@ export class Character {
             this.sexuality = removeTooltip(data[8]),
             this.personality = data[9],
             this.greed = Number(data[10]),
+            this.boldness = 0,
+            this.compassion = 0,
+            this.energy = 0,
+            this.honor = 0,
+            this.rationality = 0,
+            this.sociability = 0,
+            this.vengefulness = 0,
+            this.zeal = 0,
             this.isIndependentRuler = !!Number(data[11]),
             this.liege = data[12],
             this.consort = data[13],
