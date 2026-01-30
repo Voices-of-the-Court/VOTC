@@ -1,13 +1,12 @@
 import React from 'react';
-import type { LLMProviderConfig } from '@llmTypes';
+import type { LLMProviderConfig } from '../../../main/llmProviders/types';
 import { useConfigStore } from '../store/useConfigStore';
+import { DEFAULT_PARAMETERS } from '../../../main/llmProviders/types';
 
 import ModelSelector from './ModelSelector';
 import ContextLengthField from './ContextLengthField';
 import FormGroupInput from './FormGroupInput';
 import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent } from './ConfigFields';
-
-const DEFAULT_PARAMETERS = { temperature: 0.7, max_tokens: 2048 };
 
 type ChangeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 

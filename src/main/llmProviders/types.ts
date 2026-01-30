@@ -1,5 +1,9 @@
 // src/main/llmProviders/types.ts
 
+// Import ProviderType from centralized constants to ensure single source of truth
+import type { ProviderType } from './ProviderConstants';
+export { type ProviderType } from './ProviderConstants';
+
 export interface ILLMMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
@@ -102,7 +106,42 @@ export interface ILLMProvider {
 }
 
 // --- Provider Configurations ---
-export type ProviderType = 'openrouter' | 'openai-compatible' | 'ollama';
+// Re-export provider constants for use in renderer
+export {
+  PROVIDER_TYPES,
+  DEFAULT_BASE_URLS,
+  DEFAULT_ACTIVE_PROVIDER,
+  DEFAULT_PARAMETERS,
+  isValidProviderType,
+  getDefaultBaseUrl,
+} from './ProviderConstants';
+
+// Default configurations for each provider type (defined here to avoid circular dependency)
+export const DEFAULT_PROVIDER_CONFIGS: Record<ProviderType, Partial<LLMProviderConfig>> = {
+  openrouter: {
+    apiKey: '',
+    baseUrl: '',
+    defaultModel: '',
+    defaultParameters: { temperature: 0.7, max_tokens: 2048 },
+  },
+  'openai-compatible': {
+    apiKey: '',
+    baseUrl: '',
+    defaultModel: '',
+    defaultParameters: { temperature: 0.7, max_tokens: 2048 },
+  },
+  ollama: {
+    apiKey: '',
+    baseUrl: 'http://localhost:11434', // Ollama default base URL
+    defaultModel: '',
+    defaultParameters: { temperature: 0.7, max_tokens: 2048 },
+  },
+};
+
+// Helper function to get default configuration for a provider type
+export function getDefaultProviderConfig(providerType: ProviderType): Partial<LLMProviderConfig> {
+  return DEFAULT_PROVIDER_CONFIGS[providerType];
+}
 
 export interface ProviderConfigBase {
   instanceId: string; // For base configs: 'openrouter', 'ollama', 'openai-compatible'. For presets: UUID.
