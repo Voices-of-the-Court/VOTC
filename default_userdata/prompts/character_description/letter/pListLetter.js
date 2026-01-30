@@ -260,6 +260,19 @@ function familyLine(char) {
       .join(", ");
     parts.push(`parents of ${char.fullName}: ${parentsList}`);
   }
+  if (char.siblings && char.siblings.length > 0) {
+    const siblingsList = char.siblings
+      .map((s) => {
+        const status = [s.sheHe === "he" ? "brother" : "sister", s.maritalStatus || "unmarried"]
+          .filter(Boolean)
+          .join(", ");
+        const death = s.deathDate ? `, died ${s.deathDate}${s.deathReason ? ` (${s.deathReason})` : ""}` : "";
+        const traits = (s.traits || []).map((t) => t.name).join(", ");
+        return `${s.name} (${status}${death}${traits ? `, traits: ${traits}` : ""})\n`;
+      })
+      .join(", ");
+    parts.push(`siblings of ${char.fullName}: ${siblingsList}`);
+  }
   if (char.children && char.children.length > 0) {
     const childrenList = char.children
       .map((c) => {

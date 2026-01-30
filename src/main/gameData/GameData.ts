@@ -182,7 +182,40 @@ export type Child = {
     }
 }
 
-/** 
+export type Sibling = {
+    id: number,
+    name: string,
+    sheHe: string,
+    birthDateTotalDays: number,
+    birthDate: string,
+    deathDateTotalDays?: number,
+    deathDate?: string,
+    deathReason?: string,
+    otherParent?: {
+        id: number,
+        name: string
+    },
+    traits: Trait[],
+    maritalStatus: 'unmarried' | 'concubine' | 'has_concubines' | 'has_spouses' | 'betrothed',
+    concubineOf?: {
+        id: number,
+        name: string
+    },
+    concubines: Array<{
+        id: number,
+        name: string
+    }>,
+    spouses: Array<{
+        id: number,
+        name: string
+    }>,
+    betrothed?: {
+        id: number,
+        name: string
+    }
+}
+
+/**
  * @class
 */
 export class GameData {

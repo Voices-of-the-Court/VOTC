@@ -68,6 +68,7 @@ module.exports = (gameData, currentCharacterId) => {
             modifiersLine(char, isCurrent),
             lawsLine(char, isCurrent),
             memoriesLine(char, isCurrent),
+            familyLine(char, isCurrent),
             listRelationsToPlayer(char),
             listRelationsToCharacters(char), // Includes relations to others
             listOpinionsToCharacters(char), // Textual opinions
@@ -363,6 +364,44 @@ module.exports = (gameData, currentCharacterId) => {
         return `recent_memories(${pick.map(m => `"${m.desc}"`).join(' | ')})`;
     }
 
+    function familyLine(char, isCurrent) {
+        // Only show family info for current character
+        // if (!isCurrent) return null;
+        
+        const parts = [];
+        
+        if (char.parents && char.parents.length > 0) {
+            const parentsList = char.parents
+                .map(p => `${p.name}${p.deathDate ? ` (died ${p.deathDate})` : ''}`)
+                .join(', ');
+            parts.push(`parents: ${parentsList}`);
+        }
+        
+        if (char.siblings && char.siblings.length > 0) {
+            const siblingsList = char.siblings
+                .map(s => {
+                    const status = s.sheHe === "he" ? "brother" : "sister";
+                    const death = s.deathDate ? ` (died ${s.deathDate})` : "";
+                    return `${s.name} (${status}${death})`;
+                })
+                .join(', ');
+            parts.push(`siblings: ${siblingsList}`);
+        }
+        
+        if (char.children && char.children.length > 0) {
+            const childrenList = char.children
+                .map(c => {
+                    const status = c.sheHe === "he" ? "son" : "daughter";
+                    const death = c.deathDate ? ` (died ${c.deathDate})` : "";
+                    return `${c.name} (${status}${death})`;
+                })
+                .join(', ');
+            parts.push(`children: ${childrenList}`);
+        }
+        
+        return parts.length > 0 ? `family(${parts.join('; ')})` : null;
+    }
+
     // --- Scenario ---
 
     function scenario() {
@@ -384,7 +423,7 @@ module.exports = (gameData, currentCharacterId) => {
             case "alley":
                 return `${mainChar.shortName} meets ${player.shortName} in a narrow, hidden alley.`;
             default:
-                return `${mainChar.shortName} meets ${player.shortName}.`;
+                return `${mainChar.shortName} meets ${player.shortName} in ${scene}.`;
         }
     }
 
