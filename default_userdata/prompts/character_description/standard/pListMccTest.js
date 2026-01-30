@@ -1,7 +1,7 @@
 // Detailed persona builder supporting multiple characters in conversation.
 // Exports a function (gameData, currentCharacterId?) => string
 
-/**@typedef {import('../../../src/main/gamedata_typedefs.js').GameData} GameData */
+/**@typedef {import('../../../gamedata_typedefs').GameData} GameData */
 /**@param {GameData} gameData */
 module.exports = (gameData, currentCharacterId) => {
     const player = gameData.characters.get(gameData.playerID);
@@ -33,8 +33,8 @@ module.exports = (gameData, currentCharacterId) => {
     }
 
     const allBlocks = [
-        `[${current.shortName}'s Persona (Current Speaker): ${currentPersona.join("; ")}]`,
-        ...otherPersonas.map(p => `[${p.shortName}'s Persona: ${p.items.join("; ")}]`)
+        `[${current.shortName}'s Persona (Current Speaker): ${currentPersona.join("; \n")}]`,
+        ...otherPersonas.map(p => `[${p.shortName}'s Persona: ${p.items.join("; \n")}]`)
     ];
 
     const scenarioLine = `[date(${date}), location(${location}), scenario(${scenario()})]`;
@@ -73,6 +73,7 @@ module.exports = (gameData, currentCharacterId) => {
             listRelationsToCharacters(char), // Includes relations to others
             listOpinionsToCharacters(char), // Textual opinions
             opinionOfPlayer(char), // Textual opinion of player
+            opinionBreakdownsLine(char, isCurrent), // Opinion breakdowns from current character
             `faith (${char.faith})`,
             `culture (${char.culture})`,
             `title(${char.titleRankConcept || 'N/A'})`,
@@ -129,8 +130,8 @@ module.exports = (gameData, currentCharacterId) => {
         if (score > 60) return "devoted to";
         if (score > 20) return "friendly toward";
         if (score > -20) return "neutral toward";
-        if (score > -60) return "dislikes";
-        return "hates";
+        if (score > -60) return "contempt toward";
+        return "hateful toward";
     }
 
     function opinionOfPlayer(char) {
@@ -149,7 +150,7 @@ module.exports = (gameData, currentCharacterId) => {
                 // Exclude self and player (handled separately)
                 if (targetCharacter && targetCharacter.id !== char.id && targetCharacter.id !== player.id) {
                     const desc = getOpinionDescription(opinionData.opinon);
-                    return `${char.shortName} is ${desc} ${targetCharacter.shortName}`;
+                    return `${char.shortName} seems ${desc} ${targetCharacter.shortName}`;
                 }
                 return null;
             })
@@ -304,23 +305,23 @@ module.exports = (gameData, currentCharacterId) => {
     }
 
     function incomeLine(char, isCurrent) {
-        // if (!isCurrent || !char.income) return null; // Hidden for others
+        if (!char.income) return null; // Hidden for others
         const { gold, balance } = char.income;
         return `income(gold ${gold}, monthly ${balance > 0 ? '+' : ''}${balance})`;
     }
 
     function treasuryLine(char, isCurrent) {
-        // if (!isCurrent || !char.treasury) return null; // Hidden for others
+        if (!char.treasury) return null; // Hidden for others
         return `treasury_items(${char.treasury.amount})`;
     }
 
     function influenceLine(char, isCurrent) {
-        // if (!isCurrent || !char.influence) return null; // Hidden for others
+        if (!char.influence) return null; // Hidden for others
         return `influence(${char.influence.amount})`;
     }
 
     function herdLine(char, isCurrent) {
-        // if (!isCurrent || !char.herd) return null; // Hidden for others
+        if (!char.herd) return null; // Hidden for others
         return `herd(${char.herd.amount})`;
     }
 
@@ -340,6 +341,30 @@ module.exports = (gameData, currentCharacterId) => {
         
         const list = char.knownSecrets.map(s => `Known secret: ${s.name} of ${s.ownerName}`).join(', ');
         return `secrets_known_about_others(${list})`;
+    }
+
+    function opinionBreakdownsLine(char, isCurrent) {
+        // Only show opinion breakdowns for the current character
+        if (!isCurrent) return null;
+        if (!char.opinionBreakdowns || char.opinionBreakdowns.length === 0) return null;
+        
+        const breakdowns = char.opinionBreakdowns
+            .map(breakdown => {
+                const targetCharacter = gameData.characters.get(breakdown.id);
+                if (!targetCharacter || !breakdown.breakdown || breakdown.breakdown.length === 0) {
+                    return null;
+                }
+                
+                // Format the breakdown modifiers
+                const modifiers = breakdown.breakdown
+                    .map(m => `${m.reason}: ${m.value > 0 ? '+' : ''}${m.value}`)
+                    .join(', ');
+                
+                return `${char.shortName}'s opinion of ${targetCharacter.shortName}: [${modifiers}]`;
+            })
+            .filter(Boolean);
+        
+        return breakdowns.length > 0 ? `opinion_breakdowns(${breakdowns.join(' | ')})` : null;
     }
 
     function modifiersLine(char, isCurrent) {
