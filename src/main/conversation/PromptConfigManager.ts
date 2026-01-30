@@ -123,7 +123,7 @@ export class PromptConfigManager {
         type: 'description',
         label: 'Character Description (pList)',
         enabled: true,
-        scriptPath: 'character_description/standard/pListMcc.js',
+        scriptPath: 'character_description/standard/pListMccTest2.js',
       },
       {
         id: 'example-messages',

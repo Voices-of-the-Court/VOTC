@@ -1,4 +1,4 @@
-import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd, Parent, Child} from "./GameData";
+import { GameData, Memory, Trait, OpinionModifier, Secret, KnownSecret, Modifier, Stress, Legitimacy, Troops, MAARegiment, Law, Income, Treasury, Influence, Herd, Parent, Child, Sibling} from "./GameData";
 import type { LetterData } from "../letter/types";
 import { Character } from "./Character";
 const fs = require('fs');
@@ -24,6 +24,7 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
     
     // Temporary storage for family parsing
     let currentChild: Partial<Child> | null = null;
+    let currentSibling: Partial<Sibling> | null = null;
 
     const fileStream = fs.createReadStream(debugLogPath);
 
@@ -597,6 +598,115 @@ export async function parseLog(debugLogPath: string): Promise<GameData>{
                 case "kid_eob":
                     // End of block for kid - reset currentChild
                     currentChild = null;
+                break;
+                
+                case "siblings":
+                    currentSibling = {
+                        id: Number(data[1]),
+                        name: data[2],
+                        sheHe: data[3],
+                        birthDateTotalDays: Number(data[4]),
+                        birthDate: data[5],
+                        traits: [],
+                        maritalStatus: 'unmarried',
+                        concubines: [],
+                        spouses: []
+                    };
+                    gameData!.characters.get(rootID)!.siblings.push(currentSibling as Sibling);
+                break;
+                
+                case "sibling_other_parent":
+                    if (currentSibling) {
+                        currentSibling.otherParent = {
+                            id: Number(data[2]),
+                            name: data[3]
+                        };
+                    }
+                break;
+                
+                case "sibling_trait":
+                    if (currentSibling && currentSibling.traits) {
+                        currentSibling.traits.push({
+                            category: data[2],
+                            name: data[3],
+                            desc: data[4]
+                        });
+                    }
+                break;
+                
+                case "sibling_is_concubine":
+                    if (currentSibling) {
+                        currentSibling.maritalStatus = 'concubine';
+                        currentSibling.concubineOf = {
+                            id: Number(data[2]),
+                            name: data[3]
+                        };
+                    }
+                break;
+                
+                case "sibling_concubine":
+                    if (currentSibling) {
+                        currentSibling.maritalStatus = 'has_concubines';
+                        if (!currentSibling.concubines) currentSibling.concubines = [];
+                        currentSibling.concubines.push({
+                            id: Number(data[2]),
+                            name: data[3]
+                        });
+                    }
+                break;
+                
+                case "sibling_spouse":
+                    if (currentSibling) {
+                        currentSibling.maritalStatus = 'has_spouses';
+                        if (!currentSibling.spouses) currentSibling.spouses = [];
+                        currentSibling.spouses.push({
+                            id: Number(data[2]),
+                            name: data[3]
+                        });
+                    }
+                break;
+                
+                case "sibling_betrothed":
+                    if (currentSibling) {
+                        currentSibling.maritalStatus = 'betrothed';
+                        currentSibling.betrothed = {
+                            id: Number(data[2]),
+                            name: data[3]
+                        };
+                    }
+                break;
+                
+                case "sibling_unmarried":
+                    if (currentSibling) {
+                        currentSibling.maritalStatus = 'unmarried';
+                    }
+                break;
+                
+                case "sibling_death":
+                    if (currentSibling) {
+                        currentSibling.deathDateTotalDays = Number(data[2]);
+                        currentSibling.deathDate = data[3];
+                        currentSibling.deathReason = data[4];
+                    }
+                break;
+                
+                case "sibling_eob":
+                    // End of block for sibling - reset currentSibling
+                    currentSibling = null;
+                break;
+                case "persona_numbers":
+                    const character = gameData!.characters.get(rootID);
+                    if (character) {
+                        character.boldness = Number(data[1]);
+                        character.compassion = Number(data[2]);
+                        character.energy = Number(data[3]);
+                        character.greed = Number(data[4]); // Update existing greed property
+                        character.honor = Number(data[5]);
+                        character.rationality = Number(data[6]);
+                        character.sociability = Number(data[7]);
+                        character.vengefulness = Number(data[8]);
+                        character.zeal = Number(data[9]);
+                    }
                 break;
             }
         }

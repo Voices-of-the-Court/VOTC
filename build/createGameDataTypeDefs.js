@@ -18,5 +18,5 @@ for(let i=0;i<lines.length;i++){
 }
 output = lines.join('\n');
 
-fs.writeFileSync(path.join(__dirname, '..', 'src', 'main', 'gamedata_typedefs.js'), output);
+fs.writeFileSync(path.join(__dirname, '..', 'default_userdata', 'gamedata_typedefs.js'), output);
 
