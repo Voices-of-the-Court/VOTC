@@ -1,3 +1,5 @@
+import { ActionArgumentValues } from "../actions/types";
+
 export interface BaseEntry {
     id: number;
     datetime: Date;
@@ -53,6 +55,56 @@ export function createActionFeedback(input: Omit<ActionFeedbackEntry, 'type' | '
     };
 }
 
+export interface ActionApprovalEntry extends BaseEntry {
+    type: 'action-approval';
+    associatedMessageId: number;
+    action: {
+        actionId: string;
+        actionTitle?: string;
+        sourceCharacterId: number;
+        sourceCharacterName: string;
+        targetCharacterId?: number;
+        targetCharacterName?: string;
+        args: ActionArgumentValues;
+        isDestructive: boolean;
+    };
+    status: 'pending' | 'approved';
+    // Optional preview generated via dry-run (no game effect written)
+    previewFeedback?: string;
+    previewSentiment?: 'positive' | 'negative' | 'neutral';
+    // Actual execution result once approved
+    resultFeedback?: string;
+    resultSentiment?: 'positive' | 'negative' | 'neutral';
+}
+
+export function createActionApproval(params: {
+  id: number;
+  associatedMessageId: number;
+  action: {
+    actionId: string;
+    actionTitle?: string;
+    sourceCharacterId: number;
+    sourceCharacterName: string;
+    targetCharacterId?: number;
+    targetCharacterName?: string;
+    args: ActionArgumentValues;
+    isDestructive: boolean;
+  };
+  previewFeedback?: string;
+  previewSentiment?: 'positive' | 'negative' | 'neutral';
+}): ActionApprovalEntry {
+  return {
+    type: 'action-approval',
+    id: params.id,
+    associatedMessageId: params.associatedMessageId,
+    action: params.action,
+    status: 'pending',
+    previewFeedback: params.previewFeedback,
+    previewSentiment: params.previewSentiment,
+    datetime: new Date()
+  };
+}
+
 export interface SummaryImportEntry extends BaseEntry {
     type: 'summary-import';
     sourcePlayerId: string;
@@ -71,4 +123,4 @@ export function createSummaryImport(input: Omit<SummaryImportEntry, 'type' | 'da
     };
 }
 
-export type ConversationEntry = Message | ErrorEntry | ActionFeedbackEntry | SummaryImportEntry;
+export type ConversationEntry = Message | ErrorEntry | ActionFeedbackEntry | SummaryImportEntry | ActionApprovalEntry;

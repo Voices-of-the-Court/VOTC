@@ -142,6 +142,20 @@ export class ConversationManager {
                     status: entry.status,
                     datetime: entry.datetime
                 };
+            } else if (entry.type === 'action-approval') {
+                // Action approval entry
+                return {
+                    type: 'action-approval',
+                    id: entry.id,
+                    associatedMessageId: entry.associatedMessageId,
+                    action: entry.action,
+                    status: entry.status,
+                    previewFeedback: entry.previewFeedback,
+                    previewSentiment: entry.previewSentiment,
+                    resultFeedback: entry.resultFeedback,
+                    resultSentiment: entry.resultSentiment,
+                    datetime: entry.datetime
+                };
             } else {
                 // Error entry
                 return {

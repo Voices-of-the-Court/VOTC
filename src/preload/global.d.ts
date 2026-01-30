@@ -1,4 +1,4 @@
-import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings } from '../main/llmProviders/types';
+import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings, ActionApprovalSettings } from '../main/llmProviders/types';
 
 declare global {
   interface Window {
@@ -18,6 +18,8 @@ declare global {
       declineSummaryImport: (characterId: number, sourcePlayerId: string) => Promise<{success: boolean, error?: string}>;
       openSummaryFile: (filePath: string) => Promise<{success: boolean, error?: string}>;
       getActiveConversationData: () => Promise<any>;
+      approveActions: (approvalEntryId: number) => Promise<void>;
+      declineActions: (approvalEntryId: number) => Promise<void>;
       getPromptPreview: (characterId: number) => Promise<any>;
       openSummariesFolder: () => Promise<{success: boolean, error?: string}>;
       clearSummaries: () => Promise<{success: boolean, error?: string}>;
@@ -38,6 +40,7 @@ declare global {
       removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => void;
       openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
       collectAndOpenLogs: () => Promise<{ success: boolean; path?: string; error?: string }>;
+      getAppVersion: () => Promise<string>;
       onOverlayVisibilityChange: (callback: (isVisible: boolean) => void) => () => void;
     };
     llmConfigAPI: {
@@ -61,6 +64,8 @@ declare global {
       setActionsProviderId: (instanceId: string | null) => Promise<void>;
       getSummaryProviderId: () => Promise<string | null>;
       setSummaryProviderId: (instanceId: string | null) => Promise<void>;
+      getActionApprovalSettings: () => Promise<ActionApprovalSettings>;
+      saveActionApprovalSettings: (settings: ActionApprovalSettings) => Promise<void>;
     };
     promptsAPI: {
       getSettings: () => Promise<PromptSettings>;

@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('shell:openExternal', url),
   collectAndOpenLogs: (): Promise<{ success: boolean; path?: string; error?: string }> =>
     ipcRenderer.invoke('logs:collectAndOpen'),
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
   onOverlayVisibilityChange: (callback) => {
     const subscription = (_event, value) => callback(value);
     ipcRenderer.on('overlay-visibility-change', subscription);
@@ -76,6 +77,8 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setActionsProviderId: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setActionsProviderId', instanceId),
   getSummaryProviderId: (): Promise<string | null> => ipcRenderer.invoke('llm:getSummaryProviderId'),
   setSummaryProviderId: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setSummaryProviderId', instanceId),
+  getActionApprovalSettings: (): Promise<any> => ipcRenderer.invoke('llm:getActionApprovalSettings'),
+  saveActionApprovalSettings: (settings: any): Promise<void> => ipcRenderer.invoke('llm:saveActionApprovalSettings', settings),
 });
 
 contextBridge.exposeInMainWorld('promptsAPI', {
@@ -153,6 +156,10 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     ipcRenderer.invoke('conversation:openSummariesFolder'),
   clearSummaries: (): Promise<{success: boolean, error?: string}> =>
     ipcRenderer.invoke('conversation:clearSummaries'),
+  approveActions: (approvalEntryId: number): Promise<void> =>
+    ipcRenderer.invoke('conversation:approveActions', { approvalEntryId }),
+  declineActions: (approvalEntryId: number): Promise<void> =>
+    ipcRenderer.invoke('conversation:declineActions', { approvalEntryId }),
  });
  
  // Actions API exposed to renderer

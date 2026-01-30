@@ -75,6 +75,10 @@ interface ConfigStore {
   importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
   openSummariesFolder: () => Promise<{success: boolean, error?: string}>;
   clearSummaries: () => Promise<{success: boolean, error?: string}>;
+  
+  // Action approval settings
+  getActionApprovalSettings: () => Promise<any>;
+  saveActionApprovalSettings: (settings: any) => Promise<void>;
 
   // Prompt actions
   loadPromptSettings: () => Promise<void>;
@@ -237,6 +241,17 @@ export const useConfigStore = create<ConfigStore>()(
         // Set active provider
         await window.llmConfigAPI.setActiveProvider(type);
         
+        // Update appSettings to reflect the new active provider
+        set({
+          appSettings: {
+            ...appSettings,
+            llmSettings: {
+              ...appSettings.llmSettings,
+              activeProviderInstanceId: type
+            }
+          }
+        });
+        
         // Fetch models if not cached
         get().fetchModels(config);
       },
@@ -259,6 +274,17 @@ export const useConfigStore = create<ConfigStore>()(
         
         // Set active provider
         await window.llmConfigAPI.setActiveProvider(id);
+        
+        // Update appSettings to reflect the new active provider
+        set({
+          appSettings: {
+            ...appSettings,
+            llmSettings: {
+              ...appSettings.llmSettings,
+              activeProviderInstanceId: id
+            }
+          }
+        });
         
         // Fetch models if not cached
         get().fetchModels(preset);
@@ -571,13 +597,30 @@ export const useConfigStore = create<ConfigStore>()(
         },
         
         updateShowSettingsOnStartup: async (enabled) => {
-          await window.llmConfigAPI.saveShowSettingsOnStartupSetting(enabled);
-          set((state) => ({
-            appSettings: state.appSettings
-              ? { ...state.appSettings, showSettingsOnStartup: enabled }
-              : null,
-          }));
-        },
+        await window.llmConfigAPI.saveShowSettingsOnStartupSetting(enabled);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { ...state.appSettings, showSettingsOnStartup: enabled }
+            : null,
+        }));
+      },
+      
+      // Action approval settings
+      getActionApprovalSettings: async () => {
+        return await window.llmConfigAPI.getActionApprovalSettings();
+      },
+      
+      saveActionApprovalSettings: async (settings) => {
+        await window.llmConfigAPI.saveActionApprovalSettings(settings);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { 
+                ...state.appSettings, 
+                actionApprovalSettings: settings 
+              }
+            : null,
+        }));
+      },
         
         // Prompt settings actions
       loadPromptSettings: async () => {

@@ -8,11 +8,29 @@ const SettingsView: React.FC = () => {
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
   const updateMessageFontSize = useConfigStore((state) => state.updateMessageFontSize);
   const updateShowSettingsOnStartup = useConfigStore((state) => state.updateShowSettingsOnStartup);
+  const getActionApprovalSettings = useConfigStore((state) => state.getActionApprovalSettings);
+  const saveActionApprovalSettings = useConfigStore((state) => state.saveActionApprovalSettings);
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
   const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
   const importLegacySummaries = useConfigStore((state) => state.importLegacySummaries);
   const openSummariesFolder = useConfigStore((state) => state.openSummariesFolder);
   const clearSummaries = useConfigStore((state) => state.clearSummaries);
+  
+  const [actionApprovalSettings, setActionApprovalSettings] = React.useState<any>(null);
+  
+  // Load action approval settings on mount
+  React.useEffect(() => {
+    const loadActionApprovalSettings = async () => {
+      try {
+        const settings = await getActionApprovalSettings();
+        setActionApprovalSettings(settings);
+      } catch (error) {
+        console.error('Failed to load action approval settings:', error);
+      }
+    };
+    
+    loadActionApprovalSettings();
+  }, [getActionApprovalSettings]);
 
   if (!appSettings) {
     return <div>Loading global settings...</div>;
@@ -36,6 +54,38 @@ const SettingsView: React.FC = () => {
 
   const handleShowSettingsOnStartupToggle = async (e: ChangeEvent<HTMLInputElement>) => {
     await updateShowSettingsOnStartup(e.target.checked);
+  };
+
+  const handleApprovalModeChange = async (e: ChangeEvent<HTMLSelectElement>) => {
+    if (!actionApprovalSettings) return;
+    
+    const newSettings = {
+      ...actionApprovalSettings,
+      approvalMode: e.target.value
+    };
+    
+    try {
+      await saveActionApprovalSettings(newSettings);
+      setActionApprovalSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to save action approval settings:', error);
+    }
+  };
+
+  const handlePauseOnApprovalToggle = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!actionApprovalSettings) return;
+    
+    const newSettings = {
+      ...actionApprovalSettings,
+      pauseOnApproval: e.target.checked
+    };
+    
+    try {
+      await saveActionApprovalSettings(newSettings);
+      setActionApprovalSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to save action approval settings:', error);
+    }
   };
 
   const handleSelectCK3Folder = async () => {
@@ -167,6 +217,43 @@ const SettingsView: React.FC = () => {
           checked={appSettings.showSettingsOnStartup ?? true}
           onChange={handleShowSettingsOnStartupToggle}
         />
+      </div>
+      
+      <hr />
+      
+      <div className="form-group">
+        <h4>Action Approval Settings</h4>
+        <p className="help-text">
+          Configure when actions require user approval before execution. Destructive actions (like killing characters) always require approval regardless of these settings.
+        </p>
+        
+        <div className="form-group">
+          <label htmlFor="approvalMode">Approval Mode:</label>
+          <select
+            id="approvalMode"
+            name="approvalMode"
+            value={actionApprovalSettings?.approvalMode || 'none'}
+            onChange={handleApprovalModeChange}
+          >
+            <option value="none">No Auto-accept (All actions require approval)</option>
+            <option value="non-destructive">Auto-accept Non-destructive (Only destructive actions require approval)</option>
+            <option value="all">Auto-accept All (No actions require approval)</option>
+          </select>
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="pauseOnApproval">Pause Conversation When Approval Needed:</label>
+          <input
+            type="checkbox"
+            id="pauseOnApproval"
+            name="pauseOnApproval"
+            checked={actionApprovalSettings?.pauseOnApproval ?? true}
+            onChange={handlePauseOnApprovalToggle}
+          />
+          <span className="help-text">
+            When enabled, the conversation will pause when actions need approval, allowing you to review them before continuing.
+          </span>
+        </div>
       </div>
       
       <hr />

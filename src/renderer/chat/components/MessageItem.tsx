@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import StreamingMarkdown from './StreamingMarkdown';
 import ActionFeedbackItem from './ActionFeedbackItem';
 import SummaryImportNotification from './SummaryImportNotification';
+import ActionApprovalItem from './ActionApprovalItem';
 import { ChatEntry } from '../types';
 import AlertIcon from '../../assets/Alert.png';
 
@@ -17,7 +18,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
   const handleRegenerate = async () => {
     if (entry.type === 'message' && entry.role === 'assistant') {
       try {
-        await window.conversationAPI.regenerateMessage(parseInt(entry.id));
+        await window.conversationAPI.regenerateMessage(entry.id);
       } catch (error) {
         console.error('Failed to regenerate message:', error);
       }
@@ -27,7 +28,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
   const handleRegenerateError = async () => {
     if (entry.type === 'error') {
       try {
-        await window.conversationAPI.regenerateError(parseInt(entry.id));
+        await window.conversationAPI.regenerateError(entry.id);
       } catch (error) {
         console.error('Failed to regenerate error:', error);
       }
@@ -44,7 +45,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
   const handleSaveEdit = async () => {
     if (entry.type === 'message' && entry.role === 'user') {
       try {
-        await window.conversationAPI.editUserMessage(parseInt(entry.id), editContent);
+        await window.conversationAPI.editUserMessage(entry.id, editContent);
         setIsEditing(false);
       } catch (error) {
         console.error('Failed to edit message:', error);
@@ -90,6 +91,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
 
   if (entry.type === 'summary-import') {
     return <SummaryImportNotification entry={entry} />;
+  }
+
+  if (entry.type === 'action-approval') {
+    return <ActionApprovalItem entry={entry} />;
   }
 
   // Handle message entries

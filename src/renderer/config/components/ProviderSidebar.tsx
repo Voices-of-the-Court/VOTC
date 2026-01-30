@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { ProviderType as ConfigProviderType } from '@llmTypes';
 import { useAppSettings } from '../store/useConfigStore';
 
@@ -29,10 +29,20 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
     const baseProviderTypes: ConfigProviderType[] = ['openrouter', 'ollama', 'openai-compatible'];
 
     // Helper to get all available providers (base + presets)
-    const allProviders = [
+    const allProviders = useMemo(() => [
         ...(appSettings?.llmSettings.providers || []),
         ...(appSettings?.llmSettings.presets || [])
-    ];
+    ], [appSettings?.llmSettings.providers, appSettings?.llmSettings.presets]);
+
+    // Get active provider info for NPC messages
+    const activeProviderInfo = useMemo(() => {
+        const activeId = appSettings?.llmSettings.activeProviderInstanceId;
+        const activeProvider = allProviders.find(p => p.instanceId === activeId);
+        return {
+            displayName: activeProvider?.customName || activeProvider?.providerType || 'None',
+            modelName: activeProvider?.defaultModel || 'No model selected'
+        };
+    }, [appSettings?.llmSettings.activeProviderInstanceId, allProviders]);
 
     // Helper to get CSS class for assignment styling
     const getAssignmentClass = (instanceId: string) => {
@@ -105,6 +115,16 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
             
             {/* Override For Section */}
             <div className="override-section">
+                <div className="override-item npc-messages-indicator">
+                    <label>💬 NPC Messages</label>
+                    <div className="npc-provider-display">
+                        <div className="provider-info" title={activeProviderInfo.modelName}>
+                            <span className="provider-name">{activeProviderInfo.displayName}</span>
+                            <span className="model-name">{activeProviderInfo.modelName}</span>
+                        </div>
+                    </div>
+                </div>
+                
                 <div className="override-item">
                     <label>⚡ Actions</label>
                     <select 

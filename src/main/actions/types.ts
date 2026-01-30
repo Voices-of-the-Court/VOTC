@@ -77,6 +77,7 @@ export interface ActionDefinition {
   title?: string;
   description: string | DynamicDescriptionFunction;
   args: ActionArgumentDefinition[] | DynamicArgsFunction;
+  isDestructive?: boolean; // New field to mark destructive actions
   check: (context: ActionCheckContext) => Promise<ActionCheckResult> | ActionCheckResult;
   run: (context: ActionRunContext) => Promise<string | ActionFeedback | void> | string | ActionFeedback | void;
 }

@@ -1,5 +1,4 @@
 import { Conversation } from "../conversation/Conversation";
-import { PromptBuilder } from "../conversation/PromptBuilder";
 import { Character } from "../gameData/Character";
 import { ILLMMessage } from "../llmProviders/types";
 import type { SchemaBuildInput } from "./jsonSchema";
@@ -60,8 +59,6 @@ ${historyLines}
 ${characterRosterLines.join("\n")}
 
 You MUST select which actions should be executed for ${npc.fullName} (or for the player character ${conv.gameData.playerName} if isPlayerSource) based on this context:
-
-${PromptBuilder.buildPastSummariesContext(npc, conv.gameData)}
 `;
 
     messages.push({ role: "system", content: rosterBlock });
