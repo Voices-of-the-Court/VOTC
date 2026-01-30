@@ -80,7 +80,7 @@ const ConnectionView: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100% - 40px)' }}>
+    <div style={{ display: 'flex', height: 'calc(100%)' }}>
       <ProviderSidebar
         onSelectProviderType={selectProvider}
         onSelectPreset={selectPreset}

@@ -9,6 +9,26 @@ import { ActionArgumentValues, ActionInvocation, StructuredActionResponse, Actio
 import { ActionPromptBuilder } from "./ActionPromptBuilder";
 import { healJsonResponseWithLogging } from "./responseHealing";
 import type { SchemaBuildInput } from "./jsonSchema";
+import { settingsRepository } from "../SettingsRepository";
+
+export interface ActionEvaluationResult {
+  autoApproved: ActionExecutionResult[];
+  needsApproval: Array<{
+    actionId: string;
+    actionTitle?: string;
+    sourceCharacterId: number;
+    sourceCharacterName: string;
+    targetCharacterId?: number;
+    targetCharacterName?: string;
+    args: ActionArgumentValues;
+    isDestructive: boolean;
+    invocation: ActionInvocation;
+  }>;
+}
+
+export interface ActionRunOptions {
+  dryRun?: boolean;
+}
 
 export class ActionEngine {
   /**
@@ -16,14 +36,15 @@ export class ActionEngine {
    * - Gathers available actions via check()
    * - Builds a structured-output schema limiting targets and args
    * - Requests LLM to select actions with strict schema
-   * - Runs the resolved actions (writing CK3 effects with proper scoping)
-   * - Returns array of execution results with feedback
+   * - Separates actions into auto-approved and needs-approval based on settings
+   * - Runs auto-approved actions immediately
+   * - Returns both executed and pending actions
    */
-  static async evaluateForCharacter(conv: Conversation, npc: Character, signal?: AbortSignal): Promise<ActionExecutionResult[]> {
+  static async evaluateForCharacter(conv: Conversation, npc: Character, signal?: AbortSignal): Promise<ActionEvaluationResult> {
     try {
       // Check if cancelled before starting
       if (signal?.aborted) {
-        return [];
+        return { autoApproved: [], needsApproval: [] };
       }
       // 1) Build candidate actions for this source character
       const loaded = actionRegistry.getAllActions(/* includeDisabled = */ false);
@@ -32,7 +53,7 @@ export class ActionEngine {
       for (const act of loaded) {
         // Check for cancellation during action gathering
         if (signal?.aborted) {
-          return [];
+          return { autoApproved: [], needsApproval: [] };
         }
 
         try {
@@ -78,23 +99,17 @@ export class ActionEngine {
       }
 
       if (available.length === 0) {
-        return [];
+        return { autoApproved: [], needsApproval: [] };
       }
 
       // Check for cancellation before LLM request
       if (signal?.aborted) {
         console.log('[DEBUG] ActionEngine: Aborted before LLM request');
-        return [];
+        return { autoApproved: [], needsApproval: [] };
       }
 
       // 2) Build messages and schema for LLM structured output
       const messages = ActionPromptBuilder.buildActionMessages(conv, npc, available);
-      // console.log("[ActionEngine] Available actions for LLM:", available.map(a => ({
-      //   id: a.signature,
-      //   requiresTarget: a.requiresTarget,
-      //   validTargets: a.validTargetCharacterIds?.length ?? 0,
-      //   args: a.args.map(arg => `${arg.name}:${arg.type}`)
-      // })));
 
       // Primary schema (JSON Schema for provider)
       const jsonSchema = buildStructuredResponseJsonSchema({
@@ -118,26 +133,22 @@ export class ActionEngine {
       // Check for cancellation after LLM request
       if (signal?.aborted) {
         console.log('[DEBUG] ActionEngine: Aborted after LLM request');
-        return [];
+        return { autoApproved: [], needsApproval: [] };
       }
 
       // Handle non-stream result
       const result = await output as any; // ILLMCompletionResponse
-      // console.log("[ActionEngine] Raw LLM result:", JSON.stringify(result, null, 2));
       
       const content = (result && typeof result === "object") ? result.content : null;
-      // console.log("[ActionEngine] Extracted content:", content);
 
       if (!content || typeof content !== "string") {
-        // In some providers content may be null/empty despite schema. Fail gracefully.
-        // console.log("[ActionEngine] No valid content received from LLM");
-        return [];
+        return { autoApproved: [], needsApproval: [] };
       }
 
       // Check for cancellation before parsing
       if (signal?.aborted) {
         console.log('[DEBUG] ActionEngine: Aborted before parsing response');
-        return [];
+        return { autoApproved: [], needsApproval: [] };
       }
 
       // 4) Parse and validate JSON with healing
@@ -147,69 +158,117 @@ export class ActionEngine {
         const maybeJson = healJsonResponseWithLogging(content, "ActionEngine");
         
         if (!maybeJson) {
-          // console.error("[ActionEngine] Failed to heal JSON response");
-          // console.error("[ActionEngine] Error details:", {
-          //   receivedContent: content,
-          //   expectedFormat: "{ actions: [{ actionId: string, targetCharacterId?: number, args: {} }] }",
-          //   availableActionIds: available.map(a => a.signature)
-          // });
-          return [];
+          return { autoApproved: [], needsApproval: [] };
         }
-        
-        // console.log("[ActionEngine] Healed JSON from LLM:", JSON.stringify(maybeJson, null, 2));
-        // console.log("[ActionEngine] Expected structure: { actions: [{ actionId, targetCharacterId?, args }] }");
         
         const validated = zodSchema.parse(maybeJson);
         parsed = validated;
-        // console.log("[ActionEngine] Successfully validated against schema");
       } catch (err) {
-        // If validation fails, do not run any actions
-        // console.error("[ActionEngine] Validation error:", err);
-        // console.error("[ActionEngine] Error details:", {
-        //   receivedContent: content,
-        //   expectedFormat: "{ actions: [{ actionId: string, targetCharacterId?: number, args: {} }] }",
-        //   availableActionIds: available.map(a => a.signature)
-        // });
-        return [];
+        return { autoApproved: [], needsApproval: [] };
       }
 
       if (!parsed || !Array.isArray(parsed.actions) || parsed.actions.length === 0) {
-        return [];
+        console.log('[ActionEngine] No actions to process');
+        return { autoApproved: [], needsApproval: [] };
       }
+      
+      console.log(`[ActionEngine] Processing ${parsed.actions.length} actions from LLM`);
 
-      // Check for cancellation before running actions
+      // Check for cancellation before processing actions
       if (signal?.aborted) {
-        console.log('[DEBUG] ActionEngine: Aborted before running actions');
-        return [];
+        console.log('[DEBUG] ActionEngine: Aborted before processing actions');
+        return { autoApproved: [], needsApproval: [] };
       }
 
-      // 5) Resolve and run actions, collecting results
-      const results: ActionExecutionResult[] = [];
+      // 5) Get approval settings and separate actions
+      const approvalSettings = settingsRepository.getActionApprovalSettings();
+      console.log('[ActionEngine] Approval settings:', approvalSettings);
+      const autoApproved: ActionExecutionResult[] = [];
+      const needsApproval: ActionEvaluationResult['needsApproval'] = [];
+
       for (const inv of parsed.actions) {
         // Check for cancellation before each action
         if (signal?.aborted) {
-          console.log('[DEBUG] ActionEngine: Aborted during action execution, stopped at', results.length, 'of', parsed.actions.length, 'actions');
+          console.log('[DEBUG] ActionEngine: Aborted during action processing');
           break;
         }
 
-        const result = await this.runInvocation(conv, npc, inv);
-        results.push(result);
+        // Get action definition to check if it's destructive
+        const loaded = actionRegistry.getById(inv.actionId);
+        if (!loaded || !loaded.validation.valid) {
+          continue;
+        }
+
+        const isDestructive = (loaded.definition as any).isDestructive || false;
+        console.log(`[ActionEngine] Action ${inv.actionId} isDestructive property: ${(loaded.definition as any).isDestructive}, computed: ${isDestructive}`);
+        
+        // Determine if this action needs approval
+        let needsUserApproval = false;
+        
+        switch (approvalSettings.approvalMode) {
+          case 'none':
+            // 'none' means no auto-accept, so all actions need approval
+            needsUserApproval = true;
+            break;
+          case 'non-destructive':
+            // 'non-destructive' means auto-accept non-destructive, so only destructive need approval
+            needsUserApproval = isDestructive;
+            break;
+          case 'all':
+            // 'all' means auto-accept all, so no actions need approval
+            needsUserApproval = false;
+            break;
+        }
+        
+        console.log(`[ActionEngine] Action ${inv.actionId} isDestructive property: ${loaded.definition.isDestructive}, computed: ${isDestructive}, needsApproval: ${needsUserApproval}`);
+
+        if (needsUserApproval) {
+          // Add to pending approval list
+          const targetId = inv.targetCharacterId ?? null;
+          const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
+          
+          console.log(`[ActionEngine] Action ${inv.actionId} needs approval (destructive: ${isDestructive})`);
+          needsApproval.push({
+            actionId: inv.actionId,
+            actionTitle: loaded.definition.title,
+            sourceCharacterId: npc.id,
+            sourceCharacterName: npc.shortName,
+            targetCharacterId: targetId ?? undefined,
+            targetCharacterName: target?.shortName,
+            args: inv.args ?? {},
+            isDestructive,
+            invocation: inv
+          });
+        } else {
+          // Execute immediately
+          console.log(`[ActionEngine] Action ${inv.actionId} auto-approved (destructive: ${isDestructive})`);
+          const result = await this.runInvocation(conv, npc, inv);
+          autoApproved.push(result);
+        }
       }
       
-      return results;
+      return { autoApproved, needsApproval };
     } catch (err) {
       // Check if this was an abort
       if (signal?.aborted) {
         console.log('[DEBUG] ActionEngine: Caught abort signal in error handler');
-        return [];
+        return { autoApproved: [], needsApproval: [] };
       }
       // silent guard: action engine should never crash the conversation loop
       console.error("ActionEngine error:", err);
-      return [];
+      return { autoApproved: [], needsApproval: [] };
     }
   }
 
-  private static async runInvocation(conv: Conversation, npc: Character, inv: ActionInvocation): Promise<ActionExecutionResult> {
+  /**
+   * Execute an action invocation. When dryRun is true, game effects are not written.
+   */
+  static async runInvocation(
+    conv: Conversation,
+    npc: Character,
+    inv: ActionInvocation,
+    options?: ActionRunOptions
+  ): Promise<ActionExecutionResult> {
     const loaded = actionRegistry.getById(inv.actionId);
     if (!loaded || !loaded.validation.valid) {
       return {
@@ -226,6 +285,10 @@ export class ActionEngine {
 
     // console.log("Running action:", inv.actionId, { source: npc.id, target: targetId, args: inv.args });
     const runGameEffect = (effectBody: string) => {
+      // In dry runs we avoid writing to the game run file
+      if (options?.dryRun) {
+        return;
+      }
       ActionEffectWriter.writeEffect(
         conv.gameData,
         npc.id,

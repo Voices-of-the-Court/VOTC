@@ -190,6 +190,13 @@ export interface PromptPreset {
 }
 
 // General application settings
+export type ActionApprovalMode = 'none' | 'non-destructive' | 'all';
+
+export interface ActionApprovalSettings {
+  approvalMode: ActionApprovalMode; // Default: 'none'
+  pauseOnApproval: boolean; // Default: true - pause conversation when approval needed
+}
+
 export interface AppSettings {
   llmSettings: LLMSettings;
   ck3UserFolderPath?: string | null;
@@ -202,6 +209,7 @@ export interface AppSettings {
   promptSettings?: PromptSettings; // Prompt templates/scripts configuration
   letterPromptSettings?: PromptSettings; // Letter prompt templates/scripts configuration
   actionSettings?: ActionSettings;
+  actionApprovalSettings?: ActionApprovalSettings;
 }
 
 

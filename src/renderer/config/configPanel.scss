@@ -13,8 +13,21 @@
   border-radius: 20px;
   box-sizing: border-box;
   padding: 10px;
+  padding-bottom: 16px;
   display: flex;
   flex-direction: column;
+
+      /* App version styling */
+    .app-version {
+      position: absolute;
+      bottom: 0px;
+      right: 22px;
+      font-size: 0.8em;
+      color: #999;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+      z-index: 5;
+    }
+
 }
 
 .config-header {
@@ -439,14 +452,12 @@ hr {
 // Override section styling - pinned at bottom
 .override-section {
   flex-shrink: 0; // Don't shrink
-  padding: 10px 4px 0 4px;
+  padding: 0px 4px 0 4px;
   margin-top: auto; // Push to bottom
   border-top: 1px solid #EFB16A;
   margin-right: 4px;
-  // background-color: rgba(0, 0, 0, 0.3); // Slight background to distinguish
   
   .override-item {
-    margin-bottom: 10px;
     
     label {
       display: block;
@@ -465,6 +476,7 @@ hr {
       color: #ddd;
       font-size: 0.9em;
       cursor: pointer;
+      margin-bottom: 0px;
       
       &:focus {
         outline: none;
@@ -474,6 +486,42 @@ hr {
       option {
         background-color: #1a1a1a;
         color: #ddd;
+      }
+    }
+    
+    // NPC Messages indicator styling
+    &.npc-messages-indicator {
+      .npc-provider-display {
+        padding: 6px 8px;
+        background-color: rgba(0, 0, 0, 0.4);
+        border: 1px solid #EFB16A;
+        border-radius: 6px;
+        cursor: default;
+        
+        .provider-info {
+          display: flex;
+          flex-direction: column;
+          
+          .provider-name {
+            font-size: 0.9em;
+            color: #ddd;
+          }
+          
+          .model-name {
+            font-size: 0.75em;
+            color: #888;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: none; // Hidden by default
+          }
+        }
+        
+        // Show model name on hover
+        &:hover .provider-info .model-name {
+          display: block;
+        }
       }
     }
   }
@@ -899,6 +947,7 @@ hr {
         }
       }
     }
+    
   }
 }
 

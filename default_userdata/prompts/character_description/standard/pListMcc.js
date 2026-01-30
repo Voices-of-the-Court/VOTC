@@ -1,7 +1,7 @@
 // Detailed persona builder supporting multiple characters in conversation.
 // Exports a function (gameData, currentCharacterId?) => string
 
-/**@typedef {import('../../../src/main/gamedata_typedefs.js').GameData} GameData */
+/**@typedef {import('../../../gamedata_typedefs').GameData} GameData */
 /**@param {GameData} gameData */
 module.exports = (gameData, currentCharacterId) => {
     const player = gameData.characters.get(gameData.playerID);

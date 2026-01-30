@@ -1,0 +1,125 @@
+.action-feedback-container.approval {
+  position: relative;
+  margin-top: 4px;
+}
+
+.action-feedback-container.approval .action-feedback-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 10px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.action-feedback-container.approval .action-feedback-item.pending {
+  border-left-style: dashed;
+  border-left-width: 2px;
+  animation: approvalBorder 1.8s ease-in-out infinite;
+}
+
+.action-feedback-container.approval .action-feedback-item.resolved {
+  animation: settle 0.25s ease forwards;
+}
+
+.action-feedback-container.approval .action-feedback-item.destructive {
+  border-left-color: #ff9800;
+}
+
+.action-feedback-container.approval .approval-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+
+  button {
+    padding: 3px 10px;
+    border-radius: 5px;
+    border: 1px solid #efb16a;
+    background: rgba(0, 0, 0, 0.35);
+    color: #efb16a;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 72px;
+    font-size: 0.9rem;
+
+    &:hover:not(:disabled) {
+      background: rgba(239, 177, 106, 0.25);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    &.approve-button {
+      border-color: #4caf50;
+      color: #c8f7c5;
+    }
+
+    &.decline-button {
+      border-color: #f44336;
+      color: #f4c7c3;
+    }
+  }
+}
+
+  
+.action-feedback-container.approval.pending .approval-hover {
+  margin-top: 4px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(239, 177, 106, 0.35);
+  border-radius: 8px;
+  color: #ddd;
+  font-size: 0.9rem;
+  gap: 4px;
+  flex-direction: column;
+  display: flex;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
+  pointer-events: none;
+}
+
+.action-feedback-container.approval.pending:hover .approval-hover {
+  max-height: 140px;
+  opacity: 1;
+  padding: 4px 10px 6px 12px;
+}
+
+.approval-hover .hover-row {
+  display: flex;
+  gap: 8px;
+}
+
+.approval-hover .label {
+  color: rgba(239, 177, 106, 0.9);
+  min-width: 44px;
+}
+
+.approval-hover .args {
+  word-break: break-all;
+  color: rgba(221, 221, 221, 0.9);
+}
+
+@keyframes approvalBorder {
+  0% {
+    border-left-color: rgba(239, 177, 106, 0.2);
+  }
+  50% {
+    border-left-color: rgba(239, 177, 106, 0.9);
+  }
+  100% {
+    border-left-color: rgba(239, 177, 106, 0.2);
+  }
+}
+
+@keyframes settle {
+  0% {
+    transform: scale(1.01);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
