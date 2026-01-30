@@ -1,5 +1,4 @@
 import { Conversation } from "../conversation/Conversation";
-import { PromptBuilder } from "../conversation/PromptBuilder";
 import { Character } from "../gameData/Character";
 import { ILLMMessage } from "../llmProviders/types";
 import type { SchemaBuildInput } from "./jsonSchema";

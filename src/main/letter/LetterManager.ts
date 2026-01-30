@@ -316,7 +316,11 @@ create_artifact = {
 \tvisuals = scroll
 \tcreator = global_var:message_second_scope_${letter.letterId}
 \tmodifier = artifact_monthly_minor_prestige_1_modifier
+\twealth = scope:wealth
 \tsave_scope_as = votc_latest_letter
+}
+scope:votc_latest_letter = {
+set_variable = { name = votc_letter_artifact value = yes}
 }
 set_global_variable = {
 \tname = votc_latest_letter
