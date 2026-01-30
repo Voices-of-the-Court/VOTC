@@ -108,7 +108,7 @@ module.exports = (gameData, currentCharacterId) => {
   
   // Personality values (9 axes from -100 to +100)
   const personalityDesc = personalityDescription(char);
-  if (personalityDesc) items.push(personalityDesc);
+  if (personalityDesc && isCurrent) items.push(personalityDesc);
   
   items.push(`marital status: ${marriage(char)}`);
   items.push(describeProwess(char));
