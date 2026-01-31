@@ -6,7 +6,7 @@
 
 // List of all base provider types
 // When adding a new provider, add it to this array
-export const PROVIDER_TYPES = ['openrouter', 'openai-compatible', 'ollama', 'player2'] as const;
+export const PROVIDER_TYPES = ['player2', 'openrouter', 'openai-compatible', 'ollama'] as const;
 
 // Type for provider types (derived from PROVIDER_TYPES)
 export type ProviderType = (typeof PROVIDER_TYPES)[number];
@@ -20,7 +20,7 @@ export const DEFAULT_BASE_URLS: Record<ProviderType, string> = {
 };
 
 // Default provider to use when no active provider is set
-export const DEFAULT_ACTIVE_PROVIDER: ProviderType = 'openrouter';
+export const DEFAULT_ACTIVE_PROVIDER: ProviderType = 'player2';
 
 // Default parameters for all providers
 export const DEFAULT_PARAMETERS = {
