@@ -585,7 +585,8 @@ const setupIpcHandlers = () => {
 
     try {
       console.log('IPC: Sending message:', message);
-      const result = await conversationManager.sendMessage(message);
+      const streaming = settingsRepository.getGlobalStreamSetting() || true;
+      const result = await conversationManager.sendMessage(message, streaming);
       console.log('IPC: Message sent successfully, result type:', typeof result);
       return { streamStarted: false, message: result };
     } catch (error) {
