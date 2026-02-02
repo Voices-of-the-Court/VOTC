@@ -686,7 +686,7 @@ export class Conversation {
             runFileManager.clear();
             console.log('Run file cleared after conversation end event.');
         }, 500);
-        if (this.messages.length < 6) {
+        if (this.messages.length < 2) {
             console.log('Not enough messages for final summarization');
             this.end();
             return;

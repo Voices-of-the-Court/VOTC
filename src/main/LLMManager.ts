@@ -99,6 +99,8 @@ export class LLMManager {
       signal,
       // ...params,
     };
+    const providerData = JSON.stringify(activeConfig).replace(/"apiKey":\s*"[^"]*"/g, 'HIDDEN'); // apiKey excluded
+    console.log(`[LLMManager] Provider data stringified: ${providerData}`); 
 
     return await provider.chatCompletion(request, activeConfig);
   }
@@ -140,6 +142,9 @@ export class LLMManager {
     };
 
     console.log(`[LLMManager] Sending structured request: ${JSON.stringify(request)}`);
+
+    const providerData = JSON.stringify(config).replace(/"apiKey":\s*"[^"]*"/g, 'HIDDEN'); // apiKey excluded
+    console.log(`[LLMManager] Provider data stringified: ${providerData}`); 
     console.log(`[TOKEN_COUNT] Structured request ${TokenCounter.estimateTokens(JSON.stringify(request))}`);
     return await provider.chatCompletion(request, config);
   }
@@ -170,6 +175,8 @@ export class LLMManager {
       signal,
     };
 
+    const providerData = JSON.stringify(config).replace(/"apiKey":\s*"[^"]*"/g, 'HIDDEN');
+    console.log(`[LLMManager] Provider data stringified: ${providerData}`); 
     return await provider.chatCompletion(request, config);
   }
 

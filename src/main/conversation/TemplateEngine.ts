@@ -3,6 +3,8 @@ import path from 'path';
 import Handlebars from 'handlebars';
 import { GameData } from '../gameData/GameData';
 import { Character } from '../gameData/Character';
+import { VOTC_PROMPTS_HELPERS_DIR } from '../utils/paths';
+import { app } from 'electron';
 
 type TemplateContext = {
   character: Character;
@@ -75,6 +77,9 @@ export class TemplateEngine {
       return relations.join(', ');
     });
 
+    // Load custom helpers from default_userdata and user directories
+    this.loadCustomHelpers();
+
     this.helpersRegistered = true;
   }
 
@@ -103,5 +108,39 @@ export class TemplateEngine {
       allowProtoPropertiesByDefault: true,
       allowProtoMethodsByDefault: true,
     });
+  }
+
+  private loadCustomHelpers(): void {
+    // Load helpers from default_userdata/prompts/helpers
+    const defaultHelpersDir = path.join(app.getAppPath(), 'default_userdata', 'prompts', 'helpers');
+    
+    // Load helpers from user's VOTC_PROMPTS_HELPERS_DIR
+    const userHelpersDir = VOTC_PROMPTS_HELPERS_DIR;
+    
+    // Function to load all helpers from a directory
+    const loadHelpersFromDir = (helpersDir: string) => {
+      if (!fs.existsSync(helpersDir)) return;
+      
+      const helperFiles = fs.readdirSync(helpersDir).filter(file => file.endsWith('.js'));
+      
+      for (const file of helperFiles) {
+        try {
+          const helperPath = path.join(helpersDir, file);
+          // Clear require cache to pick up changes in development
+          delete require.cache[helperPath];
+          const helperModule = require(helperPath);
+          
+          if (typeof helperModule === 'function') {
+            helperModule(Handlebars);
+          }
+        } catch (error) {
+          console.error(`Failed to load helper ${file}:`, error);
+        }
+      }
+    };
+    
+    // Load from both directories
+    loadHelpersFromDir(defaultHelpersDir);
+    loadHelpersFromDir(userHelpersDir);
   }
 }

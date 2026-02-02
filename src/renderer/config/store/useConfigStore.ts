@@ -1,8 +1,12 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset } from '@llmTypes';
-
-const DEFAULT_PARAMETERS = { temperature: 0.7, max_tokens: 2048 };
+import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset } from '../../../main/llmProviders/types';
+import {
+  PROVIDER_TYPES,
+  DEFAULT_PROVIDER_CONFIGS,
+  DEFAULT_ACTIVE_PROVIDER,
+  DEFAULT_PARAMETERS,
+} from '../../../main/llmProviders/types';
 
 interface ConfigStore {
   // Settings state
@@ -99,7 +103,7 @@ interface ConfigStore {
 const getCacheKey = (config: Partial<LLMProviderConfig>): string => {
   // All OpenRouter configs (base + presets) share one cache
   if (config.providerType === 'openrouter') return 'openrouter';
-  
+  if (config.providerType === 'player2') return 'player2';
   // OpenAI-compatible and Ollama use instanceId (each has own cache)
   return config.instanceId || '';
 };
@@ -153,7 +157,7 @@ export const useConfigStore = create<ConfigStore>()(
         // Initialize selection based on active provider
         const activeId = settings.llmSettings.activeProviderInstanceId;
         if (activeId) {
-          const isBaseProvider = ['openrouter', 'ollama', 'openai-compatible'].includes(activeId);
+          const isBaseProvider = PROVIDER_TYPES.includes(activeId as any);
           
           if (isBaseProvider) {
             get().selectProvider(activeId as ProviderType);
@@ -161,8 +165,8 @@ export const useConfigStore = create<ConfigStore>()(
             get().selectPreset(activeId);
           }
         } else {
-          // Default to openrouter
-          get().selectProvider('openrouter');
+          // Default to the default active provider
+          get().selectProvider(DEFAULT_ACTIVE_PROVIDER);
         }
       },
 
@@ -224,10 +228,7 @@ export const useConfigStore = create<ConfigStore>()(
         const config = appSettings.llmSettings.providers.find(p => p.providerType === type) || {
           instanceId: type,
           providerType: type,
-          apiKey: '',
-          baseUrl: type === 'ollama' ? 'http://localhost:11434' : '',
-          defaultModel: '',
-          defaultParameters: { ...DEFAULT_PARAMETERS },
+          ...DEFAULT_PROVIDER_CONFIGS[type],
         };
         
         set({
@@ -345,11 +346,10 @@ export const useConfigStore = create<ConfigStore>()(
           
           if (!appSettings) return;
           
-          const baseProviderTypes = ['openrouter', 'ollama', 'openai-compatible'];
           let newProviders = [...appSettings.llmSettings.providers];
           let newPresets = [...appSettings.llmSettings.presets];
           
-          if (baseProviderTypes.includes(saved.instanceId)) {
+          if (PROVIDER_TYPES.includes(saved.instanceId as any)) {
             const index = newProviders.findIndex(p => p.instanceId === saved.instanceId);
             if (index > -1) {
               newProviders[index] = saved;
@@ -410,7 +410,7 @@ export const useConfigStore = create<ConfigStore>()(
           providerType: editingConfig.providerType,
           customName: name,
           apiKey: editingConfig.apiKey || '',
-          baseUrl: editingConfig.baseUrl || (editingConfig.providerType === 'ollama' ? 'http://localhost:11434' : ''),
+          baseUrl: editingConfig.baseUrl || '',
           defaultModel: editingConfig.defaultModel || '',
           defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
           customContextLength: editingConfig.customContextLength,
@@ -456,7 +456,7 @@ export const useConfigStore = create<ConfigStore>()(
           if (newPresets.length > 0) {
             newActiveId = newPresets[0].instanceId;
           } else {
-            newActiveId = 'openrouter';
+            newActiveId = DEFAULT_ACTIVE_PROVIDER;
           }
         }
         
@@ -473,12 +473,12 @@ export const useConfigStore = create<ConfigStore>()(
         
         // Update selection if we were editing the deleted preset
         if (wasEditing) {
-          if (newActiveId && ['openrouter', 'ollama', 'openai-compatible'].includes(newActiveId)) {
+          if (newActiveId && PROVIDER_TYPES.includes(newActiveId as any)) {
             get().selectProvider(newActiveId as ProviderType);
           } else if (newActiveId) {
             get().selectPreset(newActiveId);
           } else {
-            get().selectProvider('openrouter');
+            get().selectProvider(DEFAULT_ACTIVE_PROVIDER);
           }
         }
       },
