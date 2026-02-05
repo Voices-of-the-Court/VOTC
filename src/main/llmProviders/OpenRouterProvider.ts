@@ -157,7 +157,7 @@ private async _nonStreamChatCompletion(
 
     try {
       const stream = await this.retryWithBackoff(
-        () => openAIClient.chat.completions.create(request, signal ? { signal } : undefined),
+        () => openAIClient.chat.completions.create(request),
         7,
         1000,
         this.shouldRetryOpenRouter.bind(this)
