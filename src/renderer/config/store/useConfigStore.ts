@@ -83,6 +83,10 @@ interface ConfigStore {
   // Action approval settings
   getActionApprovalSettings: () => Promise<any>;
   saveActionApprovalSettings: (settings: any) => Promise<void>;
+  
+  // Summary prompt settings
+  getSummaryPromptSettings: () => Promise<{ rollingPrompt: string; finalPrompt: string }>;
+  updateSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string }) => Promise<void>;
 
   // Prompt actions
   loadPromptSettings: () => Promise<void>;
@@ -689,6 +693,15 @@ export const useConfigStore = create<ConfigStore>()(
       setSummaryProvider: async (instanceId) => {
         await window.llmConfigAPI.setSummaryProviderId(instanceId);
         set({ summaryProviderInstanceId: instanceId });
+      },
+      
+      // Summary prompt settings actions
+      getSummaryPromptSettings: async () => {
+        return await window.llmConfigAPI.getSummaryPromptSettings();
+      },
+      
+      updateSummaryPromptSettings: async (settings) => {
+        await window.llmConfigAPI.saveSummaryPromptSettings(settings);
       },
     }),
     { name: 'ConfigStore' }

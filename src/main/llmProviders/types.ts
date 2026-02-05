@@ -243,6 +243,11 @@ export interface ActionApprovalSettings {
   pauseOnApproval: boolean; // Default: true - pause conversation when approval needed
 }
 
+export interface SummaryPromptSettings {
+  rollingPrompt: string; // Custom prompt for rolling summaries
+  finalPrompt: string; // Custom prompt for final summaries
+}
+
 export interface AppSettings {
   llmSettings: LLMSettings;
   ck3UserFolderPath?: string | null;
@@ -256,6 +261,7 @@ export interface AppSettings {
   letterPromptSettings?: PromptSettings; // Letter prompt templates/scripts configuration
   actionSettings?: ActionSettings;
   actionApprovalSettings?: ActionApprovalSettings;
+  summaryPromptSettings?: SummaryPromptSettings; // Custom prompts for summaries
 }
 
 

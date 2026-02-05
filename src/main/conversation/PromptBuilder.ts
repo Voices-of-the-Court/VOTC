@@ -41,15 +41,15 @@ export class PromptBuilder {
         
         prompt.push({
             role: 'system',
-            content: 'New messages to incorporate into the summary:\n\n' + 
+            content: 'New messages to incorporate into the summary:\n\n' +
                 messagesToSummarize.map(m => `${m.name}: ${m.content}`).join('\n')
         });
+
+        const summarySettings = settingsRepository.getSummaryPromptSettings();
         
         prompt.push({
             role: 'user',
-            content: existingSummary 
-                ? 'Update the previous summary by incorporating the new messages. Create a cohesive summary that includes both the previous events and the new information. Keep it concise but preserve important details like character names, key events, decisions, and emotional moments. Please summarize the conversation into a single paragraph.'
-                : 'Create a concise summary of these messages. Preserve important details like character names, key events, decisions, relationship developments, and emotional moments. Keep it brief but informative. Please summarize the conversation into a single paragraph.'
+            content: summarySettings.rollingPrompt
         });
         
         return prompt;
@@ -167,15 +167,11 @@ static buildFinalSummary(
         content: `${title}\n` + msgs.map(m => `${m.name}: ${m.content}`).join('\n')
     });
 
+    const summarySettings = settingsRepository.getSummaryPromptSettings();
+
     const userPrompt = {
         role: 'user',
-        content: `Create a detailed summary of this conversation. Include:
-- Key events and decisions made
-- Important character interactions and relationship developments
-- Plot developments and revelations
-- Emotional moments and conflicts
-- Any agreements, promises, or plans made
-Please summarize the conversation into only a single paragraph.`
+        content: summarySettings.finalPrompt
     };
 
     // Determine whether to include all messages or only the new ones

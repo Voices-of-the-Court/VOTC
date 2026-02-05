@@ -8,6 +8,7 @@ import {
   ActionSettings,
   PromptSettings,
   ActionApprovalSettings,
+  SummaryPromptSettings,
   PROVIDER_TYPES,
   DEFAULT_PROVIDER_CONFIGS,
   DEFAULT_ACTIVE_PROVIDER,
@@ -158,6 +159,14 @@ const schema: Schema<AppSettings> = {
         default: true
       }
     }
+  },
+  summaryPromptSettings: {
+    type: 'object',
+    default: { rollingPrompt: '', finalPrompt: '' },
+    properties: {
+      rollingPrompt: { type: 'string', default: '' },
+      finalPrompt: { type: 'string', default: '' }
+    }
   }
 };
 
@@ -245,6 +254,12 @@ export class SettingsRepository {
             pauseOnApproval: true
         });
     }
+    if ((currentAppSettings as any).summaryPromptSettings === undefined) {
+        this.store.set('summaryPromptSettings', {
+            rollingPrompt: '',
+            finalPrompt: ''
+        });
+    }
   }
 
   private getDefaultPromptSettings(): PromptSettings {
@@ -294,7 +309,8 @@ export class SettingsRepository {
       promptSettings: this.getPromptSettings(),
       letterPromptSettings: this.getLetterPromptSettings(),
       actionSettings: this.getActionSettings(),
-      actionApprovalSettings: this.getActionApprovalSettings()
+      actionApprovalSettings: this.getActionApprovalSettings(),
+      summaryPromptSettings: this.getSummaryPromptSettings()
     };
   }
 
@@ -591,6 +607,40 @@ export class SettingsRepository {
     settings.summaryProviderInstanceId = instanceId;
     this.saveLLMSettings(settings);
     console.log('Summary provider override set:', instanceId);
+  }
+
+  // --- Summary Prompt Settings ---
+  getDefaultRollingSummaryPrompt(): string {
+    return 'Update the previous summary by incorporating the new messages. Create a cohesive summary that includes both the previous events and the new information. Keep it concise but preserve important details like character names, key events, decisions, and emotional moments. Please summarize the conversation into a single paragraph.';
+  }
+
+  getDefaultFinalSummaryPrompt(): string {
+    return `Create a detailed summary of this conversation. Include:
+- Key events and decisions made
+- Important character interactions and relationship developments
+- Plot developments and revelations
+- Emotional moments and conflicts
+- Any agreements, promises, or plans made
+Please summarize the conversation into only a single paragraph.`;
+  }
+
+  getSummaryPromptSettings(): SummaryPromptSettings {
+    const stored = this.store.get('summaryPromptSettings', {
+      rollingPrompt: '',
+      finalPrompt: ''
+    });
+    
+    // Return stored custom prompts if set, otherwise return defaults
+    return {
+      rollingPrompt: stored.rollingPrompt || this.getDefaultRollingSummaryPrompt(),
+      finalPrompt: stored.finalPrompt || this.getDefaultFinalSummaryPrompt()
+    };
+  }
+
+  saveSummaryPromptSettings(settings: SummaryPromptSettings): void {
+    // Store the settings as-is (empty strings mean "use default")
+    this.store.set('summaryPromptSettings', settings);
+    console.log('Summary prompt settings saved:', settings);
   }
 }
 

@@ -378,6 +378,16 @@ const setupIpcHandlers = () => {
     return true;
   });
 
+  // Summary prompt settings IPC handlers
+  ipcMain.handle('llm:getSummaryPromptSettings', () => {
+    return settingsRepository.getSummaryPromptSettings();
+  });
+
+  ipcMain.handle('llm:saveSummaryPromptSettings', (_, settings) => {
+    settingsRepository.saveSummaryPromptSettings(settings);
+    return true;
+  });
+
   ipcMain.handle('llm:importLegacySummaries', async () => {
   try {
     return await importLegacySummaries();
