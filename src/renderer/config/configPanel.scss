@@ -32,10 +32,35 @@
 
 .config-header {
   display: flex;
-  justify-content: space-between; /* Close button on right */
+  align-items: center;
+  gap: 5px;
   border-bottom: 1px solid #EFB16A;
   padding-bottom: 10px;
   margin-bottom: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: thin;
+  scrollbar-color: #EFB16A rgba(0, 0, 0, 0.2);
+  
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #EFB16A;
+    border-radius: 3px;
+    
+    &:hover {
+      background: #FFA500;
+    }
+  }
 
   button {
     padding: 10px 10px;
@@ -44,8 +69,8 @@
     border: 1px solid #EFB16A;
     border-radius: 10px;
     font-size: 14px;
-    margin-right: 5px;
-    height: 100%;
+    flex-shrink: 0;
+    white-space: nowrap;
 
     &.active {
       background-color: #EFB16A;
@@ -59,7 +84,6 @@
   }
 
   .config-close-button {
-    margin-left: auto;
     background-color: rgba(0, 0, 0, 0.5);
     border: 1px solid #EFB16A;
     font-size: 24px;
@@ -67,7 +91,8 @@
     padding: 0;
     width: 40px;
     height: 40px;
-    z-index: 12;
+    margin-left: auto;
+    flex-shrink: 0;
   }
 
   .discord-button {
@@ -109,10 +134,14 @@
     overflow: hidden;
     max-width: 30px; /* Just enough for the tooltip button */
     transition: max-width 0.3s ease;
+    position: relative;
+    z-index: 100;
+    flex-shrink: 0;
   }
 
   .discord-container:hover {
     max-width: 100px; /* Enough for all three buttons */
+    z-index: 101;
   }
 
   .tooltip-button {
@@ -664,6 +693,67 @@ hr {
   border: 1px solid #EFB16A;
   border-radius: 10px;
   padding: 10px;
+}
+
+/* Remove border from main-prompt-card in summaries view */
+.prompts-view {
+  .header-row h3 {
+    margin-bottom: 4px;
+  }
+
+  .form-group {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 10px 10px 0px 10px;
+    h4 {
+      margin-top: 0px;
+    }
+  }
+  .main-prompt-card {
+    border: none;
+    padding-top: 6px;
+    padding-bottom: 6px;
+
+    h4 {
+      margin-top: 0px;
+      margin-bottom: 0px;
+    }
+  }
+}
+
+.info-card {
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  
+  h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #EFB16A;
+  }
+  
+  ul {
+    margin: 10px 0;
+    padding-left: 20px;
+    
+    li {
+      margin-bottom: 8px;
+      color: #ddd;
+      
+      strong {
+        color: #EFB16A;
+      }
+    }
+  }
+  
+  p {
+    color: #bfbfbf;
+    margin-bottom: 10px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
 
 .prompt-block.disabled {

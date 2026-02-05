@@ -162,9 +162,19 @@ const SummariesView: React.FC = () => {
           </select>
         </div>
       </div>
-      
-      <hr />
-      
+      <div className="info-card">
+        <h4>About Summary Generation</h4>
+        <p className="muted-text">
+          Summaries are automatically generated in two scenarios:
+        </p>
+        <ul>
+          <li><strong>Rolling Summaries:</strong> Created during long conversations when the context limit is approaching. These help compress older messages while preserving important information.</li>
+          <li><strong>Final Summaries:</strong> Generated when a conversation ends. These comprehensive summaries are saved to character files and used as context in future conversations.</li>
+        </ul>
+        <p className="muted-text">
+          The prompts below show the current active prompts. Changes are automatically saved after you stop typing.
+        </p>
+      </div>
       <div className="main-prompt-card">
         <div className="card-header">
           <h4>Rolling Summary Prompt</h4>
@@ -199,20 +209,6 @@ const SummariesView: React.FC = () => {
           onChange={(e) => persist({ ...localSettings, finalPrompt: e.target.value })}
           style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}
         />
-      </div>
-
-      <div className="info-card" style={{ marginTop: '20px', padding: '15px', background: '#f9f9f9', borderRadius: '4px' }}>
-        <h4>About Summary Generation</h4>
-        <p className="muted-text">
-          Summaries are automatically generated in two scenarios:
-        </p>
-        <ul style={{ marginLeft: '20px', marginTop: '10px' }}>
-          <li><strong>Rolling Summaries:</strong> Created during long conversations when the context limit is approaching. These help compress older messages while preserving important information.</li>
-          <li><strong>Final Summaries:</strong> Generated when a conversation ends. These comprehensive summaries are saved to character files and used as context in future conversations.</li>
-        </ul>
-        <p className="muted-text" style={{ marginTop: '10px' }}>
-          The prompts above show the current active prompts. Changes are automatically saved after you stop typing.
-        </p>
       </div>
     </div>
   );
