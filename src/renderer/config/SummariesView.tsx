@@ -7,6 +7,9 @@ const SummariesView: React.FC = () => {
   const setSummaryProvider = useConfigStore((state) => state.setSummaryProvider);
   const updateSummaryPromptSettings = useConfigStore((state) => state.updateSummaryPromptSettings);
   const getSummaryPromptSettings = useConfigStore((state) => state.getSummaryPromptSettings);
+  const importLegacySummaries = useConfigStore((state) => state.importLegacySummaries);
+  const openSummariesFolder = useConfigStore((state) => state.openSummariesFolder);
+  const clearSummaries = useConfigStore((state) => state.clearSummaries);
   
   const [localSettings, setLocalSettings] = useState({
     rollingPrompt: '',
@@ -15,6 +18,14 @@ const SummariesView: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(true);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  
+  // State for legacy import
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{success: boolean, message: string, filesCopied?: number, errors?: string[]} | null>(null);
+  
+  // State for clear summaries
+  const [isClearing, setIsClearing] = useState(false);
+  const [clearResult, setClearResult] = useState<{success: boolean, message: string} | null>(null);
 
   // Load summary prompt settings on mount
   useEffect(() => {
@@ -115,6 +126,61 @@ const SummariesView: React.FC = () => {
     });
   };
 
+  const handleImportLegacySummaries = async () => {
+    setIsImporting(true);
+    setImportResult(null);
+    
+    try {
+      const result = await importLegacySummaries();
+      setImportResult(result);
+    } catch (error) {
+      setImportResult({
+        success: false,
+        message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleOpenSummariesFolder = async () => {
+    const result = await openSummariesFolder();
+    if (!result.success) {
+      console.error('Failed to open summaries folder:', result.error);
+    }
+  };
+
+  const handleClearSummaries = async () => {
+    if (!window.confirm('Are you sure you want to clear all conversation summaries? This action cannot be undone.')) {
+      return;
+    }
+    
+    setIsClearing(true);
+    setClearResult(null);
+    
+    try {
+      const result = await clearSummaries();
+      if (result.success) {
+        setClearResult({
+          success: true,
+          message: 'All summaries cleared successfully.',
+        });
+      } else {
+        setClearResult({
+          success: false,
+          message: `Clear failed: ${result.error || 'Unknown error'}`,
+        });
+      }
+    } catch (error) {
+      setClearResult({
+        success: false,
+        message: `Clear failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   if (!appSettings || isLoading) {
     return <div>Loading summary settings...</div>;
   }
@@ -209,6 +275,70 @@ const SummariesView: React.FC = () => {
           onChange={(e) => persist({ ...localSettings, finalPrompt: e.target.value })}
           style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}
         />
+      </div>
+      
+      <hr />
+      
+      <div className="form-group legacy-data-import">
+        <h4>Legacy Data Import</h4>
+        <p className="help-text">
+          Import conversation summaries from legacy VOTC installation. Existing summaries will be backed up.
+        </p>
+        <button
+          type="button"
+          onClick={handleImportLegacySummaries}
+          disabled={isImporting}
+        >
+          {isImporting ? 'Importing...' : 'Import Legacy Summaries'}
+        </button>
+        {importResult && (
+          <div className={`import-result ${importResult.success ? 'success' : 'error'}`}>
+            {importResult.message}
+            {importResult.filesCopied && (
+              <div>Copied {importResult.filesCopied} files.</div>
+            )}
+            {importResult.errors && importResult.errors.length > 0 && (
+              <div className="error-list">
+                <strong>Errors:</strong>
+                <ul>
+                  {importResult.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <hr />
+      
+      <div className="form-group summary-management">
+        <h4>Conversation Summary Management</h4>
+        <p className="help-text">
+          Manage conversation summaries stored for your characters.
+        </p>
+        <div className="button-group">
+          <button
+            type="button"
+            onClick={handleOpenSummariesFolder}
+          >
+            Open Summaries Folder
+          </button>
+          <button
+            type="button"
+            onClick={handleClearSummaries}
+            disabled={isClearing}
+            className="danger-button"
+          >
+            {isClearing ? 'Clearing...' : 'Clear All Summaries'}
+          </button>
+        </div>
+        {clearResult && (
+          <div className={`clear-result ${clearResult.success ? 'success' : 'error'}`}>
+            {clearResult.message}
+          </div>
+        )}
       </div>
     </div>
   );
