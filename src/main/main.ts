@@ -99,10 +99,10 @@ if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   );
 }
 
-  // Open the DevTools.
-  chatWindow.webContents.openDevTools(
-    { mode: 'detach' }
-  );
+  // // Open the DevTools.
+  // chatWindow.webContents.openDevTools(
+  //   { mode: 'detach' }
+  // );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
@@ -277,8 +277,17 @@ const setupIpcHandlers = () => {
      // Errors are caught within testProviderConnection and returned in the result object
   });
 
-  ipcMain.handle('llm:setCK3Folder', (_, path: string | null) => {
+  ipcMain.handle('llm:setCK3Folder', async (_, path: string | null) => {
     settingsRepository.setCK3UserFolderPath(path);
+    // Restart letter manager log tailing when CK3 path is updated
+    if (path) {
+      try {
+        await letterManager.restartLogTailing();
+        console.log("Log tailing restarted after CK3 path update");
+      } catch (error) {
+        console.error("Failed to restart log tailing after CK3 path update:", error);
+      }
+    }
   });
 
   ipcMain.handle('llm:setModLocationPath', (_, path: string | null) => {
