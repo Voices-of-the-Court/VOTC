@@ -162,6 +162,17 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     ipcRenderer.invoke('conversation:approveActions', { approvalEntryId }),
   declineActions: (approvalEntryId: number): Promise<void> =>
     ipcRenderer.invoke('conversation:declineActions', { approvalEntryId }),
+  // Summaries manager methods
+  listAllSummaries: (): Promise<any[]> =>
+    ipcRenderer.invoke('conversation:listAllSummaries'),
+  getSummariesForCharacter: (playerId: string, characterId: string): Promise<any[]> =>
+    ipcRenderer.invoke('conversation:getSummariesForCharacter', { playerId, characterId }),
+  updateSummary: (playerId: string, characterId: string, summaryIndex: number, newContent: string): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:updateSummary', { playerId, characterId, summaryIndex, newContent }),
+  deleteSummary: (playerId: string, characterId: string, summaryIndex: number): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:deleteSummary', { playerId, characterId, summaryIndex }),
+  deleteCharacterSummaries: (playerId: string, characterId: string): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:deleteCharacterSummaries', { playerId, characterId }),
  });
  
  // Actions API exposed to renderer

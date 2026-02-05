@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset } from '../../../main/llmProviders/types';
+import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset, ConversationSummary, SummaryMetadata } from '../../../main/llmProviders/types';
 import {
   PROVIDER_TYPES,
   DEFAULT_PROVIDER_CONFIGS,
@@ -79,6 +79,13 @@ interface ConfigStore {
   importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
   openSummariesFolder: () => Promise<{success: boolean, error?: string}>;
   clearSummaries: () => Promise<{success: boolean, error?: string}>;
+  
+  // Summaries manager actions
+  listAllSummaries: () => Promise<SummaryMetadata[]>;
+  getSummariesForCharacter: (playerId: string, characterId: string) => Promise<ConversationSummary[]>;
+  updateSummary: (playerId: string, characterId: string, summaryIndex: number, newContent: string) => Promise<{success: boolean, error?: string}>;
+  deleteSummary: (playerId: string, characterId: string, summaryIndex: number) => Promise<{success: boolean, error?: string}>;
+  deleteCharacterSummaries: (playerId: string, characterId: string) => Promise<{success: boolean, error?: string}>;
   
   // Action approval settings
   getActionApprovalSettings: () => Promise<any>;
@@ -702,6 +709,52 @@ export const useConfigStore = create<ConfigStore>()(
       
       updateSummaryPromptSettings: async (settings) => {
         await window.llmConfigAPI.saveSummaryPromptSettings(settings);
+      },
+      
+      // Summaries manager actions
+      listAllSummaries: async () => {
+        try {
+          return await window.conversationAPI.listAllSummaries();
+        } catch (error) {
+          console.error('Failed to list all summaries:', error);
+          return [];
+        }
+      },
+      
+      getSummariesForCharacter: async (playerId: string, characterId: string) => {
+        try {
+          return await window.conversationAPI.getSummariesForCharacter(playerId, characterId);
+        } catch (error) {
+          console.error(`Failed to get summaries for character ${characterId}:`, error);
+          return [];
+        }
+      },
+      
+      updateSummary: async (playerId: string, characterId: string, summaryIndex: number, newContent: string) => {
+        try {
+          return await window.conversationAPI.updateSummary(playerId, characterId, summaryIndex, newContent);
+        } catch (error) {
+          console.error(`Failed to update summary:`, error);
+          return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+      },
+      
+      deleteSummary: async (playerId: string, characterId: string, summaryIndex: number) => {
+        try {
+          return await window.conversationAPI.deleteSummary(playerId, characterId, summaryIndex);
+        } catch (error) {
+          console.error(`Failed to delete summary:`, error);
+          return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+      },
+      
+      deleteCharacterSummaries: async (playerId: string, characterId: string) => {
+        try {
+          return await window.conversationAPI.deleteCharacterSummaries(playerId, characterId);
+        } catch (error) {
+          console.error(`Failed to delete character summaries:`, error);
+          return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
       },
     }),
     { name: 'ConfigStore' }

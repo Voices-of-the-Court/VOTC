@@ -222,5 +222,6 @@ export interface ConversationSummary {
     date: string;
     totalDays: number;
     content: string;
+    characterName?: string; // Optional for backward compatibility
 }
 

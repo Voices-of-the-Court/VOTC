@@ -297,3 +297,20 @@ export function isOpenRouterErrorResponse(e: unknown): e is OpenRouterErrorRespo
     typeof (e as any).error.code === "number"
   )
 }
+
+// Types for summaries manager
+export interface ConversationSummary {
+  date: string;
+  totalDays: number;
+  content: string;
+  characterName?: string; // Optional for backward compatibility
+}
+
+export interface SummaryMetadata {
+  playerId: string;
+  playerName?: string; // If we can derive it
+  characterId: string;
+  characterName: string; // From file or fallback to ID
+  summaries: ConversationSummary[];
+  filePath: string;
+}

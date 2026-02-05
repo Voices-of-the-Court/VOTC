@@ -9,6 +9,7 @@ import { ClipboardListener } from './ClipboardListener';
 import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
 import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR, VOTC_SUMMARIES_DIR } from './utils/paths';
+import { SummariesManager } from './utils/SummariesManager';
 import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 import { appUpdater } from './AutoUpdater';
@@ -98,10 +99,10 @@ if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   );
 }
 
-  // // Open the DevTools.
-  // chatWindow.webContents.openDevTools(
-  //   { mode: 'detach' }
-  // );
+  // Open the DevTools.
+  chatWindow.webContents.openDevTools(
+    { mode: 'detach' }
+  );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
@@ -768,6 +769,52 @@ const setupIpcHandlers = () => {
       return { success: true };
     } catch (error: any) {
       console.error('Failed to clear summaries:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  // Summaries Manager IPC handlers
+  ipcMain.handle('conversation:listAllSummaries', async () => {
+    try {
+      return await SummariesManager.listAllSummaries();
+    } catch (error: any) {
+      console.error('Failed to list all summaries:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('conversation:getSummariesForCharacter', async (_, { playerId, characterId }) => {
+    try {
+      return await SummariesManager.getSummariesForCharacter(playerId, characterId);
+    } catch (error: any) {
+      console.error('Failed to get summaries for character:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('conversation:updateSummary', async (_, { playerId, characterId, summaryIndex, newContent }) => {
+    try {
+      return await SummariesManager.updateSummary(playerId, characterId, summaryIndex, newContent);
+    } catch (error: any) {
+      console.error('Failed to update summary:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('conversation:deleteSummary', async (_, { playerId, characterId, summaryIndex }) => {
+    try {
+      return await SummariesManager.deleteSummary(playerId, characterId, summaryIndex);
+    } catch (error: any) {
+      console.error('Failed to delete summary:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('conversation:deleteCharacterSummaries', async (_, { playerId, characterId }) => {
+    try {
+      return await SummariesManager.deleteCharacterSummaries(playerId, characterId);
+    } catch (error: any) {
+      console.error('Failed to delete character summaries:', error);
       return { success: false, error: error.message || 'Unknown error' };
     }
   });

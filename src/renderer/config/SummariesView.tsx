@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useConfigStore } from './store/useConfigStore';
+import SummariesManager from './components/SummariesManager';
 
 const SummariesView: React.FC = () => {
   const appSettings = useConfigStore((state) => state.appSettings);
@@ -277,8 +278,6 @@ const SummariesView: React.FC = () => {
         />
       </div>
       
-      <hr />
-      
       <div className="form-group legacy-data-import">
         <h4>Legacy Data Import</h4>
         <p className="help-text">
@@ -311,8 +310,6 @@ const SummariesView: React.FC = () => {
         )}
       </div>
       
-      <hr />
-      
       <div className="form-group summary-management">
         <h4>Conversation Summary Management</h4>
         <p className="help-text">
@@ -340,6 +337,9 @@ const SummariesView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Summaries Manager Component */}
+      <SummariesManager />
     </div>
   );
 };
