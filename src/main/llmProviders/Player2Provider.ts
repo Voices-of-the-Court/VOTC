@@ -4,31 +4,21 @@ import {
   ILLMCompletionResponse,
   ILLMModel,
   ILLMStreamChunk,
-  OpenRouterConfig,
-  LLMProviderConfig,
   ILLMOutput,
-  isOpenRouterErrorResponse
 } from './types';
 import { BaseProvider } from './BaseProvider';
 import OpenAI from 'openai'; // Import OpenAI SDK
 
-// Helper to identify OpenRouter free models
-const isOpenRouterFreeModel = (modelData: any): boolean => {
-  return modelData.id.endsWith(':free') ||
-         (modelData.pricing?.prompt === '0.000000' && modelData.pricing?.completion === '0.000000');
-};
-
-
-export class OpenRouterProvider extends BaseProvider {
-  providerId = 'openrouter';
-  name = 'OpenRouter';
+export class Player2Provider extends BaseProvider {
+  providerId = 'player2';
+  name = 'Player2';
 
   /**
    * Determine if an error should trigger a retry
    * @param error The error to check
    * @returns true if the error is retryable
    */
-  private shouldRetryOpenRouter(error: any): boolean {
+  private shouldRetryPlayer2(error: any): boolean {
     if (error instanceof OpenAI.APIError) {
       const status = error.status;
       // Retry on rate limiting (429) or server errors (5xx)
@@ -39,48 +29,21 @@ export class OpenRouterProvider extends BaseProvider {
     return error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND';
   }
 
-  async listModels(config: LLMProviderConfig): Promise<ILLMModel[]> {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/models', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.getAPIKey(config)}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`OpenRouter API error (${response.status}): ${errorBody}`);
-        throw new Error(`Failed to fetch models from OpenRouter: ${response.statusText}`);
-      }
-
-      const { data } = await response.json();
-      if (!Array.isArray(data)) {
-        console.error('Unexpected response format from OpenRouter /models endpoint:', data);
-        throw new Error('Unexpected response format from OpenRouter /models endpoint.');
-      }
-
-      return data.map((modelData: any): ILLMModel => ({
-        id: modelData.id,
-        name: modelData.name || modelData.id,
-        isFree: isOpenRouterFreeModel(modelData),
-        contextLength: modelData.context_length,
-        // Add other properties as needed, e.g., pricing details
-      }));
-    } catch (error) {
-      console.error('Error fetching OpenRouter models:', error);
-      throw error;
-    }
+  async listModels(): Promise<ILLMModel[]> {
+    const player2Models: ILLMModel[] = [
+      { id: 'gpt-oss-120b', name: 'gpt-oss-120b', isFree: true },
+      { id: 'Qwen3-235B-A22B-Instruct', name: 'Qwen3-235B-A22B-Instruct' },
+      { id: 'player2-685b', name: 'Player2 685B' },
+    ];
+    return player2Models;
   }
 
   chatCompletion(
       request: ILLMCompletionRequest,
-      config: OpenRouterConfig
     ): ILLMOutput {
       const openAIClient = new OpenAI({
-        apiKey: this.getAPIKey(config),
-        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: "sk-dummy-key",
+        baseURL: 'http://127.0.0.1:4315/v1',
       });
   
       const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
@@ -111,12 +74,12 @@ private async _nonStreamChatCompletion(
       () => openAIClient.chat.completions.create(request),
       3,
       1000,
-      this.shouldRetryOpenRouter.bind(this)
+      this.shouldRetryPlayer2.bind(this)
     );
 
     const choice = data.choices?.[0];
     if (!choice) {
-      throw new Error(`OpenRouter SDK: No choices returned for model ${request.model}`);
+      throw new Error(`Player2 SDK: No choices returned for model ${request.model}`);
     }
 
     return {
@@ -136,16 +99,16 @@ private async _nonStreamChatCompletion(
     // OpenAI SDK provides a rich APIError type
     if (error instanceof OpenAI.APIError) {
       console.error(
-        `[OpenRouterProvider] API error for model ${request.model}:`,
+        `[Player2Provider] API error for model ${request.model}:`,
         error.status,
         error.name,
         error.message
       );
-      throw new Error(`OpenRouter API error via SDK: ${error.status} ${error.name} - ${error.message}`);
+      throw new Error(`Player2 API error via SDK: ${error.status} ${error.name} - ${error.message}`);
     }
 
-    console.error(`[OpenRouterProvider] Unexpected error for model ${request.model}:`, error);
-    throw new Error(`Unexpected OpenRouter SDK error: ${error.message || error}`);
+    console.error(`[Player2Provider] Unexpected error for model ${request.model}:`, error);
+    throw new Error(`Unexpected Player2 SDK error: ${error.message || error}`);
   }
 }
 
@@ -157,10 +120,10 @@ private async _nonStreamChatCompletion(
 
     try {
       const stream = await this.retryWithBackoff(
-        () => openAIClient.chat.completions.create(request),
+        () => openAIClient.chat.completions.create(request, signal ? { signal } : undefined),
         7,
         1000,
-        this.shouldRetryOpenRouter.bind(this)
+        this.shouldRetryPlayer2.bind(this)
       );
       const contentParts: string[] = [];
       const toolCallsMap: Record<string, any> = {};
@@ -172,20 +135,20 @@ private async _nonStreamChatCompletion(
         const choice = chunk.choices[0];
 
         if ((choice?.finish_reason as string) === "error") {
-          // Use type assertion since OpenRouter adds non-standard error property
+          // Use type assertion since Player2 adds non-standard error property
           const choiceWithError = choice as any
           if (choiceWithError.error) {
             const error = choiceWithError.error
             console.error(
-              `OpenRouter Mid-Stream Error: ${error?.code || "Unknown"} - ${error?.message || "Unknown error"}`,
+              `Player2 Mid-Stream Error: ${error?.code || "Unknown"} - ${error?.message || "Unknown error"}`,
             )
             // Format error details
             const errorDetails = typeof error === "object" ? JSON.stringify(error, null, 2) : String(error)
-            throw new Error(`OpenRouter Mid-Stream Error: ${errorDetails}`)
+            throw new Error(`Player2 Mid-Stream Error: ${errorDetails}`)
           } else {
             // Fallback if error details are not available
             throw new Error(
-              `OpenRouter Mid-Stream Error: Stream terminated with error status but no error details provided`,
+              `Player2 Mid-Stream Error: Stream terminated with error status but no error details provided`,
             )
           }
         }
@@ -257,44 +220,38 @@ private async _nonStreamChatCompletion(
       };
     } catch (error: any) {
       if (signal?.aborted) {
-        console.info(`[OpenRouterProvider] OpenAI SDK stream cancelled for model ${request.model}:`, error);
+        console.info(`[Player2Provider] OpenAI SDK stream cancelled for model ${request.model}:`, error);
         throw new Error(`AbortError: Message cancelled`);
       }
-      console.error(`[OpenRouterProvider] OpenAI SDK stream error for model ${request.model}:`, error);
-      if (isOpenRouterErrorResponse(error)) {
-        const openRouterError = error.error
-        const metadataStr = openRouterError.metadata ? `\nMetadata: ${JSON.stringify(openRouterError.metadata, null, 2)}` : ""
-        console.error(`OpenRouter API stream error via SDK: ${openRouterError.code} - ${openRouterError.message} ${metadataStr}`);
-        throw new Error(`OpenRouter API stream error via SDK: ${openRouterError.code} - ${openRouterError.message} ${metadataStr}`);
-      }
+      console.error(`[Player2Provider] OpenAI SDK stream error for model ${request.model}:`, error);
       if (error instanceof OpenAI.APIError) {
-        throw new Error(`OpenRouter API stream error via SDK: ${error.status} ${error.name} - ${error.message}`);
+        throw new Error(`Player2 API stream error via SDK: ${error.status} ${error.name} - ${error.message}`);
       }
-      throw new Error(`OpenRouter API stream error via SDK: ${error.message || 'Unknown error'}`);
+      throw new Error(`Player2 API stream error via SDK: ${error.message || 'Unknown error'}`);
     }
   }
 
-  async testConnection(config: OpenRouterConfig): Promise<{success: boolean, error?: string, message?: string}> {
+  async testConnection(): Promise<{success: boolean, error?: string, message?: string}> {
     try {
       const testRequest: ILLMCompletionRequest = {
-        model: config.defaultModel || 'openrouter/auto', // Use a known cheap/fast model or user's default
+        model: 'gpt-oss-120b', // Use a known cheap/fast model or user's default
         messages: [{ role: 'user', content: 'Test' }],
         max_tokens: 1,
         stream: false,
       };
       
-      const response = await (this.chatCompletion(testRequest, config) as Promise<ILLMCompletionResponse>);
+      const response = await (this.chatCompletion(testRequest) as Promise<ILLMCompletionResponse>);
       if (response && (response.content || response.id)) {
-        return { success: true, message: `Successfully connected to OpenRouter. Received response ID: ${response.id}` };
+        return { success: true, message: `Successfully connected to Player2. Received response ID: ${response.id}` };
       }
-      return { success: false, error: 'Test connection to OpenRouter failed to get a valid response.' };
+      return { success: false, error: 'Test connection to Player2 failed to get a valid response.' };
     } catch (e: any) {
-      console.error('OpenRouter testConnection error:', e);
-      return { success: false, error: e.message || 'Unknown error during OpenRouter test connection.' };
+      console.error('Player2 testConnection error:', e);
+      return { success: false, error: e.message || 'Unknown error during Player2 test connection.' };
     }
   }
 }
 
 
 // Register this provider with the registry
-providerRegistry.register('openrouter', OpenRouterProvider);
+providerRegistry.register('player2', Player2Provider);

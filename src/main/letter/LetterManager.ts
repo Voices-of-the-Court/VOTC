@@ -20,7 +20,13 @@ export class LetterManager {
   private readonly CLEAN_INTERVAL_MS: number = 300000; // 5 minutes
 
   constructor() {
-    this.startLogTailing();
+    // Only start tailing if CK3 path is already configured
+    const ck3UserPath = settingsRepository.getCK3UserFolderPath();
+    if (ck3UserPath) {
+      this.startLogTailing();
+    } else {
+      console.log("LetterManager: CK3 user path not configured yet, will start tailing when path is set");
+    }
   }
 
   /**
@@ -370,6 +376,16 @@ trigger_event = message_event.362`;
       this.tailFile = null;
       console.log("Stopped log tailing");
     }
+  }
+
+  /**
+   * Restart log tailing (useful when CK3 path is updated)
+   */
+  public async restartLogTailing(): Promise<void> {
+    console.log("Restarting log tailing...");
+    await this.stopLogTailing();
+    this.currentTotalDays = 0; // Reset current date
+    await this.startLogTailing();
   }
 
   /**

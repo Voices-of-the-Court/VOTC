@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import type { ProviderType as ConfigProviderType } from '@llmTypes';
+import type { ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
+import { PROVIDER_TYPES } from '../../../main/llmProviders/types';
 import { useAppSettings } from '../store/useConfigStore';
 
 interface ProviderSidebarProps {
@@ -26,7 +27,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
     onSetSummaryProvider,
 }) => {
     const appSettings = useAppSettings();
-    const baseProviderTypes: ConfigProviderType[] = ['openrouter', 'ollama', 'openai-compatible'];
+    const baseProviderTypes: ConfigProviderType[] = [...PROVIDER_TYPES];
 
     // Helper to get all available providers (base + presets)
     const allProviders = useMemo(() => [

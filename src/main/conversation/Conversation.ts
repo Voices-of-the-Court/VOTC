@@ -234,20 +234,74 @@ export class Conversation {
         try {
             console.log(`Message from ${npc.fullName}:`, llmMessages);
             console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, this.estimateTokenCount(llmMessages));
-            const result = await llmManager.sendChatRequest(llmMessages, this.currentStreamController.signal);
+            
+            // Check if OpenRouter is the active provider
+            const activeConfig = settingsRepository.getActiveProviderConfig();
+            const isOpenRouter = activeConfig?.providerType === 'openrouter';
+            
+            // For OpenRouter, don't pass the signal to avoid double billing on cancellation
+            // For other providers, pass the signal for immediate cancellation
+            const result = await llmManager.sendChatRequest(
+                llmMessages,
+                isOpenRouter ? undefined : this.currentStreamController.signal
+            );
 
             if (settingsRepository.getGlobalStreamSetting() &&
                 typeof result === 'object' &&
                 typeof (result as any)[Symbol.asyncIterator] === 'function') {
                 // Handle streaming response
                 try {
-                    for await (const chunk of result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void>) {
-                        if (chunk.delta?.content) {
-                            placeholder.content += chunk.delta.content;
-                            this.emitUpdate();
+                    const streamIterator = result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void>;
+                    
+                    // For OpenRouter: wrap stream consumption in a detachable promise since they are double charging on cancellation
+                    if (isOpenRouter) {
+                        const streamPromise = (async () => {
+                            for await (const chunk of streamIterator) {
+                                // Check local cancellation flag
+                                if (wasCancelled) {
+                                    // Continue consuming silently without UI updates
+                                    continue;
+                                }
+                                
+                                if (chunk.delta?.content) {
+                                    placeholder.content += chunk.delta.content;
+                                    this.emitUpdate();
+                                }
+                            }
+                        })();
+                        
+                        // Poll for cancellation while stream is active
+                        const checkCancellation = async () => {
+                            while (!streamCompleted && !wasCancelled) {
+                                if (this.currentStreamController?.signal.aborted) {
+                                    wasCancelled = true;
+                                    console.log('[OpenRouter] Cancellation detected - stream will continue in background');
+                                    // Don't await streamPromise - let it finish in background
+                                    streamPromise.catch(err => console.error('[OpenRouter] Background stream error:', err));
+                                    throw new Error('AbortError: Message cancelled');
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                        };
+                        
+                        // Race between stream completion and cancellation check
+                        await Promise.race([streamPromise, checkCancellation()]);
+                        streamCompleted = true;
+                    } else {
+                        // For other providers: normal cancellation with signal
+                        for await (const chunk of streamIterator) {
+                            if (this.currentStreamController?.signal.aborted) {
+                                wasCancelled = true;
+                                throw new Error('AbortError: Message cancelled');
+                            }
+                            
+                            if (chunk.delta?.content) {
+                                placeholder.content += chunk.delta.content;
+                                this.emitUpdate();
+                            }
                         }
+                        streamCompleted = true;
                     }
-                    streamCompleted = true;
                 } catch (streamError) {
                     // Stream was aborted
                     if (streamError instanceof Error && streamError.message === 'AbortError: Message cancelled') {
@@ -686,7 +740,7 @@ export class Conversation {
             runFileManager.clear();
             console.log('Run file cleared after conversation end event.');
         }, 500);
-        if (this.messages.length < 6) {
+        if (this.messages.length < 2) {
             console.log('Not enough messages for final summarization');
             this.end();
             return;

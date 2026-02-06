@@ -28,7 +28,7 @@ module.exports = {
    * @param {GameData} params.gameData
    * @param {Character} params.sourceCharacter
    */
-  description: ({ sourceCharacter }) =>
+  description: ({ sourceCharacter, gameData }) =>
     `Execute when ${sourceCharacter.shortName} converts to the target character's faith, either willingly or forcefully.
     If isPlayerSource is true, ${gameData.playerName} will convert instead of ${sourceCharacter.shortName}.`,
 

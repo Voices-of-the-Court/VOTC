@@ -8,15 +8,21 @@ import {
   ActionSettings,
   PromptSettings,
   ActionApprovalSettings,
+  SummaryPromptSettings,
+  PROVIDER_TYPES,
+  DEFAULT_PROVIDER_CONFIGS,
+  DEFAULT_ACTIVE_PROVIDER,
 } from './llmProviders/types';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 
 // Define the schema for electron-store for type safety
+// Note: We don't use enum validation here to avoid breaking existing settings during refactoring
+// TypeScript still enforces type safety through the ProviderType type
 const baseProviderConfigSchema = {
   type: 'object' as const,
   properties: {
     instanceId: { type: 'string' as const },
-    providerType: { type: 'string' as const, enum: ['openrouter', 'openai-compatible', 'ollama'] },
+    providerType: { type: 'string' as const },
     customName: { type: 'string' as const },
     apiKey: { type: 'string' as const },
     baseUrl: { type: 'string' as const },
@@ -153,6 +159,14 @@ const schema: Schema<AppSettings> = {
         default: true
       }
     }
+  },
+  summaryPromptSettings: {
+    type: 'object',
+    default: { rollingPrompt: '', finalPrompt: '' },
+    properties: {
+      rollingPrompt: { type: 'string', default: '' },
+      finalPrompt: { type: 'string', default: '' }
+    }
   }
 };
 
@@ -169,35 +183,30 @@ export class SettingsRepository {
     const currentSettings = this.store.get('llmSettings', { providers: [], presets: [], activeProviderInstanceId: null });
     const currentAppSettings = this.store.store;
 
-    const providerTypes: ['openrouter', 'ollama', 'openai-compatible'] = ['openrouter', 'ollama', 'openai-compatible'];
     let updatedProviders = [...currentSettings.providers];
     let settingsChanged = false;
 
-    providerTypes.forEach(type => {
+    PROVIDER_TYPES.forEach(type => {
       if (!updatedProviders.some(p => p.providerType === type && p.instanceId === type)) {
         updatedProviders.push({
           instanceId: type,
           providerType: type,
           // customName: type.charAt(0).toUpperCase() + type.slice(1), // No customName for base configs
-          apiKey: '',
-          baseUrl: type === 'ollama' ? 'http://localhost:11434' : '',
-          defaultModel: '',
-          defaultParameters: { temperature: 0.7, max_tokens: 2048 },
+          ...DEFAULT_PROVIDER_CONFIGS[type],
           // customContextLength is intentionally omitted to use default
-        });
+        } as LLMProviderConfig);
         settingsChanged = true;
       }
     });
     // Ensure providers only contains one of each base type
-    updatedProviders = providerTypes.map(type => {
+    updatedProviders = PROVIDER_TYPES.map(type => {
         const existing = updatedProviders.find(p => p.providerType === type && p.instanceId === type);
         return existing || { // Should not happen if logic above is correct, but as a fallback
-            instanceId: type, providerType: type, apiKey: '',
-            baseUrl: type === 'ollama' ? 'http://localhost:11434' : '',
-            defaultModel: '', defaultParameters: { temperature: 0.7, max_tokens: 2048 }
+            instanceId: type, providerType: type,
+            ...DEFAULT_PROVIDER_CONFIGS[type]
             // customContextLength is intentionally omitted to use default
-        };
-    }).filter(p => providerTypes.includes(p.instanceId as any));
+        } as LLMProviderConfig;
+    }).filter(p => PROVIDER_TYPES.includes(p.instanceId as any));
 
 
     if (settingsChanged) {
@@ -210,9 +219,9 @@ export class SettingsRepository {
       settingsChanged = true;
     }
 
-    // If no active provider is set, default to OpenRouter
-    if (currentSettings.activeProviderInstanceId === null && updatedProviders.some(p => p.instanceId === 'openrouter')) {
-      currentSettings.activeProviderInstanceId = 'openrouter';
+    // If no active provider is set, default to the default active provider
+    if (currentSettings.activeProviderInstanceId === null && updatedProviders.some(p => p.instanceId === DEFAULT_ACTIVE_PROVIDER)) {
+      currentSettings.activeProviderInstanceId = DEFAULT_ACTIVE_PROVIDER;
       settingsChanged = true; // Ensure this change is part of what might be saved
     }
 
@@ -243,6 +252,12 @@ export class SettingsRepository {
         this.store.set('actionApprovalSettings', {
             approvalMode: 'none',
             pauseOnApproval: true
+        });
+    }
+    if ((currentAppSettings as any).summaryPromptSettings === undefined) {
+        this.store.set('summaryPromptSettings', {
+            rollingPrompt: '',
+            finalPrompt: ''
         });
     }
   }
@@ -294,7 +309,8 @@ export class SettingsRepository {
       promptSettings: this.getPromptSettings(),
       letterPromptSettings: this.getLetterPromptSettings(),
       actionSettings: this.getActionSettings(),
-      actionApprovalSettings: this.getActionApprovalSettings()
+      actionApprovalSettings: this.getActionApprovalSettings(),
+      summaryPromptSettings: this.getSummaryPromptSettings()
     };
   }
 
@@ -465,9 +481,8 @@ export class SettingsRepository {
   // This method now handles saving both base provider configs and presets
   saveProviderConfig(configToSave: LLMProviderConfig): LLMProviderConfig {
     const settings = this.getLLMSettings();
-    const baseProviderTypes: string[] = ['openrouter', 'ollama', 'openai-compatible'];
 
-    if (baseProviderTypes.includes(configToSave.instanceId)) { // It's a base provider config
+    if (PROVIDER_TYPES.includes(configToSave.instanceId as any)) { // It's a base provider config
       const index = settings.providers.findIndex(p => p.instanceId === configToSave.instanceId);
       if (index > -1) {
         settings.providers[index] = configToSave;
@@ -592,6 +607,40 @@ export class SettingsRepository {
     settings.summaryProviderInstanceId = instanceId;
     this.saveLLMSettings(settings);
     console.log('Summary provider override set:', instanceId);
+  }
+
+  // --- Summary Prompt Settings ---
+  getDefaultRollingSummaryPrompt(): string {
+    return 'Update the previous summary by incorporating the new messages. Create a cohesive summary that includes both the previous events and the new information. Keep it concise but preserve important details like character names, key events, decisions, and emotional moments. Please summarize the conversation into a single paragraph.';
+  }
+
+  getDefaultFinalSummaryPrompt(): string {
+    return `Create a detailed summary of this conversation. Include:
+- Key events and decisions made
+- Important character interactions and relationship developments
+- Plot developments and revelations
+- Emotional moments and conflicts
+- Any agreements, promises, or plans made
+Please summarize the conversation into only a single paragraph.`;
+  }
+
+  getSummaryPromptSettings(): SummaryPromptSettings {
+    const stored = this.store.get('summaryPromptSettings', {
+      rollingPrompt: '',
+      finalPrompt: ''
+    });
+    
+    // Return stored custom prompts if set, otherwise return defaults
+    return {
+      rollingPrompt: stored.rollingPrompt || this.getDefaultRollingSummaryPrompt(),
+      finalPrompt: stored.finalPrompt || this.getDefaultFinalSummaryPrompt()
+    };
+  }
+
+  saveSummaryPromptSettings(settings: SummaryPromptSettings): void {
+    // Store the settings as-is (empty strings mean "use default")
+    this.store.set('summaryPromptSettings', settings);
+    console.log('Summary prompt settings saved:', settings);
   }
 }
 

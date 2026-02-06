@@ -9,6 +9,7 @@ import { ClipboardListener } from './ClipboardListener';
 import { initLogger, clearLog } from './utils/logger';
 import { importLegacySummaries } from './utils/importLegacySummaries';
 import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR, VOTC_SUMMARIES_DIR } from './utils/paths';
+import { SummariesManager } from './utils/SummariesManager';
 import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 import { appUpdater } from './AutoUpdater';
@@ -18,6 +19,7 @@ import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
+import './llmProviders/Player2Provider';
 import { letterManager } from './letter/LetterManager';
 import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
@@ -275,8 +277,17 @@ const setupIpcHandlers = () => {
      // Errors are caught within testProviderConnection and returned in the result object
   });
 
-  ipcMain.handle('llm:setCK3Folder', (_, path: string | null) => {
+  ipcMain.handle('llm:setCK3Folder', async (_, path: string | null) => {
     settingsRepository.setCK3UserFolderPath(path);
+    // Restart letter manager log tailing when CK3 path is updated
+    if (path) {
+      try {
+        await letterManager.restartLogTailing();
+        console.log("Log tailing restarted after CK3 path update");
+      } catch (error) {
+        console.error("Failed to restart log tailing after CK3 path update:", error);
+      }
+    }
   });
 
   ipcMain.handle('llm:setModLocationPath', (_, path: string | null) => {
@@ -374,6 +385,16 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('llm:saveActionApprovalSettings', (_, settings) => {
     settingsRepository.saveActionApprovalSettings(settings);
+    return true;
+  });
+
+  // Summary prompt settings IPC handlers
+  ipcMain.handle('llm:getSummaryPromptSettings', () => {
+    return settingsRepository.getSummaryPromptSettings();
+  });
+
+  ipcMain.handle('llm:saveSummaryPromptSettings', (_, settings) => {
+    settingsRepository.saveSummaryPromptSettings(settings);
     return true;
   });
 
@@ -584,7 +605,8 @@ const setupIpcHandlers = () => {
 
     try {
       console.log('IPC: Sending message:', message);
-      const result = await conversationManager.sendMessage(message);
+      const streaming = settingsRepository.getGlobalStreamSetting() || true;
+      const result = await conversationManager.sendMessage(message, streaming);
       console.log('IPC: Message sent successfully, result type:', typeof result);
       return { streamStarted: false, message: result };
     } catch (error) {
@@ -756,6 +778,52 @@ const setupIpcHandlers = () => {
       return { success: true };
     } catch (error: any) {
       console.error('Failed to clear summaries:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  // Summaries Manager IPC handlers
+  ipcMain.handle('conversation:listAllSummaries', async () => {
+    try {
+      return await SummariesManager.listAllSummaries();
+    } catch (error: any) {
+      console.error('Failed to list all summaries:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('conversation:getSummariesForCharacter', async (_, { playerId, characterId }) => {
+    try {
+      return await SummariesManager.getSummariesForCharacter(playerId, characterId);
+    } catch (error: any) {
+      console.error('Failed to get summaries for character:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('conversation:updateSummary', async (_, { playerId, characterId, summaryIndex, newContent }) => {
+    try {
+      return await SummariesManager.updateSummary(playerId, characterId, summaryIndex, newContent);
+    } catch (error: any) {
+      console.error('Failed to update summary:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('conversation:deleteSummary', async (_, { playerId, characterId, summaryIndex }) => {
+    try {
+      return await SummariesManager.deleteSummary(playerId, characterId, summaryIndex);
+    } catch (error: any) {
+      console.error('Failed to delete summary:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('conversation:deleteCharacterSummaries', async (_, { playerId, characterId }) => {
+    try {
+      return await SummariesManager.deleteCharacterSummaries(playerId, characterId);
+    } catch (error: any) {
+      console.error('Failed to delete character summaries:', error);
       return { success: false, error: error.message || 'Unknown error' };
     }
   });
