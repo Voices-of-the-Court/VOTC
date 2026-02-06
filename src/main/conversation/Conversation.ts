@@ -1037,4 +1037,95 @@ export class Conversation {
             this.resumeConversation();
         }
     }
+    /**
+     * Create a summary for a character that is leaving the conversation
+     * @param characterId - The ID of the character leaving
+     * @param summaryPrompt - The prompt messages to use for generating the summary
+     * @returns The generated summary or null if failed
+     */
+    async createCharacterLeavingSummary(characterId: number, summaryPrompt: any[]): Promise<string | null> {
+        const character = this.gameData.characters.get(characterId);
+        if (!character) {
+            console.error(`Character ${characterId} not found for leaving summary`);
+            return null;
+        }
+
+        console.log(`Creating leaving summary for ${character.fullName}`);
+
+        try {
+            const estimatedTokens = this.estimateTokenCount(summaryPrompt);
+            console.log(`[TOKEN_COUNT] Character leaving summary for ${character.fullName}: ${estimatedTokens}`);
+            
+            const result = await llmManager.sendSummaryRequest(summaryPrompt);
+
+            if (result && typeof result === 'object' && 'content' in result) {
+                const summary = result.content as string;
+                console.log(`Generated leaving summary for ${character.fullName}: ${summary.substring(0, 100)}...`);
+                return summary;
+            }
+
+            console.error('Invalid response format for character leaving summary');
+            return null;
+        } catch (error) {
+            console.error(`Failed to create leaving summary for ${character.fullName}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Remove a character from the conversation entirely
+     */
+    removeCharacterFromConversation(characterId: number): void {
+        const character = this.gameData.characters.get(characterId);
+        if (!character) {
+            console.warn(`Character ${characterId} not found in conversation`);
+            return;
+        }
+
+        console.log(`Removing ${character.fullName} from conversation`);
+
+        // Remove from characters map
+        this.gameData.characters.delete(characterId);
+
+        // Remove from NPC queue if present
+        const initialQueueLength = this.npcQueue.length;
+        this.npcQueue = this.npcQueue.filter(char => char.id !== characterId);
+        if (this.npcQueue.length < initialQueueLength) {
+            console.log(`Removed ${character.fullName} from NPC queue`);
+        }
+
+        // Remove from custom queue if exists
+        if (this.customQueue) {
+            const initialCustomQueueLength = this.customQueue.length;
+            this.customQueue = this.customQueue.filter(char => char.id !== characterId);
+            if (this.customQueue.length < initialCustomQueueLength) {
+                console.log(`Removed ${character.fullName} from custom queue`);
+            }
+        }
+
+        // Clear any pending action approvals for this character
+        const approvalsToRemove: number[] = [];
+        for (const [approvalId, pending] of this.pendingActionApprovals.entries()) {
+            if (pending.npc.id === characterId) {
+                approvalsToRemove.push(approvalId);
+            }
+        }
+        
+        for (const approvalId of approvalsToRemove) {
+            this.pendingActionApprovals.delete(approvalId);
+            
+            // Remove approval entry from messages
+            const entryIndex = this.messages.findIndex(
+                msg => msg.type === 'action-approval' && msg.id === approvalId
+            );
+            
+            if (entryIndex !== -1) {
+                this.messages.splice(entryIndex, 1);
+                console.log(`Removed pending action approval for ${character.fullName}`);
+            }
+        }
+
+        console.log(`Character ${character.fullName} successfully removed from conversation`);
+        this.emitUpdate();
+    }
 }
