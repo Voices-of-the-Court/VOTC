@@ -65,6 +65,7 @@ export interface ActionRunContext {
   runGameEffect: (effect: string) => void;
   args: ActionArgumentValues;
   conversation?: Conversation; // Optional conversation access for actions
+  dryRun?: boolean; // True when action is being previewed, not executed
 }
 
 export type ActionFeedbackSentiment = 'positive' | 'negative' | 'neutral';

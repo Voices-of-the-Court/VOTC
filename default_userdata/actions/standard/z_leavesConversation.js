@@ -41,8 +41,9 @@ module.exports = {
      * @param {Function} params.runGameEffect
      * @param {Record<string, number|string|null>} params.args
      * @param {Conversation} params.conversation
+     * @param {boolean} params.dryRun
      */
-    run: async ({ gameData, sourceCharacter, targetCharacter, runGameEffect, conversation }) => {
+    run: async ({ gameData, sourceCharacter, targetCharacter, runGameEffect, conversation, dryRun }) => {
         if (!targetCharacter) {
             return {
                 message: "Failed: No character specified to leave",
@@ -57,6 +58,15 @@ module.exports = {
             };
         }
 
+        // If this is a dry run (preview), just return the preview message
+        if (dryRun) {
+            return {
+                message: `${targetCharacter.shortName} will leave the conversation`,
+                sentiment: 'neutral'
+            };
+        }
+
+        // Actual execution (only when approved)
         try {
             // Get all conversation messages
             const allMessages = conversation.getHistory();
@@ -81,28 +91,18 @@ module.exports = {
                     content: `Create a comprehensive summary of this conversation from ${targetCharacter.fullName}'s perspective. Include their interactions with ${gameData.playerName} and other characters, key events they participated in, and their overall experience. This summary will be saved as their personal record of this conversation.`
                 }
             ];
-
-            // Generate summary for leaving character
-            const summary = await conversation.createCharacterLeavingSummary(targetCharacter.id, summaryPrompt);
             
-            if (summary) {
-                // Save summary to character's file
-                gameData.saveCharacterSummary(targetCharacter.id, {
-                    date: gameData.date,
-                    totalDays: gameData.totalDays,
-                    content: summary
-                });
-            }
-            
-            // Remove character from conversation
-            conversation.removeCharacterFromConversation(targetCharacter.id);
-            
-            // Empty game effect (for debugging purposes)
             runGameEffect(`
 remove_list_global_variable = {
     name = mcc_characters_list_v2
     target = global_var:votc_action_target
 }
+remove_global_variable = mcc_character_0
+remove_global_variable = mcc_character_1
+remove_global_variable = mcc_character_2
+remove_global_variable = mcc_character_3
+remove_global_variable = mcc_character_4
+remove_global_variable = mcc_character_5
 if = {
     limit = { 
         global_variable_list_size = {
@@ -200,6 +200,22 @@ if = {
     }
 }
                 `);
+
+                
+            // Generate summary for leaving character
+            const summary = await conversation.createCharacterLeavingSummary(targetCharacter.id, summaryPrompt);
+            
+            if (summary) {
+                // Save summary to character's file
+                gameData.saveCharacterSummary(targetCharacter.id, {
+                    date: gameData.date,
+                    totalDays: gameData.totalDays,
+                    content: summary
+                });
+            }
+            
+            // Remove character from conversation
+            conversation.removeCharacterFromConversation(targetCharacter.id);
             
             return {
                 message: `${targetCharacter.shortName} has left the conversation`,
