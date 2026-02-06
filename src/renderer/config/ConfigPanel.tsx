@@ -5,12 +5,13 @@ import ConnectionView from './ConnectionView';
 import SettingsView from './SettingsView';
 import ActionsView from './ActionsView';
 import PromptsView from './PromptsView';
+import SummariesView from './SummariesView';
 import discordIcon from '../assets/discord-icon.svg';
 import tooltipIcon from '../assets/tooltip2.png';
 import logsIcon from '../assets/folder.svg';
 import { useDraggableResizable } from '../hooks/useDraggableResizable';
 
-type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts';
+type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts' | 'summaries';
 
 interface ConfigPanelProps {
   onClose: () => void;
@@ -271,6 +272,13 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         >
           Prompts
         </button>
+        <button
+          onClick={() => setCurrentTab('summaries')}
+          className={currentTab === 'summaries' ? 'active' : ''}
+          style={{ zIndex: 12 }}
+        >
+          Summaries
+        </button>
         <button className="config-close-button" onClick={onClose}>✕</button>
       </header>
       <main className="config-main-content">
@@ -278,6 +286,7 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         {currentTab === 'settings' && <SettingsView />}
         {currentTab === 'actions' && <ActionsView />}
         {currentTab === 'prompts' && <PromptsView />}
+        {currentTab === 'summaries' && <SummariesView />}
       </main>
       
       <div className="app-version">

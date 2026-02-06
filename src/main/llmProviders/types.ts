@@ -243,6 +243,11 @@ export interface ActionApprovalSettings {
   pauseOnApproval: boolean; // Default: true - pause conversation when approval needed
 }
 
+export interface SummaryPromptSettings {
+  rollingPrompt: string; // Custom prompt for rolling summaries
+  finalPrompt: string; // Custom prompt for final summaries
+}
+
 export interface AppSettings {
   llmSettings: LLMSettings;
   ck3UserFolderPath?: string | null;
@@ -256,6 +261,7 @@ export interface AppSettings {
   letterPromptSettings?: PromptSettings; // Letter prompt templates/scripts configuration
   actionSettings?: ActionSettings;
   actionApprovalSettings?: ActionApprovalSettings;
+  summaryPromptSettings?: SummaryPromptSettings; // Custom prompts for summaries
 }
 
 
@@ -290,4 +296,21 @@ export function isOpenRouterErrorResponse(e: unknown): e is OpenRouterErrorRespo
     typeof (e as any).error.message === "string" &&
     typeof (e as any).error.code === "number"
   )
+}
+
+// Types for summaries manager
+export interface ConversationSummary {
+  date: string;
+  totalDays: number;
+  content: string;
+  characterName?: string; // Optional for backward compatibility
+}
+
+export interface SummaryMetadata {
+  playerId: string;
+  playerName?: string; // If we can derive it
+  characterId: string;
+  characterName: string; // From file or fallback to ID
+  summaries: ConversationSummary[];
+  filePath: string;
 }

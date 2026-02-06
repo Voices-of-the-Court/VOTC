@@ -79,6 +79,8 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setSummaryProviderId: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setSummaryProviderId', instanceId),
   getActionApprovalSettings: (): Promise<any> => ipcRenderer.invoke('llm:getActionApprovalSettings'),
   saveActionApprovalSettings: (settings: any): Promise<void> => ipcRenderer.invoke('llm:saveActionApprovalSettings', settings),
+  getSummaryPromptSettings: (): Promise<{ rollingPrompt: string; finalPrompt: string }> => ipcRenderer.invoke('llm:getSummaryPromptSettings'),
+  saveSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string }): Promise<void> => ipcRenderer.invoke('llm:saveSummaryPromptSettings', settings),
 });
 
 contextBridge.exposeInMainWorld('promptsAPI', {
@@ -160,6 +162,17 @@ contextBridge.exposeInMainWorld('conversationAPI', {
     ipcRenderer.invoke('conversation:approveActions', { approvalEntryId }),
   declineActions: (approvalEntryId: number): Promise<void> =>
     ipcRenderer.invoke('conversation:declineActions', { approvalEntryId }),
+  // Summaries manager methods
+  listAllSummaries: (): Promise<any[]> =>
+    ipcRenderer.invoke('conversation:listAllSummaries'),
+  getSummariesForCharacter: (playerId: string, characterId: string): Promise<any[]> =>
+    ipcRenderer.invoke('conversation:getSummariesForCharacter', { playerId, characterId }),
+  updateSummary: (playerId: string, characterId: string, summaryIndex: number, newContent: string): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:updateSummary', { playerId, characterId, summaryIndex, newContent }),
+  deleteSummary: (playerId: string, characterId: string, summaryIndex: number): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:deleteSummary', { playerId, characterId, summaryIndex }),
+  deleteCharacterSummaries: (playerId: string, characterId: string): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('conversation:deleteCharacterSummaries', { playerId, characterId }),
  });
  
  // Actions API exposed to renderer

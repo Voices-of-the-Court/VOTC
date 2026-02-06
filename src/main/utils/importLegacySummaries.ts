@@ -15,12 +15,13 @@ export async function importLegacySummaries(): Promise<ImportResult> {
     // Get the current user's AppData Roaming path
     const appDataPath = app.getPath('appData');
     const legacySummariesPath = path.join(appDataPath, 'Voices of the Court', 'votc_data', 'conversation_summaries');
+    const ceSummariesPath = path.join(appDataPath, 'Voices of the Court - Community Edition', 'votc_data', 'conversation_summaries');
     
     // Check if legacy path exists
-    if (!fs.existsSync(legacySummariesPath)) {
+    if (!fs.existsSync(legacySummariesPath) && !fs.existsSync(ceSummariesPath)) {
       return {
         success: false,
-        message: 'Legacy summaries folder not found. Please ensure VOTC is installed.',
+        message: 'Legacy summaries folder not found. Please ensure legay VOTC or Community Edition is installed.',
       };
     }
     
@@ -31,12 +32,20 @@ export async function importLegacySummaries(): Promise<ImportResult> {
     
     // Copy files with error handling
     const result = await copyDirectory(legacySummariesPath, VOTC_SUMMARIES_DIR);
+    const resultCE = await copyDirectory(ceSummariesPath, VOTC_SUMMARIES_DIR);
     
+    if (!result.success && !resultCE.success) {
+      return {
+        success: false,
+        message: 'Legacy summaries import failed. Please check the console for details.',
+        errors: [...result.errors, ...resultCE.errors],
+      };
+    }
     return {
-      success: result.success,
-      message: result.success ? 'Legacy summaries imported successfully!' : 'Import completed with errors.',
-      filesCopied: result.filesCopied,
-      errors: result.errors,
+      success: true,
+      message: (result.success && resultCE.success) ? 'Legacy summaries imported successfully!' : 'Import completed with errors.',
+      filesCopied: result.filesCopied + resultCE.filesCopied,
+      errors: [...result.errors, ...resultCE.errors],
     };
   } catch (error) {
     return {

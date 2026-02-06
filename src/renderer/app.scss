@@ -315,46 +315,6 @@ button {
   }
 }
 
-.legacy-data-import {
-  .import-result {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    border-radius: 4px;
-    border: 1px solid transparent;
-
-    &.success {
-      background-color: #d4edda;
-      border-color: #c3e6cb;
-      color: #155724;
-    }
-
-    &.error {
-      background-color: #f8d7da;
-      border-color: #f5c6cb;
-      color: #721c24;
-    }
-  }
-
-  .error-list {
-    margin-top: 0.5rem;
-
-    ul {
-      margin: 0.5rem 0 0 1.5rem;
-      padding: 0;
-    }
-  }
-
-  .help-text {
-    font-size: 1rem;
-    color: #ddd;
-    margin-bottom: 0.5rem;
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
 
 // Action Feedback Styles - Minimalistic
 .action-feedback-container {

@@ -1,5 +1,22 @@
 import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings, ActionApprovalSettings } from '../main/llmProviders/types';
 
+// Types for summaries manager
+export interface ConversationSummary {
+  date: string;
+  totalDays: number;
+  content: string;
+  characterName?: string; // Optional for backward compatibility
+}
+
+export interface SummaryMetadata {
+  playerId: string;
+  playerName?: string; // If we can derive it
+  characterId: string;
+  characterName: string; // From file or fallback to ID
+  summaries: ConversationSummary[];
+  filePath: string;
+}
+
 declare global {
   interface Window {
     conversationAPI: {
@@ -23,6 +40,12 @@ declare global {
       getPromptPreview: (characterId: number) => Promise<any>;
       openSummariesFolder: () => Promise<{success: boolean, error?: string}>;
       clearSummaries: () => Promise<{success: boolean, error?: string}>;
+      // Summaries manager methods
+      listAllSummaries: () => Promise<SummaryMetadata[]>;
+      getSummariesForCharacter: (playerId: string, characterId: string) => Promise<ConversationSummary[]>;
+      updateSummary: (playerId: string, characterId: string, summaryIndex: number, newContent: string) => Promise<{success: boolean, error?: string}>;
+      deleteSummary: (playerId: string, characterId: string, summaryIndex: number) => Promise<{success: boolean, error?: string}>;
+      deleteCharacterSummaries: (playerId: string, characterId: string) => Promise<{success: boolean, error?: string}>;
     };
     electronAPI: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
@@ -66,6 +89,8 @@ declare global {
       setSummaryProviderId: (instanceId: string | null) => Promise<void>;
       getActionApprovalSettings: () => Promise<ActionApprovalSettings>;
       saveActionApprovalSettings: (settings: ActionApprovalSettings) => Promise<void>;
+      getSummaryPromptSettings: () => Promise<{ rollingPrompt: string; finalPrompt: string }>;
+      saveSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string }) => Promise<void>;
     };
     promptsAPI: {
       getSettings: () => Promise<PromptSettings>;
