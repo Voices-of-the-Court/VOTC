@@ -249,6 +249,39 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // Letters status IPC handlers
+  ipcMain.handle('letters:getStatuses', async () => {
+    try {
+      return letterManager.getAllLetterStatuses();
+    } catch (error: any) {
+      console.error('Failed to get letter statuses:', error);
+      return {
+        letters: [],
+        currentTotalDays: 0,
+        timestamp: Date.now()
+      };
+    }
+  });
+
+  ipcMain.handle('letters:getLetterDetails', async (_, letterId: string) => {
+    try {
+      return letterManager.getLetterStatus(letterId);
+    } catch (error: any) {
+      console.error('Failed to get letter details:', error);
+      return null;
+    }
+  });
+
+  ipcMain.handle('letters:clearOldStatuses', async (_, daysThreshold: number) => {
+    try {
+      letterManager.clearOldStatuses(daysThreshold);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to clear old statuses:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('llm:saveProviderConfig', (_, config: LLMProviderConfig) => {
     return settingsRepository.saveProviderConfig(config);
   });
