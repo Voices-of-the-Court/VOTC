@@ -256,14 +256,15 @@ export class LetterManager {
     const ai = gameData.getAi();
     if (!ai) return;
 
+    const summarySettings = settingsRepository.getSummaryPromptSettings();
     const summaryPrompt: ILLMMessage[] = [
       {
         role: "system",
-        content: "Summarize this one-on-one letter exchange succinctly. Focus on the key topics and tone.",
+        content: summarySettings.letterSummaryPrompt,
       },
       {
         role: "user",
-        content: `Player letter to ${ai.fullName}:\n"${letter.content}"\n\nReply from ${ai.fullName}:\n"${reply}"`,
+        content: `${gameData.playerName} letter to ${ai.fullName}:\n"${letter.content}"\n\nReply from ${ai.fullName}:\n"${reply}"`,
       },
     ];
 

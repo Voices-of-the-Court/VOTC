@@ -246,6 +246,7 @@ export interface ActionApprovalSettings {
 export interface SummaryPromptSettings {
   rollingPrompt: string; // Custom prompt for rolling summaries
   finalPrompt: string; // Custom prompt for final summaries
+  letterSummaryPrompt: string; // Custom prompt for letter summaries
 }
 
 export interface AppSettings {
