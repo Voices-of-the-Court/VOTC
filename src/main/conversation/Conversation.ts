@@ -986,15 +986,28 @@ export class Conversation {
             throw new Error(`Entry ${approvalEntryId} is not an action-approval entry`);
         }
 
-        // Execute the approved action (with real effect)
-        const result = await ActionEngine.runInvocation(this, pending.npc, pending.action.invocation);
-
-        // Update status and attach final feedback for UI morph
+        // Immediately update status to prevent double-clicking
         approvalEntry.status = 'approved';
-        approvalEntry.resultFeedback = result.feedback?.message || pending.previewFeedback || pending.action.actionTitle || pending.action.actionId;
-        approvalEntry.resultSentiment = result.feedback?.sentiment || pending.previewSentiment || 'neutral';
+        approvalEntry.resultFeedback = pending.previewFeedback || pending.action.actionTitle || pending.action.actionId;
+        approvalEntry.resultSentiment = pending.previewSentiment || 'neutral';
         this.pendingActionApprovals.delete(approvalEntryId);
         this.emitUpdate();
+
+        // Execute the approved action in the background (don't await)
+        ActionEngine.runInvocation(this, pending.npc, pending.action.invocation).then(result => {
+            // Update with final feedback if different from preview
+            if (result.feedback?.message && result.feedback.message !== approvalEntry.resultFeedback) {
+                approvalEntry.resultFeedback = result.feedback.message;
+                approvalEntry.resultSentiment = result.feedback.sentiment || 'neutral';
+                this.emitUpdate();
+            }
+        }).catch(err => {
+            console.error('[Conversation] Background action execution failed:', err);
+            // Update with error feedback
+            approvalEntry.resultFeedback = `Failed: ${err instanceof Error ? err.message : String(err)}`;
+            approvalEntry.resultSentiment = 'negative';
+            this.emitUpdate();
+        });
 
         // Resume conversation if it was paused
         const approvalSettings = settingsRepository.getActionApprovalSettings();

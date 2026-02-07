@@ -97,130 +97,168 @@ remove_list_global_variable = {
     name = mcc_characters_list_v2
     target = global_var:votc_action_target
 }
-remove_global_variable = mcc_character_0
-remove_global_variable = mcc_character_1
-remove_global_variable = mcc_character_2
-remove_global_variable = mcc_character_3
-remove_global_variable = mcc_character_4
-remove_global_variable = mcc_character_5
-if = {
-    limit = { 
-        global_variable_list_size = {
-            name = mcc_characters_list_v2
-            value > 0
-        }
+if ={
+    limit = {
+        global_var:mcc_character_0 = global_var:votc_action_target
     }
-    ordered_in_global_list = {
-        variable = mcc_characters_list_v2
-        position = 0
-        set_global_variable = {
-            name = mcc_character_0
-            value = this
+    remove_global_variable = mcc_character_0
+    if = {
+        limit = { 
+            global_variable_list_size = {
+                name = mcc_characters_list_v2
+                value > 5
+            }
         }
-    }
-}
-if = {
-    limit = { 
-        global_variable_list_size = {
-            name = mcc_characters_list_v2
-            value > 1
-        }
-    }
-    ordered_in_global_list = {
-        variable = mcc_characters_list_v2
-        position = 1
-        set_global_variable = {
-            name = mcc_character_1
-            value = this
+        ordered_in_global_list = {
+            variable = mcc_characters_list_v2
+            position = 5
+            set_global_variable = {
+                name = mcc_character_0
+                value = this
+            }
         }
     }
 }
-if = {
-    limit = { 
-        global_variable_list_size = {
-            name = mcc_characters_list_v2
-            value > 2
-        }
+if ={
+    limit = {
+        global_var:mcc_character_1 = global_var:votc_action_target
     }
-    ordered_in_global_list = {
-        variable = mcc_characters_list_v2
-        position = 2
-        set_global_variable = {
-            name = mcc_character_2
-            value = this
+    remove_global_variable = mcc_character_1
+    if = {
+        limit = { 
+            global_variable_list_size = {
+                name = mcc_characters_list_v2
+                value > 5
+            }
         }
-    }
-}
-if = {
-    limit = { 
-        global_variable_list_size = {
-            name = mcc_characters_list_v2
-            value > 3
-        }
-    }
-    ordered_in_global_list = {
-        variable = mcc_characters_list_v2
-        position = 3
-        set_global_variable = {
-            name = mcc_character_3
-            value = this
+        ordered_in_global_list = {
+            variable = mcc_characters_list_v2
+            position = 5
+            set_global_variable = {
+                name = mcc_character_1
+                value = this
+            }
         }
     }
 }
-if = {
-    limit = { 
-        global_variable_list_size = {
-            name = mcc_characters_list_v2
-            value > 4
-        }
+if ={
+    limit = {
+        global_var:mcc_character_2 = global_var:votc_action_target
     }
-    ordered_in_global_list = {
-        variable = mcc_characters_list_v2
-        position = 4
-        set_global_variable = {
-            name = mcc_character_4
-            value = this
+    remove_global_variable = mcc_character_2   
+    if = {
+        limit = { 
+            global_variable_list_size = {
+                name = mcc_characters_list_v2
+                value > 5
+            }
         }
-    }
-}
-if = {
-    limit = { 
-        global_variable_list_size = {
-            name = mcc_characters_list_v2
-            value > 5
-        }
-    }
-    ordered_in_global_list = {
-        variable = mcc_characters_list_v2
-        position = 5
-        set_global_variable = {
-            name = mcc_character_5
-            value = this
+        ordered_in_global_list = {
+            variable = mcc_characters_list_v2
+            position = 5
+            set_global_variable = {
+                name = mcc_character_2
+                value = this
+            }
         }
     }
 }
-                `);
+if ={
+    limit = {
+        global_var:mcc_character_3 = global_var:votc_action_target
+    }
+    remove_global_variable = mcc_character_3
+    if = {
+        limit = { 
+            global_variable_list_size = {
+                name = mcc_characters_list_v2
+                value > 5
+            }
+        }
+        ordered_in_global_list = {
+            variable = mcc_characters_list_v2
+            position = 5
+            set_global_variable = {
+                name = mcc_character_3
+                value = this
+            }
+        }
+    }
+}
+if ={
+    limit = {
+        global_var:mcc_character_4 = global_var:votc_action_target
+    }
+    remove_global_variable = mcc_character_4   
+    if = {
+        limit = { 
+            global_variable_list_size = {
+                name = mcc_characters_list_v2
+                value > 5
+            }
+        }
+        ordered_in_global_list = {
+            variable = mcc_characters_list_v2
+            position = 5
+            set_global_variable = {
+                name = mcc_character_4
+                value = this
+            }
+        }
+    }
+}
+if ={
+    limit = {
+        global_var:mcc_character_5 = global_var:votc_action_target
+    }
+    remove_global_variable = mcc_character_5
+    if = {
+        limit = { 
+            global_variable_list_size = {
+                name = mcc_characters_list_v2
+                value > 5
+            }
+        }
+        ordered_in_global_list = {
+            variable = mcc_characters_list_v2
+            position = 5
+            set_global_variable = {
+                name = mcc_character_5
+                value = this
+            }
+        }
+    }
+}
+root = {trigger_event = mcc_event_v2.9003}`);
 
                 
             // Generate summary for leaving character
+            console.log(`[leavesConversation] Starting summary generation for ${targetCharacter.fullName}`);
             const summary = await conversation.createCharacterLeavingSummary(targetCharacter.id, summaryPrompt);
+            console.log(`[leavesConversation] Summary generation completed, summary exists: ${!!summary}`);
             
             if (summary) {
                 // Save summary to character's file
+                console.log(`[leavesConversation] Saving summary for ${targetCharacter.fullName}`);
                 gameData.saveCharacterSummary(targetCharacter.id, {
                     date: gameData.date,
                     totalDays: gameData.totalDays,
                     content: summary
                 });
+                console.log(`[leavesConversation] Summary saved successfully`);
             }
             
             // Remove character from conversation
+            console.log(`[leavesConversation] Removing ${targetCharacter.fullName} from conversation`);
             conversation.removeCharacterFromConversation(targetCharacter.id);
+            console.log(`[leavesConversation] Character removed successfully`);
             
-            return {
+            const feedbackMessage = {
                 message: `${targetCharacter.shortName} has left the conversation`,
                 sentiment: 'neutral'
             };
+            console.log(`[leavesConversation] Returning feedback:`, feedbackMessage);
+            return feedbackMessage;
         } catch (error) {
             console.error('Failed to process character leaving:', error);
             return {
