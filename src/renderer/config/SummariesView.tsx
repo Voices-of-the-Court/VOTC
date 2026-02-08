@@ -15,6 +15,7 @@ const SummariesView: React.FC = () => {
   const [localSettings, setLocalSettings] = useState({
     rollingPrompt: '',
     finalPrompt: '',
+    letterSummaryPrompt: '',
   });
   
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +38,7 @@ const SummariesView: React.FC = () => {
         setLocalSettings({
           rollingPrompt: settings.rollingPrompt,
           finalPrompt: settings.finalPrompt,
+          letterSummaryPrompt: settings.letterSummaryPrompt,
         });
       } catch (error) {
         console.error('Failed to load summary prompt settings:', error);
@@ -92,6 +94,7 @@ const SummariesView: React.FC = () => {
     setLocalSettings({
       rollingPrompt: settings.rollingPrompt,
       finalPrompt: settings.finalPrompt,
+      letterSummaryPrompt: settings.letterSummaryPrompt,
     });
   };
 
@@ -108,6 +111,24 @@ const SummariesView: React.FC = () => {
     setLocalSettings({
       rollingPrompt: settings.rollingPrompt,
       finalPrompt: settings.finalPrompt,
+      letterSummaryPrompt: settings.letterSummaryPrompt,
+    });
+  };
+
+  const handleResetLetterSummary = async () => {
+    const confirm = window.confirm('Reset letter summary prompt to default? This will replace current text.');
+    if (!confirm) return;
+    
+    // Save empty string to trigger backend to return default
+    const resetSettings = { ...localSettings, letterSummaryPrompt: '' };
+    await updateSummaryPromptSettings(resetSettings);
+    
+    // Reload to get the default from backend
+    const settings = await getSummaryPromptSettings();
+    setLocalSettings({
+      rollingPrompt: settings.rollingPrompt,
+      finalPrompt: settings.finalPrompt,
+      letterSummaryPrompt: settings.letterSummaryPrompt,
     });
   };
 
@@ -116,7 +137,7 @@ const SummariesView: React.FC = () => {
     if (!confirm) return;
     
     // Save empty strings to trigger backend to return defaults
-    const resetSettings = { rollingPrompt: '', finalPrompt: '' };
+    const resetSettings = { rollingPrompt: '', finalPrompt: '', letterSummaryPrompt: '' };
     await updateSummaryPromptSettings(resetSettings);
     
     // Reload to get the defaults from backend
@@ -124,6 +145,7 @@ const SummariesView: React.FC = () => {
     setLocalSettings({
       rollingPrompt: settings.rollingPrompt,
       finalPrompt: settings.finalPrompt,
+      letterSummaryPrompt: settings.letterSummaryPrompt,
     });
   };
 
@@ -274,6 +296,24 @@ const SummariesView: React.FC = () => {
           value={localSettings.finalPrompt}
           rows={8}
           onChange={(e) => persist({ ...localSettings, finalPrompt: e.target.value })}
+          style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}
+        />
+      </div>
+
+      <div className="main-prompt-card">
+        <div className="card-header">
+          <h4>Letter Summary Prompt</h4>
+          <div className="mini-buttons">
+            <button onClick={handleResetLetterSummary}>Reset to default</button>
+          </div>
+        </div>
+        <p className="muted-text">
+          This prompt is used to generate summaries for letter exchanges between characters. These summaries are saved to character files and used as context in future conversations.
+        </p>
+        <textarea
+          value={localSettings.letterSummaryPrompt}
+          rows={6}
+          onChange={(e) => persist({ ...localSettings, letterSummaryPrompt: e.target.value })}
           style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}
         />
       </div>
