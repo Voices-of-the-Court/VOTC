@@ -306,7 +306,9 @@ export class ActionEngine {
         sourceCharacter: npc,
         targetCharacter: target,
         runGameEffect,
-        args
+        args,
+        conversation: conv,
+        dryRun: options?.dryRun
       });
 
       // Handle different return types

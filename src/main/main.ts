@@ -23,6 +23,7 @@ import './llmProviders/Player2Provider';
 import { letterManager } from './letter/LetterManager';
 import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
+import { runFileManager } from './actions/RunFileManager';
 
 initLogger();
 // Keep a reference to the config window, managed globally
@@ -246,6 +247,39 @@ const setupIpcHandlers = () => {
     } catch (error: any) {
       console.error('Failed to build letter prompt preview:', error);
       return null;
+    }
+  });
+
+  // Letters status IPC handlers
+  ipcMain.handle('letters:getStatuses', async () => {
+    try {
+      return letterManager.getAllLetterStatuses();
+    } catch (error: any) {
+      console.error('Failed to get letter statuses:', error);
+      return {
+        letters: [],
+        currentTotalDays: 0,
+        timestamp: Date.now()
+      };
+    }
+  });
+
+  ipcMain.handle('letters:getLetterDetails', async (_, letterId: string) => {
+    try {
+      return letterManager.getLetterStatus(letterId);
+    } catch (error: any) {
+      console.error('Failed to get letter details:', error);
+      return null;
+    }
+  });
+
+  ipcMain.handle('letters:clearOldStatuses', async (_, daysThreshold: number) => {
+    try {
+      letterManager.clearOldStatuses(daysThreshold);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to clear old statuses:', error);
+      return { success: false, error: error.message };
     }
   });
 
@@ -971,6 +1005,11 @@ app.on('ready', () => {
     chatWindow.focus();
     chatWindow.webContents.send('chat-reset'); // This will trigger showChat in App.tsx
   });
+
+  clipboardListener.on('VOTC:EFFECT_ACCEPTED', () => {
+    console.log('VOTC:EFFECT_ACCEPTED detected - clearing run file');
+    runFileManager.clear();
+  })
 
   clipboardListener.on('VOTC:LETTER', async () => {
     console.log('VOTC:LETTER detected - generating reply');

@@ -79,8 +79,8 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setSummaryProviderId: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setSummaryProviderId', instanceId),
   getActionApprovalSettings: (): Promise<any> => ipcRenderer.invoke('llm:getActionApprovalSettings'),
   saveActionApprovalSettings: (settings: any): Promise<void> => ipcRenderer.invoke('llm:saveActionApprovalSettings', settings),
-  getSummaryPromptSettings: (): Promise<{ rollingPrompt: string; finalPrompt: string }> => ipcRenderer.invoke('llm:getSummaryPromptSettings'),
-  saveSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string }): Promise<void> => ipcRenderer.invoke('llm:saveSummaryPromptSettings', settings),
+  getSummaryPromptSettings: (): Promise<{ rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string }> => ipcRenderer.invoke('llm:getSummaryPromptSettings'),
+  saveSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string }): Promise<void> => ipcRenderer.invoke('llm:saveSummaryPromptSettings', settings),
 });
 
 contextBridge.exposeInMainWorld('promptsAPI', {
@@ -105,9 +105,15 @@ contextBridge.exposeInMainWorld('promptsAPI', {
 });
 
 contextBridge.exposeInMainWorld('lettersAPI', {
-  getPromptPreview: (): Promise<string | null> => ipcRenderer.invoke('letter:getPromptPreview'),
+  getPromptPreview: (): Promise<string | null> =>
+    ipcRenderer.invoke('letter:getPromptPreview'),
+  getStatuses: (): Promise<any> =>
+    ipcRenderer.invoke('letters:getStatuses'),
+  getLetterDetails: (letterId: string): Promise<any | null> =>
+    ipcRenderer.invoke('letters:getLetterDetails', letterId),
+  clearOldStatuses: (daysThreshold: number): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('letters:clearOldStatuses', daysThreshold),
 });
-
 contextBridge.exposeInMainWorld('conversationAPI', {
   sendMessage: (userMessage: string): Promise<{streamStarted?: boolean, message?: any, error?: string}> => {
     return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage });

@@ -92,8 +92,8 @@ interface ConfigStore {
   saveActionApprovalSettings: (settings: any) => Promise<void>;
   
   // Summary prompt settings
-  getSummaryPromptSettings: () => Promise<{ rollingPrompt: string; finalPrompt: string }>;
-  updateSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string }) => Promise<void>;
+  getSummaryPromptSettings: () => Promise<{ rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string }>;
+  updateSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string }) => Promise<void>;
 
   // Prompt actions
   loadPromptSettings: () => Promise<void>;
