@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface LetterStatusInfo {
   letterId: string;
@@ -28,6 +29,7 @@ interface LettersStatusModalProps {
 }
 
 export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
+  const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<LetterStatusSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedLetters, setExpandedLetters] = useState<Set<string>>(new Set());
@@ -92,15 +94,15 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'generating': return 'Generating';
-      case 'generated': return 'Generated';
-      case 'generation_failed': return 'Generation Failed';
-      case 'pending_delivery': return 'Pending Delivery';
-      case 'sent': return 'Sent';
-      case 'send_failed': return 'Send Failed';
-      case 'not_started': return 'Not Started';
-      case 'saved': return 'Saved';
-      case 'save_failed': return 'Save Failed';
+      case 'generating': return t('lettersModal.statusGenerating');
+      case 'generated': return t('lettersModal.statusGenerated');
+      case 'generation_failed': return t('lettersModal.statusGenerationFailed');
+      case 'pending_delivery': return t('lettersModal.statusPendingDelivery');
+      case 'sent': return t('lettersModal.statusSent');
+      case 'send_failed': return t('lettersModal.statusSendFailed');
+      case 'not_started': return t('lettersModal.statusNotStarted');
+      case 'saved': return t('lettersModal.statusSaved');
+      case 'save_failed': return t('lettersModal.statusSaveFailed');
       default: return status;
     }
   };
@@ -143,18 +145,18 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
 
   const formatDeliveryTime = (letter: LetterStatusInfo) => {
     if (letter.responseStatus === 'sent') {
-      return 'Delivered';
+      return t('lettersModal.delivered');
     }
     
     if (letter.isLate) {
-      return `⚠️ Late by ${Math.abs(letter.daysUntilDelivery)} days`;
+      return t('lettersModal.lateByDays', { days: Math.abs(letter.daysUntilDelivery) });
     }
     
     if (letter.daysUntilDelivery === 0) {
-      return 'Delivers today';
+      return t('lettersModal.deliversToday');
     }
     
-    return `Delivers in ${letter.daysUntilDelivery} days`;
+    return t('lettersModal.deliversInDays', { days: letter.daysUntilDelivery });
   };
 
   const formatDate = (timestamp: number) => {
@@ -167,18 +169,18 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
     <div className="modal-overlay">
       <div className="modal-content letters-status-modal">
         <div className="modal-header">
-          <h4>Letters Status</h4>
+          <h4>{t('lettersModal.lettersStatus')}</h4>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
         
         <div className="modal-body">
           <div className="header-actions">
             <button onClick={loadStatuses} disabled={isLoading}>
-              {isLoading ? 'Loading...' : 'Refresh'}
+              {isLoading ? t('lettersModal.loading') : t('lettersModal.refresh')}
             </button>
             {snapshot && (
               <span style={{ marginLeft: '10px', color: '#888', fontSize: '0.9em' }}>
-                Last updated: {formatDate(snapshot.timestamp)}
+                {t('lettersModal.lastUpdated')}: {formatDate(snapshot.timestamp)}
               </span>
             )}
           </div>
@@ -187,34 +189,34 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
           <div className="status-summary">
             <div className="stat-card">
               <div className="stat-value">{snapshot?.letters.length || 0}</div>
-              <div className="stat-label">Total Letters</div>
+              <div className="stat-label">{t('lettersModal.totalLetters')}</div>
             </div>
             <div className="stat-card">
               <div className="stat-value">{groups.generating.length}</div>
-              <div className="stat-label">Generating</div>
+              <div className="stat-label">{t('lettersModal.generating')}</div>
             </div>
             <div className="stat-card">
               <div className="stat-value">{groups.pending_delivery.length}</div>
-              <div className="stat-label">Pending Delivery</div>
+              <div className="stat-label">{t('lettersModal.pendingDelivery')}</div>
             </div>
             <div className="stat-card">
               <div className="stat-value" style={{ color: '#dc3545' }}>
                 {groups.generation_failed.length + groups.send_failed.length}
               </div>
-              <div className="stat-label">Failed</div>
+              <div className="stat-label">{t('lettersModal.failed')}</div>
             </div>
             <div className="stat-card">
               <div className="stat-value" style={{ color: '#28a745' }}>
                 {groups.sent.length}
               </div>
-              <div className="stat-label">Completed</div>
+              <div className="stat-label">{t('lettersModal.completed')}</div>
             </div>
           </div>
           
           {/* Current game day */}
           {snapshot && (
             <div className="current-day-info">
-              <strong>Current Game Day:</strong> {snapshot.currentTotalDays}
+              <strong>{t('lettersModal.currentGameDay')}:</strong> {snapshot.currentTotalDays}
             </div>
           )}
           
@@ -222,7 +224,7 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
           <div className="letters-list">
             {groups.generating.length > 0 && (
               <LetterGroup
-                title="Response Generation In Progress"
+                title={t('lettersModal.responseGenerationInProgress')}
                 letters={[...groups.generating]}
                 icon="⏳"
                 expandedLetters={expandedLetters}
@@ -231,12 +233,13 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
                 formatDeliveryTime={formatDeliveryTime}
+                t={t}
               />
             )}
             
             {groups.pending_delivery.length > 0 && (
               <LetterGroup
-                title="Pending Delivery"
+                title={t('lettersModal.pendingDeliveryTitle')}
                 letters={[...groups.pending_delivery]}
                 icon="📬"
                 expandedLetters={expandedLetters}
@@ -245,12 +248,13 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
                 formatDeliveryTime={formatDeliveryTime}
+                t={t}
               />
             )}
             
             {groups.generation_failed.length > 0 && (
               <LetterGroup
-                title="Response Generation Failed"
+                title={t('lettersModal.responseGenerationFailed')}
                 letters={[...groups.generation_failed]}
                 icon="❌"
                 expandedLetters={expandedLetters}
@@ -259,12 +263,13 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
                 formatDeliveryTime={formatDeliveryTime}
+                t={t}
               />
             )}
             
             {groups.sent.length > 0 && (
               <LetterGroup
-                title="Sent Successfully"
+                title={t('lettersModal.sentSuccessfully')}
                 letters={[...groups.sent]}
                 icon="✅"
                 expandedLetters={expandedLetters}
@@ -273,12 +278,13 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
                 formatDeliveryTime={formatDeliveryTime}
+                t={t}
               />
             )}
             
             {groups.send_failed.length > 0 && (
               <LetterGroup
-                title="Delivery Failed"
+                title={t('lettersModal.deliveryFailed')}
                 letters={[...groups.send_failed]}
                 icon="⚠️"
                 expandedLetters={expandedLetters}
@@ -287,12 +293,13 @@ export function LettersStatusModal({ onClose }: LettersStatusModalProps) {
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
                 formatDeliveryTime={formatDeliveryTime}
+                t={t}
               />
             )}
             
             {snapshot?.letters.length === 0 && (
               <div className="empty-state">
-                No letters found. Letters will appear here when they are processed.
+                {t('lettersModal.noLettersFound')}
               </div>
             )}
           </div>
@@ -312,6 +319,7 @@ interface LetterGroupProps {
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
   formatDeliveryTime: (letter: LetterStatusInfo) => string;
+  t: any;
 }
 
 function LetterGroup({
@@ -323,7 +331,8 @@ function LetterGroup({
   getStatusIcon,
   getStatusColor,
   getStatusText,
-  formatDeliveryTime
+  formatDeliveryTime,
+  t
 }: LetterGroupProps) {
   return (
     <div className="letter-group">
@@ -344,6 +353,7 @@ function LetterGroup({
             getStatusColor={getStatusColor}
             getStatusText={getStatusText}
             formatDeliveryTime={formatDeliveryTime}
+            t={t}
           />
         ))}
       </div>
@@ -359,6 +369,7 @@ interface LetterItemProps {
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
   formatDeliveryTime: (letter: LetterStatusInfo) => string;
+  t: any;
 }
 
 function LetterItem({
@@ -368,7 +379,8 @@ function LetterItem({
   getStatusIcon,
   getStatusColor,
   getStatusText,
-  formatDeliveryTime
+  formatDeliveryTime,
+  t
 }: LetterItemProps) {
   return (
     <div className="letter-item">
@@ -401,21 +413,21 @@ function LetterItem({
         <div className="letter-details">
           {/* Response Section */}
           <section>
-            <h5>Response Status</h5>
+            <h5>{t('lettersModal.responseStatus')}</h5>
             <div className="status-detail">
-              <strong>Status:</strong> 
+              <strong>{t('lettersModal.status')}:</strong> 
               <span style={{ color: getStatusColor(letter.responseStatus), marginLeft: '8px' }}>
                 {getStatusIcon(letter.responseStatus)} {getStatusText(letter.responseStatus)}
               </span>
             </div>
             {letter.responseError && (
               <div className="error-message">
-                <strong>Error:</strong> {letter.responseError}
+                <strong>{t('lettersModal.error')}:</strong> {letter.responseError}
               </div>
             )}
             {letter.responseContent && (
               <div className="content-preview">
-                <h6>Response Content:</h6>
+                <h6>{t('lettersModal.responseContent')}:</h6>
                 <pre>{letter.responseContent}</pre>
               </div>
             )}
@@ -423,21 +435,21 @@ function LetterItem({
           
           {/* Summary Section */}
           <section>
-            <h5>Summary Status</h5>
+            <h5>{t('lettersModal.summaryStatus')}</h5>
             <div className="status-detail">
-              <strong>Status:</strong>
+              <strong>{t('lettersModal.status')}:</strong>
               <span style={{ color: getStatusColor(letter.summaryStatus), marginLeft: '8px' }}>
                 {getStatusIcon(letter.summaryStatus)} {getStatusText(letter.summaryStatus)}
               </span>
             </div>
             {letter.summaryError && (
               <div className="error-message">
-                <strong>Error:</strong> {letter.summaryError}
+                <strong>{t('lettersModal.error')}:</strong> {letter.summaryError}
               </div>
             )}
             {letter.summaryContent && (
               <div className="content-preview">
-                <h6>Summary Content:</h6>
+                <h6>{t('lettersModal.summaryContent')}:</h6>
                 <pre>{letter.summaryContent}</pre>
               </div>
             )}
@@ -445,7 +457,7 @@ function LetterItem({
           
           {/* Original Letter */}
           <section>
-            <h5>Original Letter</h5>
+            <h5>{t('lettersModal.originalLetter')}</h5>
             <div className="content-preview">
               <pre>{letter.letterContent}</pre>
             </div>
@@ -453,14 +465,14 @@ function LetterItem({
           
           {/* Metadata */}
           <section>
-            <h5>Information</h5>
+            <h5>{t('lettersModal.information')}</h5>
             <div className="metadata-grid">
-              <div><strong>Letter ID:</strong> {letter.letterId}</div>
-              <div><strong>Created:</strong> {new Date(letter.createdAt).toLocaleString()}</div>
-              <div><strong>Expected Delivery Day:</strong> {letter.expectedDeliveryDay}</div>
-              <div><strong>Current Day:</strong> {letter.currentDay}</div>
-              <div><strong>Days Until Delivery:</strong> {letter.daysUntilDelivery}</div>
-              <div><strong>Is Late:</strong> {letter.isLate ? 'Yes' : 'No'}</div>
+              <div><strong>{t('lettersModal.letterId')}:</strong> {letter.letterId}</div>
+              <div><strong>{t('lettersModal.created')}:</strong> {new Date(letter.createdAt).toLocaleString()}</div>
+              <div><strong>{t('lettersModal.expectedDeliveryDay')}:</strong> {letter.expectedDeliveryDay}</div>
+              <div><strong>{t('lettersModal.currentDay')}:</strong> {letter.currentDay}</div>
+              <div><strong>{t('lettersModal.daysUntilDelivery')}:</strong> {letter.daysUntilDelivery}</div>
+              <div><strong>{t('lettersModal.isLate')}:</strong> {letter.isLate ? t('lettersModal.yes') : t('lettersModal.no')}</div>
             </div>
           </section>
         </div>

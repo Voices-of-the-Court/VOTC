@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConfigStore } from './store/useConfigStore';
 import SummariesManager from './components/SummariesManager';
 
 const SummariesView: React.FC = () => {
+  const { t } = useTranslation();
   const appSettings = useConfigStore((state) => state.appSettings);
   const summaryProviderInstanceId = useConfigStore((state) => state.summaryProviderInstanceId);
   const setSummaryProvider = useConfigStore((state) => state.setSummaryProvider);
@@ -82,7 +84,7 @@ const SummariesView: React.FC = () => {
   };
 
   const handleResetRolling = async () => {
-    const confirm = window.confirm('Reset rolling summary prompt to default? This will replace current text.');
+    const confirm = window.confirm(t('summaries.resetRollingPrompt'));
     if (!confirm) return;
     
     // Save empty string to trigger backend to return default
@@ -99,7 +101,7 @@ const SummariesView: React.FC = () => {
   };
 
   const handleResetFinal = async () => {
-    const confirm = window.confirm('Reset final summary prompt to default? This will replace current text.');
+    const confirm = window.confirm(t('summaries.resetFinalPrompt'));
     if (!confirm) return;
     
     // Save empty string to trigger backend to return default
@@ -116,7 +118,7 @@ const SummariesView: React.FC = () => {
   };
 
   const handleResetLetterSummary = async () => {
-    const confirm = window.confirm('Reset letter summary prompt to default? This will replace current text.');
+    const confirm = window.confirm(t('summaries.resetLetterSummaryPrompt'));
     if (!confirm) return;
     
     // Save empty string to trigger backend to return default
@@ -133,7 +135,7 @@ const SummariesView: React.FC = () => {
   };
 
   const handleResetAll = async () => {
-    const confirm = window.confirm('Reset all summary prompts to defaults? This will replace all current text.');
+    const confirm = window.confirm(t('summaries.resetAllPrompts'));
     if (!confirm) return;
     
     // Save empty strings to trigger backend to return defaults
@@ -159,7 +161,7 @@ const SummariesView: React.FC = () => {
     } catch (error) {
       setImportResult({
         success: false,
-        message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: t('summaries.importFailed', { error: error instanceof Error ? error.message : 'Unknown error' }),
       });
     } finally {
       setIsImporting(false);
@@ -174,7 +176,7 @@ const SummariesView: React.FC = () => {
   };
 
   const handleClearSummaries = async () => {
-    if (!window.confirm('Are you sure you want to clear all conversation summaries? This action cannot be undone.')) {
+    if (!window.confirm(t('summaries.confirmClearSummaries'))) {
       return;
     }
     
@@ -186,18 +188,18 @@ const SummariesView: React.FC = () => {
       if (result.success) {
         setClearResult({
           success: true,
-          message: 'All summaries cleared successfully.',
+          message: t('summaries.clearSuccess'),
         });
       } else {
         setClearResult({
           success: false,
-          message: `Clear failed: ${result.error || 'Unknown error'}`,
+          message: t('summaries.clearFailed', { error: result.error || 'Unknown error' }),
         });
       }
     } catch (error) {
       setClearResult({
         success: false,
-        message: `Clear failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: t('summaries.clearFailed', { error: error instanceof Error ? error.message : 'Unknown error' }),
       });
     } finally {
       setIsClearing(false);
@@ -205,7 +207,7 @@ const SummariesView: React.FC = () => {
   };
 
   if (!appSettings || isLoading) {
-    return <div>Loading summary settings...</div>;
+    return <div>{t('summaries.loadingSummaries')}</div>;
   }
 
   // Get all available providers (base + presets)
@@ -221,28 +223,28 @@ const SummariesView: React.FC = () => {
     <div className="prompts-view">
       <div className="header-row">
         <div>
-          <h3>Summary Generation Settings</h3>
-          <p className="muted-text">Configure how conversation summaries are generated.</p>
+          <h3>{t('summaries.summaryGenerationSettings')}</h3>
+          <p className="muted-text">{t('summaries.configureSummaries')}</p>
         </div>
         <div className="header-actions">
-          <button onClick={handleResetAll}>Reset all to defaults</button>
+          <button onClick={handleResetAll}>{t('summaries.resetAllDefaults')}</button>
         </div>
       </div>
       
       <div className="form-group">
-        <h4>Provider Override</h4>
+        <h4>{t('summaries.providerOverride')}</h4>
         <p className="muted-text">
-          Choose a specific provider for generating conversation summaries. Leave as "Use Active Provider" to use your currently selected provider.
+          {t('summaries.providerOverrideHelp')}
         </p>
         
         <div className="field-row">
-          <label htmlFor="summaryProvider">Summary Provider:</label>
+          <label htmlFor="summaryProvider">{t('summaries.summaryProvider')}:</label>
           <select
             id="summaryProvider"
             value={summaryProviderInstanceId || ''}
             onChange={handleProviderChange}
           >
-            <option value="">Use Active Provider ({activeProviderName})</option>
+            <option value="">{t('summaries.useActiveProvider')} ({activeProviderName})</option>
             {allProviders.map(provider => (
               <option key={provider.instanceId} value={provider.instanceId}>
                 {provider.customName || provider.providerType}
@@ -252,27 +254,27 @@ const SummariesView: React.FC = () => {
         </div>
       </div>
       <div className="info-card">
-        <h4>About Summary Generation</h4>
+        <h4>{t('summaries.aboutSummaryGeneration')}</h4>
         <p className="muted-text">
-          Summaries are automatically generated in two scenarios:
+          {t('summaries.aboutSummaryGenerationHelp')}
         </p>
         <ul>
-          <li><strong>Rolling Summaries:</strong> Created during long conversations when the context limit is approaching. These help compress older messages while preserving important information.</li>
-          <li><strong>Final Summaries:</strong> Generated when a conversation ends. These comprehensive summaries are saved to character files and used as context in future conversations.</li>
+          <li><strong>{t('summaries.rollingSummaries')}:</strong> {t('summaries.rollingSummariesHelp')}</li>
+          <li><strong>{t('summaries.finalSummaries')}:</strong> {t('summaries.finalSummariesHelp')}</li>
         </ul>
         <p className="muted-text">
-          The prompts below show the current active prompts. Changes are automatically saved after you stop typing.
+          {t('summaries.promptsActiveInfo')}
         </p>
       </div>
       <div className="main-prompt-card">
         <div className="card-header">
-          <h4>Rolling Summary Prompt</h4>
+          <h4>{t('summaries.rollingSummaryPrompt')}</h4>
           <div className="mini-buttons">
-            <button onClick={handleResetRolling}>Reset to default</button>
+            <button onClick={handleResetRolling}>{t('prompts.resetToDefault')}</button>
           </div>
         </div>
         <p className="muted-text">
-          This prompt is used when the conversation gets too long and needs to be compressed. It creates incremental summaries during the conversation.
+          {t('summaries.rollingSummaryPromptHelp')}
         </p>
         <textarea
           value={localSettings.rollingPrompt}
@@ -284,13 +286,13 @@ const SummariesView: React.FC = () => {
 
       <div className="main-prompt-card">
         <div className="card-header">
-          <h4>Final Summary Prompt</h4>
+          <h4>{t('summaries.finalSummaryPrompt')}</h4>
           <div className="mini-buttons">
-            <button onClick={handleResetFinal}>Reset to default</button>
+            <button onClick={handleResetFinal}>{t('prompts.resetToDefault')}</button>
           </div>
         </div>
         <p className="muted-text">
-          This prompt is used at the end of a conversation to create a comprehensive summary that will be saved for future reference.
+          {t('summaries.finalSummaryPromptHelp')}
         </p>
         <textarea
           value={localSettings.finalPrompt}
@@ -302,13 +304,13 @@ const SummariesView: React.FC = () => {
 
       <div className="main-prompt-card">
         <div className="card-header">
-          <h4>Letter Summary Prompt</h4>
+          <h4>{t('summaries.letterSummaryPrompt')}</h4>
           <div className="mini-buttons">
-            <button onClick={handleResetLetterSummary}>Reset to default</button>
+            <button onClick={handleResetLetterSummary}>{t('prompts.resetToDefault')}</button>
           </div>
         </div>
         <p className="muted-text">
-          This prompt is used to generate summaries for letter exchanges between characters. These summaries are saved to character files and used as context in future conversations.
+          {t('summaries.letterSummaryPromptHelp')}
         </p>
         <textarea
           value={localSettings.letterSummaryPrompt}
@@ -319,26 +321,26 @@ const SummariesView: React.FC = () => {
       </div>
       
       <div className="form-group legacy-data-import">
-        <h4>Legacy Data Import</h4>
+        <h4>{t('summaries.legacyDataImport')}</h4>
         <p className="help-text">
-          Import conversation summaries from legacy VOTC installation. Existing summaries will be backed up.
+          {t('summaries.legacyDataImportHelp')}
         </p>
         <button
           type="button"
           onClick={handleImportLegacySummaries}
           disabled={isImporting}
         >
-          {isImporting ? 'Importing...' : 'Import Legacy Summaries'}
+          {isImporting ? t('summaries.importing') : t('summaries.importLegacySummaries')}
         </button>
         {importResult && (
           <div className={`import-result ${importResult.success ? 'success' : 'error'}`}>
             {importResult.message}
             {importResult.filesCopied && (
-              <div>Copied {importResult.filesCopied} files.</div>
+              <div>{t('summaries.filesCopied', { count: importResult.filesCopied })}</div>
             )}
             {importResult.errors && importResult.errors.length > 0 && (
               <div className="error-list">
-                <strong>Errors:</strong>
+                <strong>{t('summaries.errors')}:</strong>
                 <ul>
                   {importResult.errors.map((error, index) => (
                     <li key={index}>{error}</li>
@@ -351,16 +353,16 @@ const SummariesView: React.FC = () => {
       </div>
       
       <div className="form-group summary-management">
-        <h4>Conversation Summary Management</h4>
+        <h4>{t('summaries.conversationSummaryManagement')}</h4>
         <p className="help-text">
-          Manage conversation summaries stored for your characters.
+          {t('summaries.conversationSummaryManagementHelp')}
         </p>
         <div className="button-group">
           <button
             type="button"
             onClick={handleOpenSummariesFolder}
           >
-            Open Summaries Folder
+            {t('summaries.openSummariesFolder')}
           </button>
           <button
             type="button"
@@ -368,7 +370,7 @@ const SummariesView: React.FC = () => {
             disabled={isClearing}
             className="danger-button"
           >
-            {isClearing ? 'Clearing...' : 'Clear All Summaries'}
+            {isClearing ? t('summaries.clearing') : t('summaries.clearAllSummaries')}
           </button>
         </div>
         {clearResult && (

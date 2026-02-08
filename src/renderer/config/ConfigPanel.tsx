@@ -157,6 +157,77 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         >
           RU
         </button>
+        <button
+          onClick={() => i18n.changeLanguage('fr')}
+          style={{
+            padding: '4px 8px',
+            fontSize: '12px',
+            background: i18n.language === 'fr' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: 'pointer',
+          }}
+        >
+          FR
+        </button>
+        <button
+          onClick={() => i18n.changeLanguage('de')}
+          style={{
+            padding: '4px 8px',
+            fontSize: '12px',
+            background: i18n.language === 'de' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: 'pointer',
+          }}
+        >
+          DE
+        </button>
+        <button
+          onClick={() => i18n.changeLanguage('es')}
+          style={{
+            padding: '4px 8px',
+            fontSize: '12px',
+            background: i18n.language === 'es' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: 'pointer',
+          }}
+        >
+          ES
+        </button>
+        <button
+          onClick={() => i18n.changeLanguage('pl')}
+          style={{
+            padding: '4px 8px',
+            fontSize: '12px',
+            background: i18n.language === 'pl' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: 'pointer',
+          }}
+        >
+          PL
+        </button>
+        <button
+          onClick={() => i18n.changeLanguage('zh')}
+          style={{
+            padding: '4px 8px',
+            fontSize: '12px',
+            background: i18n.language === 'zh' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: 'pointer',
+          }}
+        >
+          ZH
+        </button>
+        
       </div>
       
       {/* Resize handles */}

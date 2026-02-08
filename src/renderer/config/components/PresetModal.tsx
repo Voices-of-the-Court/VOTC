@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface PresetModalProps {
     isOpen: boolean;
@@ -8,6 +9,7 @@ interface PresetModalProps {
 }
 
 const PresetModal: React.FC<PresetModalProps> = ({ isOpen, onClose, onSubmit, currentConfigName }) => {
+    const { t } = useTranslation();
     const [name, setName] = useState(currentConfigName || '');
 
     if (!isOpen) return null;
@@ -18,30 +20,30 @@ const PresetModal: React.FC<PresetModalProps> = ({ isOpen, onClose, onSubmit, cu
             onSubmit(name.trim());
             setName(''); // Reset after submit
         } else {
-            alert("Preset name cannot be empty.");
+            alert(t('connection.presetNameRequired'));
         }
     };
 
     return (
         <div className="modal-backdrop">
             <div className="modal-content">
-                <h4>Create New Preset</h4>
+                <h4>{t('connection.createNewPreset')}</h4>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="presetName">Preset Name:</label>
+                        <label htmlFor="presetName">{t('connection.presetName')}:</label>
                         <input
                             type="text"
                             id="presetName"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Enter preset name"
+                            placeholder={t('connection.presetNamePlaceholder')}
                             autoFocus
                             required
                         />
                     </div>
                     <div className="form-actions">
-                        <button type="submit">Save Preset</button>
-                        <button type="button" onClick={onClose}>Cancel</button>
+                        <button type="submit">{t('connection.savePreset')}</button>
+                        <button type="button" onClick={onClose}>{t('common.cancel')}</button>
                     </div>
                 </form>
             </div>
