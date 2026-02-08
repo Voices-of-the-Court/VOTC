@@ -162,10 +162,11 @@ const schema: Schema<AppSettings> = {
   },
   summaryPromptSettings: {
     type: 'object',
-    default: { rollingPrompt: '', finalPrompt: '' },
+    default: { rollingPrompt: '', finalPrompt: '', letterSummaryPrompt: '' },
     properties: {
       rollingPrompt: { type: 'string', default: '' },
-      finalPrompt: { type: 'string', default: '' }
+      finalPrompt: { type: 'string', default: '' },
+      letterSummaryPrompt: { type: 'string', default: '' }
     }
   }
 };
@@ -257,7 +258,8 @@ export class SettingsRepository {
     if ((currentAppSettings as any).summaryPromptSettings === undefined) {
         this.store.set('summaryPromptSettings', {
             rollingPrompt: '',
-            finalPrompt: ''
+            finalPrompt: '',
+            letterSummaryPrompt: ''
         });
     }
   }
@@ -624,16 +626,22 @@ export class SettingsRepository {
 Please summarize the conversation into only a single paragraph.`;
   }
 
+  getDefaultLetterSummaryPrompt(): string {
+    return 'Summarize this one-on-one letter exchange succinctly. Focus on the key topics and tone.';
+  }
+
   getSummaryPromptSettings(): SummaryPromptSettings {
     const stored = this.store.get('summaryPromptSettings', {
       rollingPrompt: '',
-      finalPrompt: ''
+      finalPrompt: '',
+      letterSummaryPrompt: ''
     });
     
     // Return stored custom prompts if set, otherwise return defaults
     return {
       rollingPrompt: stored.rollingPrompt || this.getDefaultRollingSummaryPrompt(),
-      finalPrompt: stored.finalPrompt || this.getDefaultFinalSummaryPrompt()
+      finalPrompt: stored.finalPrompt || this.getDefaultFinalSummaryPrompt(),
+      letterSummaryPrompt: stored.letterSummaryPrompt || this.getDefaultLetterSummaryPrompt()
     };
   }
 

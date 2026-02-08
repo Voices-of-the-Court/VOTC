@@ -23,6 +23,7 @@ import './llmProviders/Player2Provider';
 import { letterManager } from './letter/LetterManager';
 import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
+import { runFileManager } from './actions/RunFileManager';
 
 initLogger();
 // Keep a reference to the config window, managed globally
@@ -1004,6 +1005,11 @@ app.on('ready', () => {
     chatWindow.focus();
     chatWindow.webContents.send('chat-reset'); // This will trigger showChat in App.tsx
   });
+
+  clipboardListener.on('VOTC:EFFECT_ACCEPTED', () => {
+    console.log('VOTC:EFFECT_ACCEPTED detected - clearing run file');
+    runFileManager.clear();
+  })
 
   clipboardListener.on('VOTC:LETTER', async () => {
     console.log('VOTC:LETTER detected - generating reply');

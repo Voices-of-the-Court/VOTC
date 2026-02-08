@@ -79,8 +79,8 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setSummaryProviderId: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setSummaryProviderId', instanceId),
   getActionApprovalSettings: (): Promise<any> => ipcRenderer.invoke('llm:getActionApprovalSettings'),
   saveActionApprovalSettings: (settings: any): Promise<void> => ipcRenderer.invoke('llm:saveActionApprovalSettings', settings),
-  getSummaryPromptSettings: (): Promise<{ rollingPrompt: string; finalPrompt: string }> => ipcRenderer.invoke('llm:getSummaryPromptSettings'),
-  saveSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string }): Promise<void> => ipcRenderer.invoke('llm:saveSummaryPromptSettings', settings),
+  getSummaryPromptSettings: (): Promise<{ rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string }> => ipcRenderer.invoke('llm:getSummaryPromptSettings'),
+  saveSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string }): Promise<void> => ipcRenderer.invoke('llm:saveSummaryPromptSettings', settings),
 });
 
 contextBridge.exposeInMainWorld('promptsAPI', {

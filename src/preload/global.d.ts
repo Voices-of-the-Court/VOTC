@@ -89,8 +89,8 @@ declare global {
       setSummaryProviderId: (instanceId: string | null) => Promise<void>;
       getActionApprovalSettings: () => Promise<ActionApprovalSettings>;
       saveActionApprovalSettings: (settings: ActionApprovalSettings) => Promise<void>;
-      getSummaryPromptSettings: () => Promise<{ rollingPrompt: string; finalPrompt: string }>;
-      saveSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string }) => Promise<void>;
+      getSummaryPromptSettings: () => Promise<{ rollingPrompt: string; finalPrompt: string, letterSummaryPrompt: string }>;
+      saveSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string, letterSummaryPrompt: string}) => Promise<void>;
     };
     promptsAPI: {
       getSettings: () => Promise<PromptSettings>;
