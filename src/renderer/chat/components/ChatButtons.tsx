@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ChatButtonsProps {
   onLeave: () => void;
@@ -21,6 +22,7 @@ const ChatButtons: React.FC<ChatButtonsProps> = ({
   isPaused = false,
   queueLength = 0
 }) => {
+  const { t } = useTranslation();
   const canPause = onPause && !isPaused && isStreaming && queueLength > 1;
   const canResume = onResume && isPaused && !isStreaming;
 
@@ -30,39 +32,39 @@ const ChatButtons: React.FC<ChatButtonsProps> = ({
         <button
           onClick={onCancel}
           className="cancel-button"
-          title="Cancel Stream"
+          title={t('chat.cancelStream')}
         >
-          ❌ Cancel
+          ❌ {t('common.cancel')}
         </button>
       )}
       {canResume && (
         <button
           onClick={onResume}
           className="resume-button"
-          title="Resume Conversation"
+          title={t('chat.resumeConversation')}
         >
-          ▶️ Resume
+          ▶️ {t('common.yes')}
         </button>
       )}
       {canPause && (
         <button
           onClick={onPause}
           className="pause-button"
-          title="Pause Conversation"
+          title={t('chat.pauseConversation')}
         >
-          ⏸️ Pause
+          ⏸️ {t('common.pause')}
         </button>
       )}
       <button
         className="leave-button"
         onClick={onLeave}
       >
-        End Conversation
+        {t('chat.endConversation')}
       </button>
       <button
         onClick={onToggleConfig}
         className="config-button"
-        title="Open Configuration"
+        title={t('config.settings')}
       >
         ⚙️
       </button>

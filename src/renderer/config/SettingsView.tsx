@@ -1,8 +1,10 @@
 import React, { ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConfigStore, useAppSettings } from './store/useConfigStore';
 import { LettersStatusModal } from './components/LettersStatusModal';
 
 const SettingsView: React.FC = () => {
+  const { t } = useTranslation();
   const appSettings = useAppSettings();
   const updateGlobalStreamSetting = useConfigStore((state) => state.updateGlobalStreamSetting);
   const updatePauseOnRegeneration = useConfigStore((state) => state.updatePauseOnRegeneration);
@@ -32,7 +34,7 @@ const SettingsView: React.FC = () => {
   }, [getActionApprovalSettings]);
 
   if (!appSettings) {
-    return <div>Loading global settings...</div>;
+    return <div>{t('common.loading')}</div>;
   }
 
   const handleGlobalStreamToggle = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -97,10 +99,10 @@ const SettingsView: React.FC = () => {
 
   return (
     <div className="settings-view">
-      <h3>Global Application Settings</h3>
+      <h3>{t('settings.globalApplicationSettings')}</h3>
       
       <div className="form-group">
-        <label htmlFor="globalStreamEnabled">Enable Streaming Globally:</label>
+        <label htmlFor="globalStreamEnabled">{t('settings.enableStreamingGlobally')}:</label>
         <input
           type="checkbox"
           id="globalStreamEnabled"
@@ -111,7 +113,7 @@ const SettingsView: React.FC = () => {
       </div>
       
       <div className="form-group">
-        <label htmlFor="pauseOnRegeneration">Pause on Regeneration:</label>
+        <label htmlFor="pauseOnRegeneration">{t('settings.pauseOnRegeneration')}:</label>
         <input
           type="checkbox"
           id="pauseOnRegeneration"
@@ -122,7 +124,7 @@ const SettingsView: React.FC = () => {
       </div>
       
       <div className="form-group">
-        <label htmlFor="generateFollowingMessages">Generate Following Messages:</label>
+        <label htmlFor="generateFollowingMessages">{t('settings.generateFollowingMessages')}:</label>
         <input
           type="checkbox"
           id="generateFollowingMessages"
@@ -133,7 +135,7 @@ const SettingsView: React.FC = () => {
       </div>
       
       <div className="form-group">
-        <label htmlFor="messageFontSize">Message Font Size: {appSettings.messageFontSize?.toFixed(1) || 1.1}rem</label>
+        <label htmlFor="messageFontSize">{t('settings.messageFontSize')}: {appSettings.messageFontSize?.toFixed(1) || 1.1}rem</label>
         <input
           type="range"
           id="messageFontSize"
@@ -147,7 +149,7 @@ const SettingsView: React.FC = () => {
       </div>
       
       <div className="form-group">
-        <label htmlFor="showSettingsOnStartup">Show Settings on Startup:</label>
+        <label htmlFor="showSettingsOnStartup">{t('settings.showSettingsOnStartup')}:</label>
         <input
           type="checkbox"
           id="showSettingsOnStartup"
@@ -160,27 +162,27 @@ const SettingsView: React.FC = () => {
       <hr />
       
       <div className="form-group">
-        <h4>Action Approval Settings</h4>
+        <h4>{t('settings.actionApprovalSettings')}</h4>
         <p className="help-text">
-          Configure when actions require user approval before execution. Destructive actions (like killing characters) always require approval regardless of these settings.
+          {t('settings.actionApprovalHelp')}
         </p>
         
         <div className="form-group">
-          <label htmlFor="approvalMode">Approval Mode:</label>
+          <label htmlFor="approvalMode">{t('settings.approvalMode')}:</label>
           <select
             id="approvalMode"
             name="approvalMode"
             value={actionApprovalSettings?.approvalMode || 'none'}
             onChange={handleApprovalModeChange}
           >
-            <option value="none">No Auto-accept (All actions require approval)</option>
-            <option value="non-destructive">Auto-accept Non-destructive (Only destructive actions require approval)</option>
-            <option value="all">Auto-accept All (No actions require approval)</option>
+            <option value="none">{t('settings.approvalModeNone')}</option>
+            <option value="non-destructive">{t('settings.approvalModeNonDestructive')}</option>
+            <option value="all">{t('settings.approvalModeAll')}</option>
           </select>
         </div>
         
         <div className="form-group">
-          <label htmlFor="pauseOnApproval">Pause Conversation When Approval Needed:</label>
+          <label htmlFor="pauseOnApproval">{t('settings.pauseOnApproval')}:</label>
           <input
             type="checkbox"
             id="pauseOnApproval"
@@ -189,7 +191,7 @@ const SettingsView: React.FC = () => {
             onChange={handlePauseOnApprovalToggle}
           />
           <span className="help-text">
-            When enabled, the conversation will pause when actions need approval, allowing you to review them before continuing.
+            {t('settings.pauseOnApprovalHelp')}
           </span>
         </div>
       </div>
@@ -197,16 +199,16 @@ const SettingsView: React.FC = () => {
       <hr />
       
       <div className="form-group letter-management">
-        <h4>Letter Status Management</h4>
+        <h4>{t('settings.letterStatusManagement')}</h4>
         <p className="help-text">
-          View the status of all letters in the generation and delivery pipeline.
+          {t('settings.letterStatusHelp')}
         </p>
         <div className="button-group">
           <button
             type="button"
             onClick={() => setShowLettersModal(true)}
           >
-            View Letters Status
+            {t('settings.viewLettersStatus')}
           </button>
         </div>
       </div>
@@ -214,8 +216,8 @@ const SettingsView: React.FC = () => {
       <hr />
       
       <div className="form-group">
-        <h4>CK3 User Folder</h4>
-        <label htmlFor="ck3UserFolderPath">Current Path:</label>
+        <h4>{t('settings.ck3UserFolder')}</h4>
+        <label htmlFor="ck3UserFolderPath">{t('settings.currentPath')}:</label>
         <input
           type="text"
           id="ck3UserFolderPath"
@@ -223,13 +225,13 @@ const SettingsView: React.FC = () => {
           readOnly
         />
         <button type="button" onClick={handleSelectCK3Folder}>
-          Select Folder
+          {t('settings.selectFolder')}
         </button>
       </div>
       
       <div className="form-group">
-        <h4>VOTC Mod Location</h4>
-        <label htmlFor="modLocationPath">Current Path:</label>
+        <h4>{t('settings.votcModLocation')}</h4>
+        <label htmlFor="modLocationPath">{t('settings.currentPath')}:</label>
         <input
           type="text"
           id="modLocationPath"
@@ -237,7 +239,7 @@ const SettingsView: React.FC = () => {
           readOnly
         />
         <button type="button" onClick={handleSelectModLocationPath}>
-          Select Folder
+          {t('settings.selectFolder')}
         </button>
       </div>
       
