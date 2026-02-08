@@ -1,5 +1,6 @@
 import React, { ChangeEvent } from 'react';
 import { useConfigStore, useAppSettings } from './store/useConfigStore';
+import { LettersStatusModal } from './components/LettersStatusModal';
 
 const SettingsView: React.FC = () => {
   const appSettings = useAppSettings();
@@ -14,6 +15,7 @@ const SettingsView: React.FC = () => {
   const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
   
   const [actionApprovalSettings, setActionApprovalSettings] = React.useState<any>(null);
+  const [showLettersModal, setShowLettersModal] = React.useState(false);
   
   // Load action approval settings on mount
   React.useEffect(() => {
@@ -194,6 +196,22 @@ const SettingsView: React.FC = () => {
       
       <hr />
       
+      <div className="form-group letter-management">
+        <h4>Letter Status Management</h4>
+        <p className="help-text">
+          View the status of all letters in the generation and delivery pipeline.
+        </p>
+        <div className="button-group">
+          <button
+            type="button"
+            onClick={() => setShowLettersModal(true)}
+          >
+            View Letters Status
+          </button>
+        </div>
+      </div>
+      
+      <hr />
       
       <div className="form-group">
         <h4>CK3 User Folder</h4>
@@ -222,6 +240,10 @@ const SettingsView: React.FC = () => {
           Select Folder
         </button>
       </div>
+      
+      {showLettersModal && (
+        <LettersStatusModal onClose={() => setShowLettersModal(false)} />
+      )}
     </div>
   );
 };

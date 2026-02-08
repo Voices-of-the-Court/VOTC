@@ -111,6 +111,9 @@ declare global {
     };
     lettersAPI: {
       getPromptPreview: () => Promise<string | null>;
+      getStatuses: () => Promise<any>;
+      getLetterDetails: (letterId: string) => Promise<any | null>;
+      clearOldStatuses: (daysThreshold: number) => Promise<{success: boolean, error?: string}>;
     };
     actionsAPI: {
       reload: () => Promise<{ success: boolean; error?: string }>;

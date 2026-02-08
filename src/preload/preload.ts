@@ -105,9 +105,15 @@ contextBridge.exposeInMainWorld('promptsAPI', {
 });
 
 contextBridge.exposeInMainWorld('lettersAPI', {
-  getPromptPreview: (): Promise<string | null> => ipcRenderer.invoke('letter:getPromptPreview'),
+  getPromptPreview: (): Promise<string | null> =>
+    ipcRenderer.invoke('letter:getPromptPreview'),
+  getStatuses: (): Promise<any> =>
+    ipcRenderer.invoke('letters:getStatuses'),
+  getLetterDetails: (letterId: string): Promise<any | null> =>
+    ipcRenderer.invoke('letters:getLetterDetails', letterId),
+  clearOldStatuses: (daysThreshold: number): Promise<{success: boolean, error?: string}> =>
+    ipcRenderer.invoke('letters:clearOldStatuses', daysThreshold),
 });
-
 contextBridge.exposeInMainWorld('conversationAPI', {
   sendMessage: (userMessage: string): Promise<{streamStarted?: boolean, message?: any, error?: string}> => {
     return ipcRenderer.invoke('conversation:sendMessage', { message: userMessage });
