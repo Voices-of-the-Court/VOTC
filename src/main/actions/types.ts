@@ -1,5 +1,6 @@
 import { GameData } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
+import type { Conversation } from "../conversation/Conversation";
 
 export type ActionArgumentPrimitiveType = "number" | "string" | "enum" | "boolean";
 
@@ -63,6 +64,8 @@ export interface ActionRunContext {
   targetCharacter?: Character;
   runGameEffect: (effect: string) => void;
   args: ActionArgumentValues;
+  conversation?: Conversation; // Optional conversation access for actions
+  dryRun?: boolean; // True when action is being previewed, not executed
 }
 
 export type ActionFeedbackSentiment = 'positive' | 'negative' | 'neutral';
