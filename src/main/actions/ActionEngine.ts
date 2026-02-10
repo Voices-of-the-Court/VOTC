@@ -10,6 +10,7 @@ import { ActionPromptBuilder } from "./ActionPromptBuilder";
 import { healJsonResponseWithLogging } from "./responseHealing";
 import type { SchemaBuildInput } from "./jsonSchema";
 import { settingsRepository } from "../SettingsRepository";
+import { resolveI18nString } from "./i18nUtils";
 
 export interface ActionEvaluationResult {
   autoApproved: ActionExecutionResult[];
@@ -46,6 +47,10 @@ export class ActionEngine {
       if (signal?.aborted) {
         return { autoApproved: [], needsApproval: [] };
       }
+      
+      // Get user's language preference
+      const userLang = settingsRepository.getLanguage();
+      
       // 1) Build candidate actions for this source character
       const loaded = actionRegistry.getAllActions(/* includeDisabled = */ false);
 
@@ -66,25 +71,32 @@ export class ActionEngine {
 
           const requiresTarget = !!(checkResult.validTargetCharacterIds && checkResult.validTargetCharacterIds.length > 0);
 
-          // Handle dynamic args
+          // Handle dynamic args and resolve i18n descriptions
           let args;
           if (typeof act.definition.args === 'function') {
             args = act.definition.args({ gameData: conv.gameData, sourceCharacter: npc });
           } else {
             args = act.definition.args;
           }
+          
+          // Resolve i18n strings in argument descriptions
+          const resolvedArgs = args.map(arg => ({
+            ...arg,
+            description: resolveI18nString(arg.description, userLang)
+          }));
 
-          // Handle dynamic description
-          let description: string | undefined;
+          // Handle dynamic description and resolve i18n
+          let description: string;
           if (typeof act.definition.description === 'function') {
-            description = act.definition.description({ gameData: conv.gameData, sourceCharacter: npc });
+            const descResult = act.definition.description({ gameData: conv.gameData, sourceCharacter: npc });
+            description = resolveI18nString(descResult, userLang);
           } else {
-            description = act.definition.description;
+            description = resolveI18nString(act.definition.description, userLang);
           }
 
           available.push({
             signature: act.id,
-            args,
+            args: resolvedArgs,
             requiresTarget,
             validTargetCharacterIds: checkResult.validTargetCharacterIds,
             description,
@@ -227,10 +239,15 @@ export class ActionEngine {
           const targetId = inv.targetCharacterId ?? null;
           const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
           
+          // Resolve i18n title
+          const actionTitle = loaded.definition.title 
+            ? resolveI18nString(loaded.definition.title, userLang)
+            : undefined;
+          
           console.log(`[ActionEngine] Action ${inv.actionId} needs approval (destructive: ${isDestructive})`);
           needsApproval.push({
             actionId: inv.actionId,
-            actionTitle: loaded.definition.title,
+            actionTitle,
             sourceCharacterId: npc.id,
             sourceCharacterName: npc.shortName,
             targetCharacterId: targetId ?? undefined,
@@ -283,6 +300,9 @@ export class ActionEngine {
     const targetId = inv.targetCharacterId ?? null;
     const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
 
+    // Get user's language preference
+    const userLang = settingsRepository.getLanguage();
+
     // console.log("Running action:", inv.actionId, { source: npc.id, target: targetId, args: inv.args });
     const runGameEffect = (effectBody: string) => {
       // In dry runs we avoid writing to the game run file
@@ -308,7 +328,8 @@ export class ActionEngine {
         runGameEffect,
         args,
         conversation: conv,
-        dryRun: options?.dryRun
+        dryRun: options?.dryRun,
+        lang: userLang
       });
 
       // Handle different return types
@@ -316,14 +337,23 @@ export class ActionEngine {
       if (result) {
         // console.log(`Action ${inv.actionId} executed successfully with result:`, result);
         if (typeof result === 'string') {
-          // Simple string feedback - default to neutral sentiment
+          // Simple string feedback - resolve i18n and default to neutral sentiment
           feedback = { message: result, sentiment: 'neutral' };
-        } else if (typeof result === 'object' && 'message' in result) {
-          // ActionFeedback object with optional sentiment
-          feedback = {
-            message: result.message,
-            sentiment: result.sentiment || 'neutral'
-          };
+        } else if (typeof result === 'object') {
+          // Could be I18nString object or ActionFeedback object
+          if ('message' in result) {
+            // ActionFeedback object with optional sentiment
+            feedback = {
+              message: resolveI18nString(result.message, userLang),
+              sentiment: (result.sentiment || 'neutral') as 'positive' | 'negative' | 'neutral'
+            };
+          } else {
+            // Plain I18nString object (Record<string, string>)
+            feedback = {
+              message: resolveI18nString(result, userLang),
+              sentiment: 'neutral'
+            };
+          }
         }
       }
 

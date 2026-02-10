@@ -4,10 +4,13 @@ import type { Conversation } from "../conversation/Conversation";
 
 export type ActionArgumentPrimitiveType = "number" | "string" | "enum" | "boolean";
 
+// i18n support: string or object with language codes
+export type I18nString = string | Record<string, string>;
+
 export interface ActionArgumentBase {
   name: string;
   displayName?: string;
-  description: string;
+  description: I18nString;
   required?: boolean;
 }
 
@@ -45,7 +48,7 @@ export type ActionArgumentValue = number | string | boolean | null;
 export type ActionArgumentValues = Record<string, ActionArgumentValue>;
 
 export type DynamicArgsFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => ActionArgumentDefinition[];
-export type DynamicDescriptionFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => string;
+export type DynamicDescriptionFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => I18nString;
 
 export interface ActionCheckContext {
   gameData: GameData;
@@ -66,23 +69,24 @@ export interface ActionRunContext {
   args: ActionArgumentValues;
   conversation?: Conversation; // Optional conversation access for actions
   dryRun?: boolean; // True when action is being previewed, not executed
+  lang?: string; // Language code for i18n (e.g., 'en', 'ru', 'fr')
 }
 
 export type ActionFeedbackSentiment = 'positive' | 'negative' | 'neutral';
 
 export interface ActionFeedback {
-  message: string;
+  message: I18nString;
   sentiment?: ActionFeedbackSentiment;
 }
 
 export interface ActionDefinition {
   signature: string;
-  title?: string;
-  description: string | DynamicDescriptionFunction;
+  title?: I18nString;
+  description: I18nString | DynamicDescriptionFunction;
   args: ActionArgumentDefinition[] | DynamicArgsFunction;
   isDestructive?: boolean; // New field to mark destructive actions
   check: (context: ActionCheckContext) => Promise<ActionCheckResult> | ActionCheckResult;
-  run: (context: ActionRunContext) => Promise<string | ActionFeedback | void> | string | ActionFeedback | void;
+  run: (context: ActionRunContext) => Promise<I18nString | ActionFeedback | void> | I18nString | ActionFeedback | void;
 }
 
 export interface ActionExecutionResult {

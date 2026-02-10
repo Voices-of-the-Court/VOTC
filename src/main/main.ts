@@ -14,6 +14,7 @@ import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 import { appUpdater } from './AutoUpdater';
 import { focusMonitor } from './FocusMonitor';
+import { resolveI18nString } from './actions/i18nUtils';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
@@ -359,6 +360,14 @@ const setupIpcHandlers = () => {
     settingsRepository.saveShowSettingsOnStartupSetting(enabled);
   });
 
+  ipcMain.handle('llm:getLanguage', () => {
+    return settingsRepository.getLanguage();
+  });
+
+  ipcMain.handle('llm:saveLanguage', (_, language: string) => {
+    settingsRepository.saveLanguage(language);
+  });
+
   ipcMain.handle('llm:getCurrentContextLength', async () => {
     try {
       return await llmManager.getCurrentContextLength();
@@ -461,9 +470,11 @@ const setupIpcHandlers = () => {
   ipcMain.handle('actions:getAll', async () => {
     try {
       const actions = actionRegistry.getAllActions(/* includeDisabled = */ true);
+      const userLang = settingsRepository.getLanguage();
+      
       return actions.map(a => ({
         id: a.id,
-        title: a.definition.title || a.id,
+        title: a.definition.title ? resolveI18nString(a.definition.title, userLang) : a.id,
         scope: a.scope,
         filePath: a.filePath,
         validation: a.validation,

@@ -55,4 +55,25 @@ i18n
     }
   });
 
+// Sync language changes with main process for action i18n
+i18n.on('languageChanged', (lng) => {
+  // Save to main process settings so actions can use the same language
+  if (window.llmConfigAPI?.saveLanguage) {
+    window.llmConfigAPI.saveLanguage(lng).catch(err => {
+      console.error('Failed to sync language to main process:', err);
+    });
+  }
+});
+
+// Load language from main process on startup
+if (window.llmConfigAPI?.getLanguage) {
+  window.llmConfigAPI.getLanguage().then(lang => {
+    if (lang && lang !== i18n.language) {
+      i18n.changeLanguage(lang);
+    }
+  }).catch(err => {
+    console.error('Failed to load language from main process:', err);
+  });
+}
+
 export default i18n;

@@ -263,6 +263,7 @@ export interface AppSettings {
   actionSettings?: ActionSettings;
   actionApprovalSettings?: ActionApprovalSettings;
   summaryPromptSettings?: SummaryPromptSettings; // Custom prompts for summaries
+  language?: string; // User's preferred language code (e.g., 'en', 'ru', 'fr')
 }
 
 
