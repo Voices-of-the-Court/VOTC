@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConfigStore } from './store/useConfigStore';
 import type { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
 import PromptPreview from './components/PromptPreview';
@@ -6,6 +7,7 @@ import PromptPreview from './components/PromptPreview';
 type BlockUpdater = (block: PromptBlock) => PromptBlock;
 
 const PromptsView: React.FC = () => {
+  const { t } = useTranslation();
   const promptSettings = useConfigStore((state) => state.promptSettings);
   const letterPromptSettings = useConfigStore((state) => state.letterPromptSettings);
   const promptFiles = useConfigStore((state) => state.promptFiles);
@@ -71,7 +73,7 @@ const PromptsView: React.FC = () => {
   );
 
   if (!localSettings) {
-    return <div>Loading prompt configuration...</div>;
+    return <div>{t('prompts.loadingPromptConfig')}</div>;
   }
 
   const persist = (next: PromptSettings, immediate = false) => {
@@ -127,7 +129,7 @@ const PromptsView: React.FC = () => {
     const newBlock: PromptBlock = {
       id: `custom-${Date.now()}`,
       type: 'custom',
-      label: 'Custom Text Block',
+      label: t('prompts.customTextBlock'),
       enabled: true,
       role: 'system',
       template: '',
@@ -137,7 +139,7 @@ const PromptsView: React.FC = () => {
   };
 
   const handleResetMain = async () => {
-    const confirm = window.confirm('Reset main prompt to default template? This will replace current text.');
+    const confirm = window.confirm(t('prompts.resetMainPrompt'));
     if (!confirm) return;
     const defaultMain = mode === 'conversation' ? await window.promptsAPI.getDefaultMain() : await window.promptsAPI.getDefaultLetterMain();
     persist({ ...localSettings, mainTemplate: defaultMain });
@@ -151,7 +153,7 @@ const PromptsView: React.FC = () => {
 
   const handleSavePreset = async (mode: 'new' | 'update') => {
     if (!localSettings) return;
-    const name = presetName?.trim() || selectedPreset?.name || 'Prompt Preset';
+    const name = presetName?.trim() || selectedPreset?.name || t('prompts.presets');
 
     const preset: PromptPreset = {
       id: mode === 'update' && selectedPreset ? selectedPreset.id : '',
@@ -168,7 +170,7 @@ const PromptsView: React.FC = () => {
 
   const handleDeletePreset = async () => {
     if (!selectedPresetId) return;
-    const confirm = window.confirm('Delete this preset?');
+    const confirm = window.confirm(t('prompts.deletePreset'));
     if (!confirm) return;
     await deletePromptPreset(selectedPresetId);
     setSelectedPresetId(null);
@@ -179,9 +181,9 @@ const PromptsView: React.FC = () => {
     const result = await exportPromptsZip(localSettings);
     if (result?.cancelled) return;
     if (result?.success) {
-      alert(`Exported to ${result.path}`);
+      alert(t('prompts.exportedTo', { path: result.path }));
     } else {
-      alert('Failed to export prompts.');
+      alert(t('prompts.failedToExport'));
     }
   };
 
@@ -228,13 +230,13 @@ const PromptsView: React.FC = () => {
       case 'memories':
         return (
           <>
-            <label>Memories pretext (Handlebars)</label>
+            <label>{t('prompts.memoriesPretext')}</label>
             <textarea
               value={block.template || ''}
               rows={3}
               onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
             />
-            <label>Memories to include</label>
+            <label>{t('prompts.memoriesToInclude')}</label>
             <input
               type="number"
               min={1}
@@ -246,7 +248,7 @@ const PromptsView: React.FC = () => {
       case 'rolling_summary':
         return (
           <>
-            <label>Rolling summary pretext (Handlebars)</label>
+            <label>{t('prompts.rollingSummaryPretext')}</label>
             <textarea
               value={block.template || ''}
               rows={3}
@@ -257,11 +259,11 @@ const PromptsView: React.FC = () => {
       case 'past_summaries':
         return (
           <>
-            <label>Past summaries pretext (Handlebars)</label>
+            <label>{t('prompts.pastSummariesPretext')}</label>
             <textarea
               value={block.template || ''}
               rows={3}
-              placeholder="Leave empty to use default text"
+              placeholder={t('prompts.leaveEmptyDefault')}
               onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
             />
           </>
@@ -269,14 +271,14 @@ const PromptsView: React.FC = () => {
       case 'instruction':
         return (
           <>
-            <label>Main instruction (Handlebars)</label>
+            <label>{t('prompts.mainInstruction')}</label>
             <textarea
               value={block.template || ''}
               rows={3}
               onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
             />
             <div className="field-row compact">
-              <label>Role</label>
+              <label>{t('prompts.role')}</label>
               <select
                 value={block.role || 'user'}
                 onChange={(e) => updateBlock(block.id, (b) => ({ ...b, role: e.target.value as any }))}
@@ -291,14 +293,14 @@ const PromptsView: React.FC = () => {
       case 'custom':
         return (
           <>
-            <label>Label</label>
+            <label>{t('prompts.label')}</label>
             <input
               type="text"
               value={block.label || ''}
               onChange={(e) => updateBlock(block.id, (b) => ({ ...b, label: e.target.value }))}
             />
             <div className="field-row compact">
-              <label>Role</label>
+              <label>{t('prompts.role')}</label>
               <select
                 value={block.role || 'system'}
                 onChange={(e) => updateBlock(block.id, (b) => ({ ...b, role: e.target.value as any }))}
@@ -308,14 +310,14 @@ const PromptsView: React.FC = () => {
                 <option value="assistant">assistant</option>
               </select>
             </div>
-            <label>Template (Handlebars)</label>
+            <label>{t('prompts.template')}</label>
             <textarea
               value={block.template || ''}
               rows={4}
               onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
             />
             <div className="mini-buttons spaced">
-              <button onClick={() => removeBlock(block.id)}>Delete block</button>
+              <button onClick={() => removeBlock(block.id)}>{t('prompts.deleteBlock')}</button>
             </div>
           </>
         );
@@ -357,11 +359,11 @@ const PromptsView: React.FC = () => {
                 checked={block.enabled}
                 onChange={(e) => updateBlock(block.id, (b) => ({ ...b, enabled: e.target.checked }))}
               />
-              <span>Enabled</span>
+              <span>{t('prompts.enabled')}</span>
             </label>
             <button onClick={() => moveBlockBy(block.id, -1)}>↑</button>
             <button onClick={() => moveBlockBy(block.id, 1)}>↓</button>
-            <button onClick={() => setExpandedId(isExpanded ? null : block.id)}>{isExpanded ? 'Hide' : 'Edit'}</button>
+            <button onClick={() => setExpandedId(isExpanded ? null : block.id)}>{isExpanded ? t('prompts.hide') : t('prompts.edit')}</button>
           </div>
         </div>
         {isExpanded && (
@@ -377,17 +379,17 @@ const PromptsView: React.FC = () => {
     <div className="prompts-view">
       <div className="header-row">
         <div>
-          <h3>Prompt Builder</h3>
-          <p className="muted-text">Reorder, toggle, and edit blocks that compose the prompt.</p>
+          <h3>{t('prompts.promptBuilder')}</h3>
+          <p className="muted-text">{t('prompts.promptBuilderHelp')}</p>
         </div>
         <div className="header-actions">
-          <button onClick={openPromptsFolder}>Open prompts folder</button>
-          <button onClick={() => refreshPromptFiles()}>Refresh files</button>
-          <button onClick={handleExport}>Export ZIP</button>
+          <button onClick={openPromptsFolder}>{t('prompts.openPromptsFolder')}</button>
+          <button onClick={() => refreshPromptFiles()}>{t('prompts.refreshFiles')}</button>
+          <button onClick={handleExport}>{t('prompts.exportZip')}</button>
         </div>
       </div>
       <div className="field-row spaced">
-        <label>Prompt set</label>
+        <label>{t('prompts.promptSet')}</label>
         <div className="mini-buttons">
           <button
             className={mode === 'conversation' ? 'primary' : ''}
@@ -396,7 +398,7 @@ const PromptsView: React.FC = () => {
               if (promptSettings) setLocalSettings(promptSettings);
             }}
           >
-            Conversation
+            {t('prompts.conversation')}
           </button>
           <button
             className={mode === 'letter' ? 'primary' : ''}
@@ -405,16 +407,16 @@ const PromptsView: React.FC = () => {
               if (letterPromptSettings) setLocalSettings(letterPromptSettings);
             }}
           >
-            Letters
+            {t('prompts.letters')}
           </button>
         </div>
       </div>
 
       <div className="main-prompt-card">
         <div className="card-header">
-          <h4>Main prompt (Handlebars)</h4>
+          <h4>{t('prompts.mainPrompt')}</h4>
           <div className="mini-buttons">
-            <button onClick={handleResetMain}>Reset to default</button>
+            <button onClick={handleResetMain}>{t('prompts.resetToDefault')}</button>
           </div>
         </div>
         <textarea
@@ -427,7 +429,7 @@ const PromptsView: React.FC = () => {
       {mode === 'conversation' && (
         <div className="presets-bar">
           <div className="field-row">
-            <label>Presets</label>
+            <label>{t('prompts.presets')}</label>
             <select
               value={selectedPresetId || ''}
               onChange={(e) => {
@@ -440,24 +442,24 @@ const PromptsView: React.FC = () => {
                 }
               }}
             >
-              <option value="">Select preset...</option>
+              <option value="">{t('prompts.selectPreset')}</option>
               {promptPresets.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
             <input
               type="text"
-              placeholder="Preset name"
+              placeholder={t('connection.presetName')}
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
             />
           </div>
           <div className="mini-buttons">
             <button onClick={() => handleSavePreset(selectedPreset ? 'update' : 'new')}>
-              {selectedPreset ? 'Update preset' : 'Save preset'}
+              {selectedPreset ? t('prompts.updatePreset') : t('prompts.savePreset')}
             </button>
-            <button onClick={() => handleSavePreset('new')}>Save as new</button>
-            <button disabled={!selectedPresetId} onClick={handleDeletePreset}>Delete</button>
+            <button onClick={() => handleSavePreset('new')}>{t('prompts.saveAsNew')}</button>
+            <button disabled={!selectedPresetId} onClick={handleDeletePreset}>{t('prompts.delete')}</button>
           </div>
         </div>
       )}
@@ -467,12 +469,12 @@ const PromptsView: React.FC = () => {
       </div>
 
       <div className="actions-row">
-        <button onClick={addCustomBlock}>Add custom block</button>
+        <button onClick={addCustomBlock}>{t('prompts.addCustomBlock')}</button>
       </div>
 
       <div className="suffix-card">
         <div className="card-header">
-          <h4>Suffix</h4>
+          <h4>{t('prompts.suffix')}</h4>
           <label className="toggle">
             <input
               type="checkbox"
@@ -482,7 +484,7 @@ const PromptsView: React.FC = () => {
                 suffix: { ...localSettings.suffix, enabled: e.target.checked }
               })}
             />
-            <span>Enabled</span>
+            <span>{t('prompts.enabled')}</span>
           </label>
         </div>
         {localSettings.suffix?.enabled && (

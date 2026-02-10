@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type ActionListItem = {
   id: string;
@@ -10,6 +11,7 @@ type ActionListItem = {
 };
 
 const ActionsView: React.FC = () => {
+  const { t } = useTranslation();
   const [allActions, setAllActions] = useState<ActionListItem[]>([]);
   const [hideDisabled, setHideDisabled] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -32,7 +34,7 @@ const ActionsView: React.FC = () => {
       }));
       setAllActions(merged);
     } catch (e: any) {
-      setError(e?.message || 'Failed to load actions.');
+      setError(e?.message || t('actions.failedToLoadActions'));
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +68,7 @@ const ActionsView: React.FC = () => {
         prev.map(a => (a.id === id ? { ...a, disabled: !current } : a))
       );
     } catch (e: any) {
-      alert(`Failed to update action state: ${e?.message || e}`);
+      alert(t('actions.failedToUpdateActionState', { error: e?.message || e }));
     }
   };
 
@@ -83,7 +85,7 @@ const ActionsView: React.FC = () => {
     try {
       await (window as any).actionsAPI?.openFolder?.();
     } catch (e: any) {
-      alert(`Failed to open actions folder: ${e?.message || e}`);
+      alert(t('actions.failedToOpenActionsFolder', { error: e?.message || e }));
     }
   };
 
@@ -93,7 +95,7 @@ const ActionsView: React.FC = () => {
       await (window as any).actionsAPI?.reload?.();
       await load();
     } catch (e: any) {
-      setError(e?.message || 'Failed to reload actions.');
+      setError(e?.message || t('actions.failedToReloadActions'));
       setIsLoading(false);
     }
   };
@@ -101,15 +103,15 @@ const ActionsView: React.FC = () => {
   return (
     <div className="actions-view">
       <div className="actions-toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-        <button type="button" onClick={reload} title="Reload actions">🔄 Reload</button>
-        <button type="button" onClick={openFolder} title="Open actions folder">📂 Open Actions Folder</button>
+        <button type="button" onClick={reload} title={t('actions.reloadActions')}>🔄 {t('actions.reloadActions')}</button>
+        <button type="button" onClick={openFolder} title={t('actions.openActionsFolder')}>📂 {t('actions.openActionsFolder')}</button>
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <input
             type="checkbox"
             checked={hideDisabled}
             onChange={(e) => setHideDisabled(e.target.checked)}
           />
-          Hide disabled
+          {t('actions.hideDisabled')}
         </label>
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <input
@@ -117,11 +119,11 @@ const ActionsView: React.FC = () => {
             checked={showOnlyInvalid}
             onChange={(e) => setShowOnlyInvalid(e.target.checked)}
           />
-          Show only invalid
+          {t('actions.showOnlyInvalid')}
         </label>
       </div>
 
-      {isLoading && <div>Loading actions...</div>}
+      {isLoading && <div>{t('actions.loadingActions')}</div>}
       {error && <div className="error">{error}</div>}
 
       {!isLoading && !error && (
@@ -129,7 +131,7 @@ const ActionsView: React.FC = () => {
           {visibleActions.map((a) => {
             const mutedStyle = a.disabled ? { opacity: 0.5 } : undefined;
             const validationIcon = a.validation.valid ? '✅' : '⚠️';
-            const validationTitle = a.validation.valid ? 'Valid action' : (a.validation.message || 'Invalid action');
+            const validationTitle = a.validation.valid ? t('actions.validAction') : (a.validation.message || t('actions.invalidAction'));
 
             return (
               <div
@@ -150,7 +152,7 @@ const ActionsView: React.FC = () => {
                     type="checkbox"
                     checked={!a.disabled}
                     onChange={() => toggleDisabled(a.id, a.disabled)}
-                    title={a.disabled ? 'Enable action' : 'Disable action'}
+                    title={a.disabled ? t('actions.enableAction') : t('actions.disableAction')}
                   />
                 </div>
 
@@ -178,7 +180,7 @@ const ActionsView: React.FC = () => {
 
           {visibleActions.length === 0 && (
             <div style={{ opacity: 0.7 }}>
-              No actions to display with the current filters.
+              {t('actions.noActionsToDisplay')}
             </div>
           )}
         </div>

@@ -94,6 +94,10 @@ const schema: Schema<AppSettings> = {
     type: 'boolean',
     default: true
   },
+  language: {
+    type: 'string',
+    default: 'en'
+  },
   promptSettings: {
     type: 'object',
     default: {} as PromptSettings,
@@ -312,7 +316,8 @@ export class SettingsRepository {
       letterPromptSettings: this.getLetterPromptSettings(),
       actionSettings: this.getActionSettings(),
       actionApprovalSettings: this.getActionApprovalSettings(),
-      summaryPromptSettings: this.getSummaryPromptSettings()
+      summaryPromptSettings: this.getSummaryPromptSettings(),
+      language: this.getLanguage()
     };
   }
 
@@ -397,6 +402,15 @@ export class SettingsRepository {
   saveShowSettingsOnStartupSetting(enabled: boolean): void {
     this.store.set('showSettingsOnStartup', enabled);
     console.log('Show settings on startup setting saved:', enabled);
+  }
+
+  getLanguage(): string {
+    return this.store.get('language', 'en'); // Default to English
+  }
+
+  saveLanguage(language: string): void {
+    this.store.set('language', language);
+    console.log('Language setting saved:', language);
   }
 
   // --- Prompt settings ---

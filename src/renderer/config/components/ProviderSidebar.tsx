@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
 import { PROVIDER_TYPES } from '../../../main/llmProviders/types';
 import { useAppSettings } from '../store/useConfigStore';
@@ -26,6 +27,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
     onSetActionsProvider,
     onSetSummaryProvider,
 }) => {
+    const { t } = useTranslation();
     const appSettings = useAppSettings();
     const baseProviderTypes: ConfigProviderType[] = [...PROVIDER_TYPES];
 
@@ -40,10 +42,10 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
         const activeId = appSettings?.llmSettings.activeProviderInstanceId;
         const activeProvider = allProviders.find(p => p.instanceId === activeId);
         return {
-            displayName: activeProvider?.customName || activeProvider?.providerType || 'None',
-            modelName: activeProvider?.defaultModel || 'No model selected'
+            displayName: activeProvider?.customName || activeProvider?.providerType || t('promptPreview.none'),
+            modelName: activeProvider?.defaultModel || t('promptPreview.noModelSelected')
         };
-    }, [appSettings?.llmSettings.activeProviderInstanceId, allProviders]);
+    }, [appSettings?.llmSettings.activeProviderInstanceId, allProviders, t]);
 
     // Helper to get CSS class for assignment styling
     const getAssignmentClass = (instanceId: string) => {
@@ -58,7 +60,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
     return (
         <div className="provider-sidebar">
             <div className="providers-presets-container">
-                <h4>Providers</h4>
+                <h4>{t('connection.providers')}</h4>
                 <ul className="provider-list">
                     {baseProviderTypes.map(type => {
                         return (
@@ -76,7 +78,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                     })}
                 </ul>
                 <hr />
-                <h4>Presets</h4>
+                <h4>{t('connection.presets')}</h4>
                 {appSettings?.llmSettings.presets && appSettings.llmSettings.presets.length > 0 ? (
                     <ul className="preset-list">
                         {appSettings.llmSettings.presets.map(preset => {
@@ -90,8 +92,8 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                                     onClick={() => onSelectPreset(preset.instanceId)}
                                 >
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden', width: '100%' }}>
-                                        <span className="preset-name" title={preset.customName || 'Unnamed Preset'}>
-                                            {preset.customName || 'Unnamed Preset'}
+                                        <span className="preset-name" title={preset.customName || t('config.unnamedPreset')}>
+                                            {preset.customName || t('config.unnamedPreset')}
                                         </span>
                                         <small className="preset-type">({preset.providerType})</small>
                                     </div>
@@ -101,7 +103,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                                             onDeletePreset(preset.instanceId);
                                         }}
                                         className="delete-preset-btn"
-                                        title="Delete preset"
+                                        title={t('connection.deletePreset')}
                                     >
                                         &times;
                                     </button>
@@ -110,14 +112,14 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                         })}
                     </ul>
                 ) : (
-                    <p className="no-presets-message">No presets saved yet.</p>
+                    <p className="no-presets-message">{t('config.noPresetsYet')}</p>
                 )}
             </div>
             
             {/* Override For Section */}
             <div className="override-section">
                 <div className="override-item npc-messages-indicator">
-                    <label>💬 NPC Messages</label>
+                    <label>{t('config.npcMessages')}</label>
                     <div className="npc-provider-display">
                         <div className="provider-info" title={activeProviderInfo.modelName}>
                             <span className="provider-name">{activeProviderInfo.displayName}</span>
@@ -127,12 +129,12 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                 </div>
                 
                 <div className="override-item">
-                    <label>⚡ Actions</label>
+                    <label>{t('config.npcActions')}</label>
                     <select 
                         value={actionsProviderInstanceId || ''}
                         onChange={(e) => onSetActionsProvider(e.target.value || null)}
                     >
-                        <option value="">Default</option>
+                        <option value="">{t('config.default')}</option>
                         {allProviders.map(p => (
                             <option key={p.instanceId} value={p.instanceId}>
                                 {p.customName || p.providerType}
@@ -142,12 +144,12 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                 </div>
                 
                 <div className="override-item">
-                    <label>📝 Summaries</label>
+                    <label>{t('config.npcSummaries')}</label>
                     <select 
                         value={summaryProviderInstanceId || ''}
                         onChange={(e) => onSetSummaryProvider(e.target.value || null)}
                     >
-                        <option value="">Default</option>
+                        <option value="">{t('config.default')}</option>
                         {allProviders.map(p => (
                             <option key={p.instanceId} value={p.instanceId}>
                                 {p.customName || p.providerType}

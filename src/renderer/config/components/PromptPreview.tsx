@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import './PromptPreview.scss';
 
 interface PromptPreviewProps {
@@ -28,6 +29,7 @@ interface ConversationData {
 }
 
 const PromptPreview: React.FC<PromptPreviewProps> = ({ onCharacterChange, promptSettingsVersion }) => {
+  const { t } = useTranslation();
   const [conversationData, setConversationData] = useState<ConversationData | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
@@ -109,10 +111,10 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({ onCharacterChange, prompt
     return (
       <div className="prompt-preview">
         <div className="prompt-preview-header">
-          <h3>Prompt Preview</h3>
+          <h3>{t('promptPreview.promptPreview')}</h3>
         </div>
         <div className="prompt-preview-content">
-          <p className="muted-text">No active conversation. Start a conversation to preview prompts.</p>
+          <p className="muted-text">{t('promptPreview.noActiveConversation')}</p>
         </div>
       </div>
     );
@@ -121,9 +123,9 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({ onCharacterChange, prompt
   return (
     <div className="prompt-preview">
       <div className="prompt-preview-header">
-        <h3>Prompt Preview</h3>
+        <h3>{t('promptPreview.promptPreview')}</h3>
         <div className="character-selector">
-          <label>Character:</label>
+          <label>{t('promptPreview.character')}:</label>
           <select value={selectedCharacterId || ''} onChange={handleCharacterChange}>
             {conversationData.characters
               .filter((c: any) => c.id !== conversationData.playerID)
@@ -137,20 +139,20 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({ onCharacterChange, prompt
       </div>
       
       <div className="prompt-preview-content">
-        {loading && <p>Loading preview...</p>}
+        {loading && <p>{t('promptPreview.loadingPreview')}</p>}
         {error && <p className="error-text">{error}</p>}
         
         {previewData && (
           <div className="preview-results">
             <div className="token-summary">
-              <h4>Total Tokens: <span className="token-count-large">{previewData.totalTokens}</span></h4>
+              <h4>{t('promptPreview.totalTokens')}: <span className="token-count-large">{previewData.totalTokens}</span></h4>
               <button className="toggle-all-btn" onClick={toggleAllBlocks}>
-                {expandedBlocks.size === previewData.blocks.length ? 'Collapse All' : 'Expand All'}
+                {expandedBlocks.size === previewData.blocks.length ? t('common.collapseAll') : t('common.expandAll')}
               </button>
             </div>
             
             <div className="preview-blocks">
-              <h4>Prompt Blocks ({previewData.blocks.length}):</h4>
+              <h4>{t('promptPreview.promptBlocks')} ({previewData.blocks.length}):</h4>
               {previewData.blocks.map((block, index) => (
                 <div key={index} className={`preview-block ${expandedBlocks.has(index) ? 'expanded' : ''}`}>
                   <div className="block-header" onClick={() => toggleBlockExpanded(index)}>
@@ -159,7 +161,7 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({ onCharacterChange, prompt
                       <strong>{block.block.label}</strong>
                       <span className="badge">{block.block.type}</span>
                     </div>
-                    <span className="token-count">{block.tokens} tokens</span>
+                    <span className="token-count">{block.tokens} {t('common.tokens')}</span>
                   </div>
                   {expandedBlocks.has(index) && (
                     <div className="block-content">
