@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n';
 import { useConfigStore } from './store/useConfigStore';
 import './configPanel.scss';
 import ConnectionView from './ConnectionView';
@@ -12,6 +11,7 @@ import discordIcon from '../assets/discord-icon.svg';
 import tooltipIcon from '../assets/tooltip2.png';
 import logsIcon from '../assets/folder.svg';
 import { useDraggableResizable } from '../hooks/useDraggableResizable';
+import LanguageSelector from '../components/LanguageSelector';
 
 type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts' | 'summaries';
 
@@ -119,116 +119,6 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
           zIndex: 10,
         }}
       />
-      
-      {/* Language switcher */}
-      <div style={{ 
-        position: 'absolute', 
-        top: '8px', 
-        right: '50px', 
-        zIndex: 12,
-        display: 'flex',
-        gap: '4px'
-      }}>
-        <button
-          onClick={() => i18n.changeLanguage('en')}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            background: i18n.language === 'en' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '4px',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-        >
-          EN
-        </button>
-        <button
-          onClick={() => i18n.changeLanguage('ru')}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            background: i18n.language === 'ru' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '4px',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-        >
-          RU
-        </button>
-        <button
-          onClick={() => i18n.changeLanguage('fr')}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            background: i18n.language === 'fr' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '4px',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-        >
-          FR
-        </button>
-        <button
-          onClick={() => i18n.changeLanguage('de')}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            background: i18n.language === 'de' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '4px',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-        >
-          DE
-        </button>
-        <button
-          onClick={() => i18n.changeLanguage('es')}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            background: i18n.language === 'es' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '4px',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-        >
-          ES
-        </button>
-        <button
-          onClick={() => i18n.changeLanguage('pl')}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            background: i18n.language === 'pl' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '4px',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-        >
-          PL
-        </button>
-        <button
-          onClick={() => i18n.changeLanguage('zh')}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            background: i18n.language === 'zh' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '4px',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-        >
-          ZH
-        </button>
-        
-      </div>
       
       {/* Resize handles */}
       <div
@@ -341,6 +231,7 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
           <button className="tooltip-button" title={t('config.help')}>
             <img src={tooltipIcon} alt="?" className="tooltip-icon" />
           </button>
+          <LanguageSelector />
           <button 
             className="discord-button visible" 
             onClick={handleDiscordClick} 
