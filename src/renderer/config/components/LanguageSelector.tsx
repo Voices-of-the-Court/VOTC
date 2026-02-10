@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import languageIcon from '../assets/language.svg';
+import languageIcon from '../../assets/language.svg';
 import './LanguageSelector.scss';
 
 interface Language {

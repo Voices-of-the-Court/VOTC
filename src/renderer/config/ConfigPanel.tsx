@@ -11,7 +11,7 @@ import discordIcon from '../assets/discord-icon.svg';
 import tooltipIcon from '../assets/tooltip2.png';
 import logsIcon from '../assets/folder.svg';
 import { useDraggableResizable } from '../hooks/useDraggableResizable';
-import LanguageSelector from '../components/LanguageSelector';
+import LanguageSelector from './components/LanguageSelector';
 
 type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts' | 'summaries';
 
