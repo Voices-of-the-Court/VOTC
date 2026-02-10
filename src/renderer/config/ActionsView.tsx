@@ -8,6 +8,7 @@ type ActionListItem = {
   filePath: string;
   validation: { valid: boolean; message?: string };
   disabled: boolean;
+  isDestructive: boolean;
 };
 
 const ActionsView: React.FC = () => {
@@ -17,16 +18,14 @@ const ActionsView: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showOnlyInvalid, setShowOnlyInvalid] = useState<boolean>(false);
+  const [hoveredAction, setHoveredAction] = useState<string | null>(null);
 
   const load = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      // Load settings (for disabled state cache)
       const settings = await (window as any).actionsAPI?.getSettings?.();
-      // Load actions
       const items: ActionListItem[] = await (window as any).actionsAPI?.getAll?.();
-      // Overlay disabled from settings just in case
       const disabledSet = new Set<string>(settings?.disabledActions || []);
       const merged = items.map(a => ({
         ...a,
@@ -52,7 +51,6 @@ const ActionsView: React.FC = () => {
     if (showOnlyInvalid) {
       list = list.filter(a => !a.validation.valid);
     }
-    // Stable sorted: invalid first, then by scope, then alpha by title
     return [...list].sort((a, b) => {
       if (a.validation.valid !== b.validation.valid) return a.validation.valid ? 1 : -1;
       if (a.scope !== b.scope) return a.scope === 'standard' ? -1 : 1;
@@ -63,7 +61,6 @@ const ActionsView: React.FC = () => {
   const toggleDisabled = async (id: string, current: boolean) => {
     try {
       await (window as any).actionsAPI?.setDisabled?.(id, !current);
-      // refresh in memory state
       setAllActions(prev =>
         prev.map(a => (a.id === id ? { ...a, disabled: !current } : a))
       );
@@ -89,6 +86,17 @@ const ActionsView: React.FC = () => {
     }
   };
 
+  const openFile = async (filePath: string) => {
+    try {
+      const result = await (window as any).actionsAPI?.openFile?.(filePath);
+      if (!result.success) {
+        alert(t('actions.failedToOpenActionsFile', { error: result.error }));
+      }
+    } catch (e: any) {
+      alert(t('actions.failedToOpenActionsFile', { error: e?.message || e }));
+    }
+  };
+
   const reload = async () => {
     try {
       setIsLoading(true);
@@ -100,12 +108,46 @@ const ActionsView: React.FC = () => {
     }
   };
 
+  const enableAllActions = async () => {
+    try {
+      const disabledActions = allActions.filter(a => a.disabled);
+      for (const action of disabledActions) {
+        await (window as any).actionsAPI?.setDisabled?.(action.id, false);
+      }
+      setAllActions(prev =>
+        prev.map(a => ({ ...a, disabled: false }))
+      );
+    } catch (e: any) {
+      alert(t('actions.failedToUpdateActionState', { error: e?.message || e }));
+    }
+  };
+
+  const disableAllActions = async () => {
+    try {
+      const enabledActions = allActions.filter(a => !a.disabled);
+      for (const action of enabledActions) {
+        await (window as any).actionsAPI?.setDisabled?.(action.id, true);
+      }
+      setAllActions(prev =>
+        prev.map(a => ({ ...a, disabled: true }))
+      );
+    } catch (e: any) {
+      alert(t('actions.failedToUpdateActionState', { error: e?.message || e }));
+    }
+  };
+
   return (
     <div className="actions-view">
-      <div className="actions-toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-        <button type="button" onClick={reload} title={t('actions.reloadActions')}>🔄 {t('actions.reloadActions')}</button>
-        <button type="button" onClick={openFolder} title={t('actions.openActionsFolder')}>📂 {t('actions.openActionsFolder')}</button>
-        <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <div className="actions-toolbar">
+        <button type="button" onClick={reload}>🔄 {t('actions.reloadActions')}</button>
+        <button type="button" onClick={openFolder}>📂 {t('actions.openActionsFolder')}</button>
+        <button type="button" onClick={enableAllActions} className="enable-all-button">
+          ✅ {t('actions.enableAllActions')}
+        </button>
+        <button type="button" onClick={disableAllActions} className="disable-all-button">
+          ❌ {t('actions.disableAllActions')}
+        </button>
+        <label>
           <input
             type="checkbox"
             checked={hideDisabled}
@@ -113,7 +155,7 @@ const ActionsView: React.FC = () => {
           />
           {t('actions.hideDisabled')}
         </label>
-        <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <label>
           <input
             type="checkbox"
             checked={showOnlyInvalid}
@@ -127,59 +169,53 @@ const ActionsView: React.FC = () => {
       {error && <div className="error">{error}</div>}
 
       {!isLoading && !error && (
-        <div className="actions-list" style={{ display: 'flex', flexDirection: 'column', gap: 8, color: 'white' }}>
+        <div className="actions-list">
           {visibleActions.map((a) => {
-            const mutedStyle = a.disabled ? { opacity: 0.5 } : undefined;
-            const validationIcon = a.validation.valid ? '✅' : '⚠️';
-            const validationTitle = a.validation.valid ? t('actions.validAction') : (a.validation.message || t('actions.invalidAction'));
+            const isHovered = hoveredAction === a.id;
+            const titleClass = `action-title ${a.disabled ? 'disabled' : ''} ${!a.validation.valid ? 'invalid' : ''}`;
 
             return (
               <div
                 key={a.id}
                 className="action-item"
-                style={{
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 6,
-                  padding: 10,
-                  display: 'flex',
-                  gap: 12,
-                  alignItems: 'flex-start',
-                  ...mutedStyle
-                }}
+                onMouseEnter={() => setHoveredAction(a.id)}
+                onMouseLeave={() => setHoveredAction(null)}
+                title={!a.validation.valid ? a.validation.message : undefined}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: 24 }}>
-                  <input
-                    type="checkbox"
-                    checked={!a.disabled}
-                    onChange={() => toggleDisabled(a.id, a.disabled)}
-                    title={a.disabled ? t('actions.enableAction') : t('actions.disableAction')}
-                  />
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <strong>{a.title}</strong>
-                    <span
-                      style={{ cursor: a.validation.valid ? 'default' : 'pointer' }}
-                      title={validationTitle}
-                      onClick={() => !a.validation.valid && copyValidationMessage(a.validation.message)}
-                    >
-                      {validationIcon}
-                    </span>
-                    <span style={{ fontSize: 12, opacity: 0.7 }}>
-                      [{a.scope}]&nbsp;{a.id}
-                    </span>
-                  </div>
-                  <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
-                    <span title={a.filePath}>{a.filePath}</span>
-                  </div>
-                </div>
+                <input
+                  type="checkbox"
+                  checked={!a.disabled}
+                  onChange={() => toggleDisabled(a.id, a.disabled)}
+                  title={a.disabled ? t('actions.enableAction') : t('actions.disableAction')}
+                />
+                <span 
+                  className={titleClass}
+                  onClick={() => !a.validation.valid && copyValidationMessage(a.validation.message)}
+                  style={{ cursor: !a.validation.valid ? 'pointer' : 'default' }}
+                >
+                  {a.title}
+                </span>
+                {a.isDestructive && (
+                  <span className="destructive-badge">⚠️</span>
+                )}
+                {isHovered && (
+                  <span className="action-meta">
+                    [{a.scope}] {a.id}
+                  </span>
+                )}
+                <button
+                  className="open-file-button"
+                  onClick={() => openFile(a.filePath)}
+                  title={a.filePath}
+                >
+                {t('actions.openFile')}  📄
+                </button>
               </div>
             );
           })}
 
           {visibleActions.length === 0 && (
-            <div style={{ opacity: 0.7 }}>
+            <div className="empty-state">
               {t('actions.noActionsToDisplay')}
             </div>
           )}

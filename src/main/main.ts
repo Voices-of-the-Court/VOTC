@@ -478,7 +478,8 @@ const setupIpcHandlers = () => {
         scope: a.scope,
         filePath: a.filePath,
         validation: a.validation,
-        disabled: actionRegistry.isActionDisabled(a.id)
+        disabled: actionRegistry.isActionDisabled(a.id),
+        isDestructive: a.definition.isDestructive || false
       }));
     } catch (error: any) {
       console.error('Failed to get actions:', error);
@@ -514,6 +515,16 @@ const setupIpcHandlers = () => {
     } catch (error: any) {
       console.error('Failed to open actions folder:', error);
       throw error;
+    }
+  });
+
+  ipcMain.handle('actions:openFile', async (_, { filePath }) => {
+    try {
+      await shell.openPath(filePath);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to open action file:', error);
+      return { success: false, error: error.message || 'Unknown error' };
     }
   });
 

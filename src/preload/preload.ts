@@ -196,6 +196,7 @@ contextBridge.exposeInMainWorld('conversationAPI', {
      filePath: string;
      validation: { valid: boolean; message?: string };
      disabled: boolean;
+     isDestructive: boolean;
    }>> => ipcRenderer.invoke('actions:getAll'),
    setDisabled: (actionId: string, disabled: boolean): Promise<{ success: boolean; error?: string }> =>
      ipcRenderer.invoke('actions:setDisabled', { actionId, disabled }),
@@ -203,4 +204,6 @@ contextBridge.exposeInMainWorld('conversationAPI', {
      ipcRenderer.invoke('actions:getSettings'),
    openFolder: (): Promise<void> =>
      ipcRenderer.invoke('actions:openFolder'),
+   openFile: (filePath: string): Promise<{ success: boolean; error?: string }> =>
+     ipcRenderer.invoke('actions:openFile', { filePath }),
  });
