@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AlertIcon from '../assets/Alert.png';
 
 type ActionListItem = {
   id: string;
@@ -9,6 +10,7 @@ type ActionListItem = {
   validation: { valid: boolean; message?: string };
   disabled: boolean;
   isDestructive: boolean;
+  hasDestructiveOverride: boolean;
 };
 
 const ActionsView: React.FC = () => {
@@ -63,6 +65,38 @@ const ActionsView: React.FC = () => {
       await (window as any).actionsAPI?.setDisabled?.(id, !current);
       setAllActions(prev =>
         prev.map(a => (a.id === id ? { ...a, disabled: !current } : a))
+      );
+    } catch (e: any) {
+      alert(t('actions.failedToUpdateActionState', { error: e?.message || e }));
+    }
+  };
+
+  const toggleDestructive = async (id: string, currentIsDestructive: boolean, hasOverride: boolean) => {
+    try {
+      let newValue: boolean | null;
+      let newEffectiveValue: boolean;
+      
+      if (!hasOverride) {
+        // No override exists, set override to opposite of current
+        newValue = !currentIsDestructive;
+        newEffectiveValue = !currentIsDestructive;
+      } else {
+        // Override exists, remove it (revert to default)
+        // When removing override, the effective value becomes the opposite of current
+        // (because the override was set to the opposite of the default)
+        newValue = null;
+        newEffectiveValue = !currentIsDestructive;
+      }
+      
+      await (window as any).actionsAPI?.setDestructiveOverride?.(id, newValue);
+      console.log('setDestructiveOverride', id, newValue);
+      // Update state locally instead of reloading to preserve scroll position
+      setAllActions(prev =>
+        prev.map(a => (a.id === id ? {
+          ...a,
+          isDestructive: newEffectiveValue,
+          hasDestructiveOverride: newValue !== null
+        } : a))
       );
     } catch (e: any) {
       alert(t('actions.failedToUpdateActionState', { error: e?.message || e }));
@@ -188,6 +222,25 @@ const ActionsView: React.FC = () => {
                   onChange={() => toggleDisabled(a.id, a.disabled)}
                   title={a.disabled ? t('actions.enableAction') : t('actions.disableAction')}
                 />
+                <button
+                  className={`destructive-icon-button ${
+                    !a.validation.valid ? 'invalid' : 
+                    a.isDestructive ? 'destructive' : 
+                    'non-destructive'
+                  } ${a.hasDestructiveOverride ? 'overridden' : ''}`}
+                  onClick={() => a.validation.valid && toggleDestructive(a.id, a.isDestructive, a.hasDestructiveOverride)}
+                  style={{ cursor: a.validation.valid ? 'pointer' : 'default' }}
+                  title={
+                    !a.validation.valid ? a.validation.message :
+                    a.hasDestructiveOverride
+                      ? t('actions.destructiveOverridden', { state: a.isDestructive ? t('actions.destructive') : t('actions.nonDestructive') })
+                      : a.isDestructive
+                      ? t('actions.destructive')
+                      : t('actions.nonDestructive')
+                  }
+                >
+                  <img src={AlertIcon} alt="Destructive indicator" />
+                </button>
                 <span 
                   className={titleClass}
                   onClick={() => !a.validation.valid && copyValidationMessage(a.validation.message)}
@@ -195,9 +248,6 @@ const ActionsView: React.FC = () => {
                 >
                   {a.title}
                 </span>
-                {a.isDestructive && (
-                  <span className="destructive-badge">⚠️</span>
-                )}
                 {isHovered && (
                   <span className="action-meta">
                     [{a.scope}] {a.id}

@@ -16,7 +16,10 @@
     "validAction": "Prawidłowa akcja",
     "enableAllActions": "Włącz wszystko",
     "disableAllActions": "Wyłącz wszystko",
-    "openFile": "Otwórz plik"
+    "openFile": "Otwórz plik",
+    "destructiveOverridden": "Zastąpienie stanu destrukcyjnego: {{state}}",
+    "destructive": "Działanie destrukcyjne - wymaga zgody",
+    "nonDestructive": "Nieniszczące działanie"
   },
   "chat": {
     "args": "Argumenty",

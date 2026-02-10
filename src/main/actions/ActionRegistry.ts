@@ -57,10 +57,13 @@ export class ActionRegistry extends EventEmitter {
 
   public setSettings(settings: ActionSettings | undefined): void {
     if (!settings) {
-      this.settings = { disabledActions: [], validation: {} };
+      this.settings = { disabledActions: [], validation: {}, destructiveOverrides: {} };
       return;
     }
-    this.settings = settings;
+    this.settings = {
+      ...settings,
+      destructiveOverrides: settings.destructiveOverrides || {},
+    };
   }
 
   public getSettings(): ActionSettings {
@@ -100,6 +103,37 @@ export class ActionRegistry extends EventEmitter {
       ...this.settings,
       disabledActions: Array.from(current),
     };
+  }
+
+  public setDestructiveOverride(signature: string, isDestructive: boolean | null): void {
+    const overrides = { ...this.settings.destructiveOverrides };
+    if (isDestructive === null) {
+      // Remove override, revert to default
+      delete overrides[signature];
+    } else {
+      overrides[signature] = isDestructive;
+    }
+    this.settings = {
+      ...this.settings,
+      destructiveOverrides: overrides,
+    };
+  }
+
+  public getEffectiveDestructive(signature: string): boolean {
+    const action = this.actions.get(signature);
+    if (!action) return false;
+    
+    // Check if there's an override
+    if (this.settings.destructiveOverrides && signature in this.settings.destructiveOverrides) {
+      return this.settings.destructiveOverrides[signature];
+    }
+    
+    // Return the action's default isDestructive value
+    return action.definition.isDestructive ?? false;
+  }
+
+  public hasDestructiveOverride(signature: string): boolean {
+    return !!(this.settings.destructiveOverrides && signature in this.settings.destructiveOverrides);
   }
 
   public registerValidation(

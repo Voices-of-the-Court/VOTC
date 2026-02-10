@@ -16,7 +16,10 @@
     "validAction": "有效动作",
     "enableAllActions": "全部启用",
     "disableAllActions": "全部禁用",
-    "openFile": "打开文件"
+    "openFile": "打开文件",
+    "destructiveOverridden": "破坏性状态被覆盖：{{state}}",
+    "destructive": "破坏性行为 - 需要批准",
+    "nonDestructive": "非破坏性行动"
   },
   "chat": {
     "args": "参数",

@@ -16,7 +16,10 @@
     "validAction": "Gültige Aktion",
     "enableAllActions": "Alle aktivieren",
     "disableAllActions": "Alle deaktivieren",
-    "openFile": "Datei öffnen"
+    "openFile": "Datei öffnen",
+    "destructiveOverridden": "Destruktiver Zustand überschrieben: {{state}}",
+    "destructive": "Zerstörerische Aktion – erfordert Genehmigung",
+    "nonDestructive": "Zerstörungsfreies Handeln"
   },
   "chat": {
     "args": "Argumente",

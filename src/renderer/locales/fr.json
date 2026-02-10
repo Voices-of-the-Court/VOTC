@@ -16,7 +16,10 @@
     "validAction": "Action valide",
     "enableAllActions": "Activer tout",
     "disableAllActions": "Désactiver tout",
-    "openFile": "Ouvrir le fichier"
+    "openFile": "Ouvrir le fichier",
+    "destructiveOverridden": "État destructeur annulé : {{state}}",
+    "destructive": "Action destructrice – nécessite une approbation",
+    "nonDestructive": "Action non destructive"
   },
   "chat": {
     "args": "Arguments",

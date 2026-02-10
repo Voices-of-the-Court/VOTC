@@ -16,7 +16,10 @@
     "validAction": "유효한 액션",
     "enableAllActions": "모두 활성화",
     "disableAllActions": "모두 비활성화",
-    "openFile": "파일 열기"
+    "openFile": "파일 열기",
+    "destructiveOverridden": "파괴적인 상태가 재정의되었습니다: {{state}}",
+    "destructive": "파괴적인 조치 - 승인 필요",
+    "nonDestructive": "비파괴적인 행동"
   },
   "chat": {
     "args": "인수",

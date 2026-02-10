@@ -18,7 +18,9 @@
     "validAction": "Valid action",
     "enableAllActions": "Enable All",
     "disableAllActions": "Disable All",
-    "destructive": "Destructive",
+    "destructive": "Destructive action - requires approval",
+    "nonDestructive": "Non-destructive action",
+    "destructiveOverridden": "Destructive state overridden: {{state}}",
     "openFile": "Open File"
   },
   "chat": {

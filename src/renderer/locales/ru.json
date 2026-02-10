@@ -16,6 +16,9 @@
     "validAction": "Действительный экшен",
     "enableAllActions": "Включить все",
     "disableAllActions": "Отключить все",
+    "destructive": "Деструктивный экшен - требует подтверждения",
+    "nonDestructive": "Недеструктивный экшен",
+    "destructiveOverridden": "Состояние деструктивности переопределено: {{state}}",
     "openFile": "Открыть файл"
   },
   "chat": {

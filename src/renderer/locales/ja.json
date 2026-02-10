@@ -16,7 +16,10 @@
     "validAction": "有効なアクション",
     "enableAllActions": "すべてを有効にする",
     "disableAllActions": "すべて無効にする",
-    "openFile": "ファイルを開く"
+    "openFile": "ファイルを開く",
+    "destructiveOverridden": "破壊的な状態がオーバーライドされました: {{state}}",
+    "destructive": "破壊的な行為 - 承認が必要です",
+    "nonDestructive": "非破壊的なアクション"
   },
   "chat": {
     "args": "引数",

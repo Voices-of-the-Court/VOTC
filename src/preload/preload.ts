@@ -197,9 +197,12 @@ contextBridge.exposeInMainWorld('conversationAPI', {
      validation: { valid: boolean; message?: string };
      disabled: boolean;
      isDestructive: boolean;
+     hasDestructiveOverride: boolean;
    }>> => ipcRenderer.invoke('actions:getAll'),
    setDisabled: (actionId: string, disabled: boolean): Promise<{ success: boolean; error?: string }> =>
      ipcRenderer.invoke('actions:setDisabled', { actionId, disabled }),
+   setDestructiveOverride: (actionId: string, isDestructive: boolean | null): Promise<{ success: boolean; error?: string }> =>
+     ipcRenderer.invoke('actions:setDestructiveOverride', { actionId, isDestructive }),
    getSettings: (): Promise<{ disabledActions: string[]; validation: Record<string, { valid: boolean; message?: string }> }> =>
      ipcRenderer.invoke('actions:getSettings'),
    openFolder: (): Promise<void> =>

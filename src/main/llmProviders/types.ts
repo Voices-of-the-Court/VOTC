@@ -188,6 +188,7 @@ export interface ActionValidationStatus {
 export interface ActionSettings {
   disabledActions: string[];
   validation: Record<string, ActionValidationStatus>;
+  destructiveOverrides?: Record<string, boolean>; // Maps action ID to overridden destructive state
 }
 
 export type PromptBlockType =
