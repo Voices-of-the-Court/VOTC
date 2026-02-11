@@ -27,6 +27,13 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+mac:
+  category: public.app-category.games
+  icon: build/icon.png
+  target:
+    - dmg
+    - zip
+  artifactName: ${name}-${version}-${arch}.${ext}
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
