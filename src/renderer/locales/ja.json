@@ -113,7 +113,9 @@
     "temperature": "温度",
     "testConnection": "接続テスト",
     "testConnectionFailed": "接続失敗",
-    "testConnectionSuccess": "接続成功！"
+    "testConnectionSuccess": "接続成功！",
+    "openPlayer2App": "Player2アプリを開く",
+    "player2AppHelp": "Player2アプリケーションを開くにはクリックしてください。インストールされ、実行されていることを確認してください。"
   },
   "lettersModal": {
     "completed": "完了",

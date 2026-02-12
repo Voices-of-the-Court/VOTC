@@ -113,7 +113,9 @@
     "temperature": "Température",
     "testConnection": "Tester la connexion",
     "testConnectionFailed": "Échec de la connexion",
-    "testConnectionSuccess": "Connexion réussie !"
+    "testConnectionSuccess": "Connexion réussie !",
+    "openPlayer2App": "Ouvrir l'application Player2",
+    "player2AppHelp": "Cliquez pour ouvrir l'application Player2. Assurez-vous qu'elle est installée et en cours d'exécution."
   },
   "lettersModal": {
     "completed": "Terminé",

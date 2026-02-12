@@ -113,7 +113,9 @@
     "temperature": "Температура",
     "testConnection": "Проверить подключение",
     "testConnectionFailed": "Подключение не удалось",
-    "testConnectionSuccess": "Подключение успешно!"
+    "testConnectionSuccess": "Подключение успешно!",
+    "openPlayer2App": "Открыть приложение Player2",
+    "player2AppHelp": "Нажмите, чтобы открыть приложение Player2. Убедитесь, что оно установлено и запущено."
   },
   "lettersModal": {
     "completed": "Завершено",

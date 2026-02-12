@@ -113,7 +113,9 @@
     "temperature": "温度",
     "testConnection": "测试连接",
     "testConnectionFailed": "连接失败",
-    "testConnectionSuccess": "连接成功！"
+    "testConnectionSuccess": "连接成功！",
+    "openPlayer2App": "打开 Player2 应用",
+    "player2AppHelp": "点击打开 Player2 应用程序。请确保已安装并正在运行。"
   },
   "lettersModal": {
     "completed": "已完成",

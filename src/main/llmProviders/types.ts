@@ -137,9 +137,9 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<ProviderType, Partial<LLMProviderC
     defaultParameters: { temperature: 0.7, max_tokens: 2048 },
   },
   player2: {
-    apiKey: '',
+    apiKey: 'dummy-api-key',
     baseUrl: 'http://localhost:4315/v1', // Player2 default base URL
-    defaultModel: '',
+    defaultModel: 'player2-model',
     defaultParameters: { temperature: 0.7, max_tokens: 2048 },
   },
 };

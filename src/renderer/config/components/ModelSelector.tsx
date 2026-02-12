@@ -38,7 +38,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     onInputChange(e);
 
     // Show suggestions for OpenRouter and OpenAI-compatible
-    if (config.providerType === 'openrouter' || config.providerType === 'openai-compatible' || config.providerType === 'player2') {
+    if (config.providerType === 'openrouter' || config.providerType === 'openai-compatible') {
       if (value.trim() === '') {
         setSuggestions([]);
       } else {
@@ -69,13 +69,12 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   const canShowSuggestions = 
     (config.providerType === 'openrouter' && config.apiKey) ||
     (config.providerType === 'openai-compatible' && config.baseUrl);
-    (config.providerType === 'player2');
 
   return (
     <div className="form-group">
       <label htmlFor="defaultModel">Default Model ID:</label>
       
-      {config.providerType === 'ollama' || config.providerType === 'player2' ? (
+      {config.providerType === 'ollama' ? (
         <select
           id="defaultModel"
           name="defaultModel"
