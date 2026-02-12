@@ -1,7 +1,7 @@
 {
   "name": "voices-of-the-court",
   "productName": "VOTC",
-  "version": "2.0.0-alpha.8",
+  "version": "2.0.0-alpha.9",
   "description": "Reimplementation of Voices of the Court mod for Crusader Kings III for better experience",
   "main": "out/main/main.js",
   "scripts": {
