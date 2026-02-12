@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useConfigStore } from './store/useConfigStore';
 import './configPanel.scss';
 import ConnectionView from './ConnectionView';
@@ -10,6 +11,7 @@ import discordIcon from '../assets/discord-icon.svg';
 import tooltipIcon from '../assets/tooltip2.png';
 import logsIcon from '../assets/folder.svg';
 import { useDraggableResizable } from '../hooks/useDraggableResizable';
+import LanguageSelector from './components/LanguageSelector';
 
 type CurrentTab = 'connection' | 'settings' | 'actions' | 'prompts' | 'summaries';
 
@@ -18,6 +20,7 @@ interface ConfigPanelProps {
 }
 
 function ConfigPanel({ onClose }: ConfigPanelProps) {
+  const { t } = useTranslation();
   const loadSettings = useConfigStore((state) => state.loadSettings);
   const appSettings = useConfigStore((state) => state.appSettings);
   const [currentTab, setCurrentTab] = useState<CurrentTab>('connection');
@@ -55,7 +58,7 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
   }, [loadSettings]);
 
   if (!appSettings) {
-    return <div>Loading settings...</div>;
+    return <div>{t('settings.loadingSettings')}</div>;
   }
 
   const handleMouseEnter = () => {
@@ -225,20 +228,21 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
       
       <header className="config-header">
         <div className="discord-container" style={{ zIndex: 12 }}>
-          <button className="tooltip-button" title="Help section">
+          <button className="tooltip-button" title={t('config.help')}>
             <img src={tooltipIcon} alt="?" className="tooltip-icon" />
           </button>
+          <LanguageSelector />
           <button 
             className="discord-button visible" 
             onClick={handleDiscordClick} 
-            title="Join our Discord"
+            title={t('config.joinDiscord')}
           >
             <img src={discordIcon} alt="Discord" className="discord-icon" />
           </button>
           <button 
             className="discord-button visible" 
             onClick={handleBugReportClick} 
-            title="Collect all logs for bug report"
+            title={t('config.collectLogs')}
           >
             <img src={logsIcon} alt="?" className="discord-icon" />
           </button>
@@ -248,36 +252,36 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
           className={currentTab === 'connection' ? 'active' : ''}
           style={{ zIndex: 12 }}
         >
-          Connection
+          {t('config.connection')}
         </button>
         <button
           onClick={() => setCurrentTab('settings')}
           className={currentTab === 'settings' ? 'active' : ''}
           style={{ zIndex: 12 }}
         >
-          Settings
+          {t('config.settings')}
         </button>
         <button
           onClick={() => setCurrentTab('actions')}
           className={currentTab === 'actions' ? 'active' : ''}
-          title="Manage detected Actions"
+          title={t('config.manageActions')}
           style={{ zIndex: 12 }}
         >
-          Actions
+          {t('config.actions')}
         </button>
         <button
           onClick={() => setCurrentTab('prompts')}
           className={currentTab === 'prompts' ? 'active' : ''}
           style={{ zIndex: 12 }}
         >
-          Prompts
+          {t('config.prompts')}
         </button>
         <button
           onClick={() => setCurrentTab('summaries')}
           className={currentTab === 'summaries' ? 'active' : ''}
           style={{ zIndex: 12 }}
         >
-          Summaries
+          {t('config.summaries')}
         </button>
         <button className="config-close-button" onClick={onClose}>✕</button>
       </header>

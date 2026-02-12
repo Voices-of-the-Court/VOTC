@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface UpdateNotificationProps {
   onClose: () => void;
 }
 
 export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onClose }) => {
+  const { t } = useTranslation();
   const [updateStatus, setUpdateStatus] = useState<string>('');
   const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
   const [updateDownloaded, setUpdateDownloaded] = useState<boolean>(false);
@@ -62,45 +64,45 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onClose 
     >
       <div className="update-notification-content">
         <div className="update-notification-header">
-          <h3>Application Update</h3>
+          <h3>{t('updateNotification.applicationUpdate')}</h3>
           <button className="update-close-button" onClick={onClose}>✕</button>
         </div>
         
         {updateStatus && (
-          <p className="update-status">Status: {updateStatus}</p>
+          <p className="update-status">{t('updateNotification.status')}: {updateStatus}</p>
         )}
         
         {!updateAvailable && !updateDownloaded && (
           <div className="update-actions">
             <button onClick={checkForUpdates} className="update-button">
-              Check for Updates
+              {t('updateNotification.checkForUpdates')}
             </button>
             <button onClick={onClose} className="update-button secondary">
-              Close
+              {t('updateNotification.close')}
             </button>
           </div>
         )}
         
         {updateAvailable && !updateDownloaded && (
           <div className="update-actions">
-            <p>A new version is available!</p>
+            <p>{t('updateNotification.newVersionAvailable')}</p>
             <button onClick={downloadUpdate} className="update-button primary">
-              Download Update
+              {t('updateNotification.downloadUpdate')}
             </button>
             <button onClick={onClose} className="update-button secondary">
-              Later
+              {t('updateNotification.later')}
             </button>
           </div>
         )}
         
         {updateDownloaded && (
           <div className="update-actions">
-            <p>Update has been downloaded and is ready to install.</p>
+            <p>{t('updateNotification.updateDownloaded')}</p>
             <button onClick={installUpdate} className="update-button primary">
-              Install Now
+              {t('updateNotification.installNow')}
             </button>
             <button onClick={onClose} className="update-button secondary">
-              Install on Exit
+              {t('updateNotification.installOnExit')}
             </button>
           </div>
         )}

@@ -67,6 +67,8 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   saveGenerateFollowingMessagesSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGenerateFollowingMessagesSetting', enabled),
   saveMessageFontSize: (fontSize: number): Promise<void> => ipcRenderer.invoke('llm:saveMessageFontSize', fontSize),
   saveShowSettingsOnStartupSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveShowSettingsOnStartupSetting', enabled),
+  getLanguage: (): Promise<string> => ipcRenderer.invoke('llm:getLanguage'),
+  saveLanguage: (language: string): Promise<void> => ipcRenderer.invoke('llm:saveLanguage', language),
   getCurrentContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getCurrentContextLength'),
   getMaxContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getMaxContextLength'),
   setCustomContextLength: (contextLength: number): Promise<void> => ipcRenderer.invoke('llm:setCustomContextLength', contextLength),
@@ -194,11 +196,17 @@ contextBridge.exposeInMainWorld('conversationAPI', {
      filePath: string;
      validation: { valid: boolean; message?: string };
      disabled: boolean;
+     isDestructive: boolean;
+     hasDestructiveOverride: boolean;
    }>> => ipcRenderer.invoke('actions:getAll'),
    setDisabled: (actionId: string, disabled: boolean): Promise<{ success: boolean; error?: string }> =>
      ipcRenderer.invoke('actions:setDisabled', { actionId, disabled }),
+   setDestructiveOverride: (actionId: string, isDestructive: boolean | null): Promise<{ success: boolean; error?: string }> =>
+     ipcRenderer.invoke('actions:setDestructiveOverride', { actionId, isDestructive }),
    getSettings: (): Promise<{ disabledActions: string[]; validation: Record<string, { valid: boolean; message?: string }> }> =>
      ipcRenderer.invoke('actions:getSettings'),
    openFolder: (): Promise<void> =>
      ipcRenderer.invoke('actions:openFolder'),
+   openFile: (filePath: string): Promise<{ success: boolean; error?: string }> =>
+     ipcRenderer.invoke('actions:openFile', { filePath }),
  });

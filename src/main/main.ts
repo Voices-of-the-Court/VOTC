@@ -14,6 +14,7 @@ import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 import { appUpdater } from './AutoUpdater';
 import { focusMonitor } from './FocusMonitor';
+import { resolveI18nString } from './actions/i18nUtils';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
 import './llmProviders/OpenRouterProvider';
@@ -359,6 +360,14 @@ const setupIpcHandlers = () => {
     settingsRepository.saveShowSettingsOnStartupSetting(enabled);
   });
 
+  ipcMain.handle('llm:getLanguage', () => {
+    return settingsRepository.getLanguage();
+  });
+
+  ipcMain.handle('llm:saveLanguage', (_, language: string) => {
+    settingsRepository.saveLanguage(language);
+  });
+
   ipcMain.handle('llm:getCurrentContextLength', async () => {
     try {
       return await llmManager.getCurrentContextLength();
@@ -461,13 +470,17 @@ const setupIpcHandlers = () => {
   ipcMain.handle('actions:getAll', async () => {
     try {
       const actions = actionRegistry.getAllActions(/* includeDisabled = */ true);
+      const userLang = settingsRepository.getLanguage();
+      
       return actions.map(a => ({
         id: a.id,
-        title: a.definition.title || a.id,
+        title: a.definition.title ? resolveI18nString(a.definition.title, userLang) : a.id,
         scope: a.scope,
         filePath: a.filePath,
         validation: a.validation,
-        disabled: actionRegistry.isActionDisabled(a.id)
+        disabled: actionRegistry.isActionDisabled(a.id),
+        isDestructive: actionRegistry.getEffectiveDestructive(a.id),
+        hasDestructiveOverride: actionRegistry.hasDestructiveOverride(a.id),
       }));
     } catch (error: any) {
       console.error('Failed to get actions:', error);
@@ -483,6 +496,18 @@ const setupIpcHandlers = () => {
       return { success: true };
     } catch (error: any) {
       console.error('Failed to set action disabled state:', error);
+      return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('actions:setDestructiveOverride', async (_, { actionId, isDestructive }: { actionId: string; isDestructive: boolean | null }) => {
+    try {
+      actionRegistry.setDestructiveOverride(actionId, isDestructive);
+      const settings = actionRegistry.getSettings();
+      settingsRepository.saveActionSettings(settings);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to set action destructive override:', error);
       return { success: false, error: error.message || 'Unknown error' };
     }
   });
@@ -503,6 +528,16 @@ const setupIpcHandlers = () => {
     } catch (error: any) {
       console.error('Failed to open actions folder:', error);
       throw error;
+    }
+  });
+
+  ipcMain.handle('actions:openFile', async (_, { filePath }) => {
+    try {
+      await shell.openPath(filePath);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to open action file:', error);
+      return { success: false, error: error.message || 'Unknown error' };
     }
   });
 

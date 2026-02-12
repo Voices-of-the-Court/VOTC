@@ -81,6 +81,8 @@ declare global {
       saveGenerateFollowingMessagesSetting: (enabled: boolean) => Promise<void>;
       saveMessageFontSize: (fontSize: number) => Promise<void>;
       saveShowSettingsOnStartupSetting: (enabled: boolean) => Promise<void>;
+      getLanguage: () => Promise<string>;
+      saveLanguage: (language: string) => Promise<void>;
       importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
       // Provider override methods
       getActionsProviderId: () => Promise<string | null>;

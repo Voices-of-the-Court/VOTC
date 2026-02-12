@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageList, ChatInput, ChatButtons } from './components';
 import { useWindowEvents, useAutoScroll, useConversationEntries } from './hooks';
 import { useDraggableResizable } from '../hooks/useDraggableResizable';
@@ -8,6 +9,7 @@ interface ChatProps {
 }
 
 function Chat({ onToggleConfig }: ChatProps) {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
   const [conversationState, setConversationState] = useState({ isPaused: false, queueLength: 0 });
@@ -277,7 +279,7 @@ function Chat({ onToggleConfig }: ChatProps) {
               value={inputValue}
               onChange={setInputValue}
               onKeyPress={handleKeyPress}
-              placeholder="Write a message..."
+              placeholder={t('chat.writeMessage')}
               disabled={isStreaming}
             />
             <ChatButtons

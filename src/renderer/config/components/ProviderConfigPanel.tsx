@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { LLMProviderConfig } from '../../../main/llmProviders/types';
 import { useConfigStore } from '../store/useConfigStore';
 import { DEFAULT_PARAMETERS } from '../../../main/llmProviders/types';
@@ -8,6 +9,32 @@ import ContextLengthField from './ContextLengthField';
 import FormGroupInput from './FormGroupInput';
 import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent } from './ConfigFields';
 
+const Player2OpenAppButton: React.FC = () => {
+  const { t } = useTranslation();
+  
+  const handleOpenPlayer2 = async () => {
+    try {
+      const result = await window.electronAPI.openExternal('player2://');
+      if (!result.success) {
+        console.error('Failed to open Player2 app:', result.error);
+      }
+    } catch (error) {
+      console.error('Error opening Player2 app:', error);
+    }
+  };
+
+  return (
+    <div className="form-group">
+      <button type="button" onClick={handleOpenPlayer2} className="open-player2-button">
+        {t('connection.openPlayer2App', 'Open Player2 App')}
+      </button>
+      <small className="form-help-text">
+        {t('connection.player2AppHelp', 'Click to open the Player2 application. Make sure it is installed and running.')}
+      </small>
+    </div>
+  );
+};
+
 type ChangeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 
 interface CommonFieldProps {
@@ -15,10 +42,10 @@ interface CommonFieldProps {
   onInputChange: ChangeHandler;
 }
 
-const PresetNameFieldComponent: React.FC<CommonFieldProps> = ({ config, onInputChange }) => (
+const PresetNameFieldComponent: React.FC<CommonFieldProps & { t: any }> = ({ config, onInputChange, t }) => (
   <FormGroupInput
     id="customName"
-    label="Preset Name:"
+    label={t('connection.presetName') + ':'}
     type="text"
     name="customName"
     value={config.customName || ''}
@@ -27,12 +54,12 @@ const PresetNameFieldComponent: React.FC<CommonFieldProps> = ({ config, onInputC
   />
 );
 
-const DefaultParameterFieldsComponent: React.FC<CommonFieldProps> = ({ config, onInputChange }) => (
+const DefaultParameterFieldsComponent: React.FC<CommonFieldProps & { t: any }> = ({ config, onInputChange, t }) => (
   <>
-    <h4>Default Parameters</h4>
+    <h4>{t('connection.defaultParameters')}</h4>
     <FormGroupInput
       id="temperature"
-      label="Temperature:"
+      label={t('connection.temperature') + ':'}
       type="number"
       name="defaultParameters.temperature"
       step="0.1"
@@ -43,7 +70,7 @@ const DefaultParameterFieldsComponent: React.FC<CommonFieldProps> = ({ config, o
     />
     <FormGroupInput
       id="max_tokens"
-      label="Max Tokens:"
+      label={t('connection.maxTokens') + ':'}
       type="number"
       name="defaultParameters.max_tokens"
       step="1"
@@ -57,12 +84,13 @@ const DefaultParameterFieldsComponent: React.FC<CommonFieldProps> = ({ config, o
 interface ActionButtonsComponentProps {
   onTestConnection: () => void;
   onMakePreset: () => void;
+  t: any;
 }
 
-const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset }) => (
+const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset, t }) => (
   <div className="form-actions">
-    <button type="button" onClick={onTestConnection}>Test Connection</button>
-    <button type="button" onClick={onMakePreset}>Make Preset from these Settings</button>
+    <button type="button" onClick={onTestConnection}>{t('connection.testConnection')}</button>
+    <button type="button" onClick={onMakePreset}>{t('connection.makePreset')}</button>
   </div>
 );
 
@@ -94,20 +122,23 @@ interface ProviderConfigPanelProps {
   onMakePreset: () => void;
 }
 
-const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = ({
-  config,
-  testResult,
-  onInputChange,
-  onContextLengthChange,
-  onTestConnection,
-  onMakePreset,
-}) => {
+const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
+  const { t } = useTranslation();
+  const {
+    config,
+    testResult,
+    onInputChange,
+    onContextLengthChange,
+    onTestConnection,
+    onMakePreset,
+  } = props;
+
   const updateEditingConfig = useConfigStore((state) => state.updateEditingConfig);
 
   if (!config.providerType) {
     return (
       <div className="config-panel-placeholder">
-        <p>Select a provider or preset from the sidebar to configure.</p>
+        <p>{t('config.selectProviderOrPreset')}</p>
       </div>
     );
   }
@@ -123,29 +154,33 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = ({
   return (
     <div className="provider-config-panel">
       <h3>
-        {isPreset ? `Preset: ${displayName}` : `${displayName} Configuration`}
-        {isPreset && <small className="preset-type-indicator"> (Type: {config.providerType})</small>}
+        {isPreset ? `${t('config.preset')}: ${displayName}` : `${displayName} ${t('config.configuration')}`}
+        {isPreset && <small className="preset-type-indicator"> ({t('config.type')}: {config.providerType})</small>}
       </h3>
       
       <form onSubmit={handleFormSubmit}>
-        {isPreset && <PresetNameFieldComponent config={config} onInputChange={onInputChange} />}
+        {isPreset && <PresetNameFieldComponent config={config} onInputChange={onInputChange} t={t} />}
         
         {SpecificProviderFields && <SpecificProviderFields config={config} onInputChange={onInputChange} />}
         
-        <ModelSelector
-          config={config}
-          onInputChange={onInputChange}
-          onModelSelect={(modelId) => updateEditingConfig({ defaultModel: modelId })}
-        />
+        {config.providerType === 'player2' ? (
+          <Player2OpenAppButton />
+        ) : (
+          <ModelSelector
+            config={config}
+            onInputChange={onInputChange}
+            onModelSelect={(modelId) => updateEditingConfig({ defaultModel: modelId })}
+          />
+        )}
         
         <ContextLengthField
           config={config}
           onContextLengthChange={onContextLengthChange}
         />
         
-        <DefaultParameterFieldsComponent config={config} onInputChange={onInputChange} />
+        <DefaultParameterFieldsComponent config={config} onInputChange={onInputChange} t={t} />
         
-        <ActionButtonsComponent onTestConnection={onTestConnection} onMakePreset={onMakePreset} />
+        <ActionButtonsComponent onTestConnection={onTestConnection} onMakePreset={onMakePreset} t={t} />
         
         <TestResultDisplayComponent testResult={testResult} />
       </form>

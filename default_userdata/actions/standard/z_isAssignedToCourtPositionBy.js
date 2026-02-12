@@ -10,7 +10,17 @@ const COURT_POSITIONS = [
 
 module.exports = {
   signature: "isAssignedToCourtPositionBy",
-  title: "Source Assigned to Target's Court Position",
+  title: {
+    en: "Source Assigned to Target's Court Position",
+    ru: "Исходный персонаж назначен на придворную должность цели",
+    fr: "La source est assignée à une position de cour de la cible",
+    de: "Quellcharakter einer Hofposition des Ziels zugewiesen",
+    es: "La fuente es asignada a una posición de corte del objetivo",
+    ja: "ソースがターゲットの宮廷の役職に任命",
+    ko: "출처가 대상의 궁정 직책에 임명됨",
+    pl: "Źródło przypisane do stanowiska dworskiego celu",
+    zh: "源角色被任命到目标的宫廷职位"
+  },
 
   /**
    * @param {object} params
@@ -66,36 +76,66 @@ module.exports = {
    * @param {Character} params.targetCharacter
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
+   * @param {string} params.lang - Language code for i18n
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
     if (!targetCharacter) {
       return {
-        message: "Failed: No target character specified",
+        message: {
+          en: "Failed: No target character specified",
+          ru: "Ошибка: Целевой персонаж не указан",
+          fr: "Échec : Aucun personnage cible spécifié",
+          de: "Fehler: Kein Zielcharakter angegeben",
+          es: "Error: No se especificó un personaje objetivo",
+          ja: "失敗: ターゲットキャラクターが指定されていません",
+          ko: "실패: 대상 캐릭터가 지정되지 않았습니다",
+          pl: "Niepowodzenie: Nie określono postaci docelowej",
+          zh: "失败: 未指定目标角色"
+        },
         sentiment: 'negative'
       };
     }
 
     if (!targetCharacter.isLandedRuler) {
       return {
-        message: `Failed: ${targetCharacter.shortName} is not a landed ruler and cannot have court positions`,
+        message: {
+          en: `Failed: ${targetCharacter.shortName} is not a landed ruler and cannot have court positions`,
+          ru: `Ошибка: ${targetCharacter.shortName} не является землевладельцем и не может иметь придворные должности`,
+          fr: `Échec : ${targetCharacter.shortName} n'est pas un dirigeant terrien et ne peut pas avoir de positions de cour`,
+          de: `Fehler: ${targetCharacter.shortName} ist kein Landesherrscher und kann keine Hofpositionen haben`,
+          es: `Error: ${targetCharacter.shortName} no es un gobernante con tierras y no puede tener posiciones de corte`,
+          ja: `失敗: ${targetCharacter.shortName}は領主ではなく、宮廷の役職を持つことができません`,
+          ko: `실패: ${targetCharacter.shortName}은(는) 영주가 아니며 궁정 직책을 가질 수 없습니다`,
+          pl: `Niepowodzenie: ${targetCharacter.shortName} nie jest władcą lądowym i nie może mieć stanowisk dworskich`,
+          zh: `失败: ${targetCharacter.shortName}不是领主，不能拥有宫廷职位`
+        },
         sentiment: 'negative'
       };
     }
 
-    const position = typeof args?.court_position === "string" 
-      ? args.court_position.toLowerCase().trim() 
+    const position = typeof args?.court_position === "string"
+      ? args.court_position.toLowerCase().trim()
       : "";
 
     if (!COURT_POSITIONS.includes(position)) {
       return {
-        message: `Failed: Invalid court position "${position}"`,
+        message: {
+          en: `Failed: Invalid court position "${position}"`,
+          ru: `Ошибка: Неверная придворная должность "${position}"`,
+          fr: `Échec : Position de cour invalide "${position}"`,
+          de: `Fehler: Ungültige Hofposition "${position}"`,
+          es: `Error: Posición de corte inválida "${position}"`,
+          ja: `失敗: 無効な宮廷の役職 "${position}"`,
+          ko: `실패: 잘못된 궁정 직책 "${position}"`,
+          pl: `Niepowodzenie: Nieprawidłowe stanowisko dworskie "${position}"`,
+          zh: `失败: 无效的宫廷职位 "${position}"`
+        },
         sentiment: 'negative'
       };
     }
 
     const isPlayerSource = args && typeof args.isPlayerSource === "boolean" ? args.isPlayerSource : false;
 
-    // Map position names to court position types
     const positionMap = {
       "physician": "court_physician_court_position",
       "keeper_of_swans": "keeper_of_swans_court_position",
@@ -124,10 +164,9 @@ module.exports = {
     };
 
     const courtPositionType = positionMap[position];
+    const positionDisplay = position.replace(/_/g, ' ');
 
     if (!isPlayerSource) {
-      // Source character is assigned
-      // Add gender checks for wet_nurse and akolouthos
       if (position === "wet_nurse") {
         runGameEffect(`
 global_var:votc_action_target = {
@@ -174,11 +213,20 @@ global_var:votc_action_target = {
       }
 
       return {
-        message: `${sourceCharacter.shortName} was assigned as ${position.replace(/_/g, ' ')} to ${targetCharacter.shortName}'s court`,
+        message: {
+          en: `${sourceCharacter.shortName} was assigned as ${positionDisplay} to ${targetCharacter.shortName}'s court`,
+          ru: `${sourceCharacter.shortName} был назначен на должность ${positionDisplay} к двору ${targetCharacter.shortName}`,
+          fr: `${sourceCharacter.shortName} a été assigné en tant que ${positionDisplay} à la cour de ${targetCharacter.shortName}`,
+          de: `${sourceCharacter.shortName} wurde als ${positionDisplay} dem Hof von ${targetCharacter.shortName} zugewiesen`,
+          es: `${sourceCharacter.shortName} fue asignado como ${positionDisplay} a la corte de ${targetCharacter.shortName}`,
+          ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}の宮廷に${positionDisplay}として任命されました`,
+          ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}의 궁정에 ${positionDisplay}(으)로 임명되었습니다`,
+          pl: `${sourceCharacter.shortName} został przypisany jako ${positionDisplay} do dworu ${targetCharacter.shortName}`,
+          zh: `${sourceCharacter.shortName}被任命为${positionDisplay}加入${targetCharacter.shortName}的宫廷`
+        },
         sentiment: 'positive'
       };
     } else {
-      // Player is assigned
       if (position === "wet_nurse") {
         runGameEffect(`
 global_var:votc_action_target = {
@@ -225,7 +273,17 @@ global_var:votc_action_target = {
       }
 
       return {
-        message: `${gameData.playerName} was assigned as ${position.replace(/_/g, ' ')} to ${targetCharacter.shortName}'s court`,
+        message: {
+          en: `${gameData.playerName} was assigned as ${positionDisplay} to ${targetCharacter.shortName}'s court`,
+          ru: `${gameData.playerName} был назначен на должность ${positionDisplay} к двору ${targetCharacter.shortName}`,
+          fr: `${gameData.playerName} a été assigné en tant que ${positionDisplay} à la cour de ${targetCharacter.shortName}`,
+          de: `${gameData.playerName} wurde als ${positionDisplay} dem Hof von ${targetCharacter.shortName} zugewiesen`,
+          es: `${gameData.playerName} fue asignado como ${positionDisplay} a la corte de ${targetCharacter.shortName}`,
+          ja: `${gameData.playerName}は${targetCharacter.shortName}の宮廷に${positionDisplay}として任命されました`,
+          ko: `${gameData.playerName}은(는) ${targetCharacter.shortName}의 궁정에 ${positionDisplay}(으)로 임명되었습니다`,
+          pl: `${gameData.playerName} został przypisany jako ${positionDisplay} do dworu ${targetCharacter.shortName}`,
+          zh: `${gameData.playerName}被任命为${positionDisplay}加入${targetCharacter.shortName}的宫廷`
+        },
         sentiment: 'positive'
       };
     }

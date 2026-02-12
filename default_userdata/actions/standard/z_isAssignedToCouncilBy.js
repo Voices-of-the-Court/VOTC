@@ -4,7 +4,17 @@ const COUNCIL_POSITIONS = ["chancellor", "steward", "marshal", "spymaster", "cou
 
 module.exports = {
   signature: "isAssignedToCouncilBy",
-  title: "Source Assigned to Target's Council",
+  title: {
+    en: "Source Assigned to Target's Council",
+    ru: "Исходный персонаж назначен в совет цели",
+    fr: "La source est assignée au conseil de la cible",
+    de: "Quellcharakter dem Rat des Ziels zugewiesen",
+    es: "La fuente es asignada al consejo del objetivo",
+    ja: "ソースがターゲットの評議会に任命",
+    ko: "출처가 대상의 평의회에 임명됨",
+    pl: "Źródło przypisane do rady celu",
+    zh: "源角色被任命到目标的议会"
+  },
 
   /**
    * @param {object} params
@@ -60,36 +70,66 @@ module.exports = {
    * @param {Character} params.targetCharacter
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
+   * @param {string} params.lang - Language code for i18n
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
     if (!targetCharacter) {
       return {
-        message: "Failed: No target character specified",
+        message: {
+          en: "Failed: No target character specified",
+          ru: "Ошибка: Целевой персонаж не указан",
+          fr: "Échec : Aucun personnage cible spécifié",
+          de: "Fehler: Kein Zielcharakter angegeben",
+          es: "Error: No se especificó un personaje objetivo",
+          ja: "失敗: ターゲットキャラクターが指定されていません",
+          ko: "실패: 대상 캐릭터가 지정되지 않았습니다",
+          pl: "Niepowodzenie: Nie określono postaci docelowej",
+          zh: "失败: 未指定目标角色"
+        },
         sentiment: 'negative'
       };
     }
 
     if (!targetCharacter.isLandedRuler) {
       return {
-        message: `Failed: ${targetCharacter.shortName} is not a landed ruler and cannot have a council`,
+        message: {
+          en: `Failed: ${targetCharacter.shortName} is not a landed ruler and cannot have a council`,
+          ru: `Ошибка: ${targetCharacter.shortName} не является землевладельцем и не может иметь совет`,
+          fr: `Échec : ${targetCharacter.shortName} n'est pas un dirigeant terrien et ne peut pas avoir de conseil`,
+          de: `Fehler: ${targetCharacter.shortName} ist kein Landesherrscher und kann keinen Rat haben`,
+          es: `Error: ${targetCharacter.shortName} no es un gobernante con tierras y no puede tener un consejo`,
+          ja: `失敗: ${targetCharacter.shortName}は領主ではなく、評議会を持つことができません`,
+          ko: `실패: ${targetCharacter.shortName}은(는) 영주가 아니며 평의회를 가질 수 없습니다`,
+          pl: `Niepowodzenie: ${targetCharacter.shortName} nie jest władcą lądowym i nie może mieć rady`,
+          zh: `失败: ${targetCharacter.shortName}不是领主，不能拥有议会`
+        },
         sentiment: 'negative'
       };
     }
 
-    const position = typeof args?.council_position === "string" 
-      ? args.council_position.toLowerCase().trim() 
+    const position = typeof args?.council_position === "string"
+      ? args.council_position.toLowerCase().trim()
       : "";
 
     if (!COUNCIL_POSITIONS.includes(position)) {
       return {
-        message: `Failed: Invalid council position "${position}"`,
+        message: {
+          en: `Failed: Invalid council position "${position}"`,
+          ru: `Ошибка: Неверная позиция в совете "${position}"`,
+          fr: `Échec : Position de conseil invalide "${position}"`,
+          de: `Fehler: Ungültige Ratsposition "${position}"`,
+          es: `Error: Posición de consejo inválida "${position}"`,
+          ja: `失敗: 無効な評議会の位置 "${position}"`,
+          ko: `실패: 잘못된 평의회 위치 "${position}"`,
+          pl: `Niepowodzenie: Nieprawidłowa pozycja rady "${position}"`,
+          zh: `失败: 无效的议会职位 "${position}"`
+        },
         sentiment: 'negative'
       };
     }
 
     const isPlayerSource = args && typeof args.isPlayerSource === "boolean" ? args.isPlayerSource : false;
 
-    // Map position names to councillor types
     const positionMap = {
       "chancellor": "councillor_chancellor",
       "steward": "councillor_steward",
@@ -101,7 +141,6 @@ module.exports = {
     const councillorType = positionMap[position];
 
     if (!isPlayerSource) {
-      // Source character is assigned
       runGameEffect(`
 global_var:votc_action_target = {
     fire_councillor = cp:${councillorType}
@@ -112,11 +151,20 @@ global_var:votc_action_target = {
 }`);
 
       return {
-        message: `${sourceCharacter.shortName} was assigned as ${position} to ${targetCharacter.shortName}'s council`,
+        message: {
+          en: `${sourceCharacter.shortName} was assigned as ${position} to ${targetCharacter.shortName}'s council`,
+          ru: `${sourceCharacter.shortName} был назначен на должность ${position} в совет ${targetCharacter.shortName}`,
+          fr: `${sourceCharacter.shortName} a été assigné en tant que ${position} au conseil de ${targetCharacter.shortName}`,
+          de: `${sourceCharacter.shortName} wurde als ${position} dem Rat von ${targetCharacter.shortName} zugewiesen`,
+          es: `${sourceCharacter.shortName} fue asignado como ${position} al consejo de ${targetCharacter.shortName}`,
+          ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}の評議会に${position}として任命されました`,
+          ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}의 평의회에 ${position}(으)로 임명되었습니다`,
+          pl: `${sourceCharacter.shortName} został przypisany jako ${position} do rady ${targetCharacter.shortName}`,
+          zh: `${sourceCharacter.shortName}被任命为${position}加入${targetCharacter.shortName}的议会`
+        },
         sentiment: 'positive'
       };
     } else {
-      // Player is assigned
       runGameEffect(`
 global_var:votc_action_target = {
     fire_councillor = cp:${councillorType}
@@ -127,7 +175,17 @@ global_var:votc_action_target = {
 }`);
 
       return {
-        message: `${gameData.playerName} was assigned as ${position} to ${targetCharacter.shortName}'s council`,
+        message: {
+          en: `${gameData.playerName} was assigned as ${position} to ${targetCharacter.shortName}'s council`,
+          ru: `${gameData.playerName} был назначен на должность ${position} в совет ${targetCharacter.shortName}`,
+          fr: `${gameData.playerName} a été assigné en tant que ${position} au conseil de ${targetCharacter.shortName}`,
+          de: `${gameData.playerName} wurde als ${position} dem Rat von ${targetCharacter.shortName} zugewiesen`,
+          es: `${gameData.playerName} fue asignado como ${position} al consejo de ${targetCharacter.shortName}`,
+          ja: `${gameData.playerName}は${targetCharacter.shortName}の評議会に${position}として任命されました`,
+          ko: `${gameData.playerName}은(는) ${targetCharacter.shortName}의 평의회에 ${position}(으)로 임명되었습니다`,
+          pl: `${gameData.playerName} został przypisany jako ${position} do rady ${targetCharacter.shortName}`,
+          zh: `${gameData.playerName}被任命为${position}加入${targetCharacter.shortName}的议会`
+        },
         sentiment: 'positive'
       };
     }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import StreamingMarkdown from './StreamingMarkdown';
 import ActionFeedbackItem from './ActionFeedbackItem';
 import SummaryImportNotification from './SummaryImportNotification';
@@ -12,6 +13,7 @@ interface MessageItemProps {
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
 
@@ -64,9 +66,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
         <div className="error-message">
           <div className="error-header">
             <span className="error-icon"><img src={AlertIcon} alt="Error" /></span>
-            <span className="error-title">Error</span>
+            <span className="error-title">{t('messageItem.errorTitle')}</span>
             <div className="message-actions">
-              <button className="message-action-btn" onClick={handleRegenerateError} title="Regenerate">
+              <button className="message-action-btn" onClick={handleRegenerateError} title={t('chat.regenerate')}>
                 🔄
               </button>
             </div>
@@ -75,7 +77,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
             <p>{entry.content}</p>
             {entry.details && (
               <details className="error-details">
-                <summary>Details</summary>
+                <summary>{t('chat.details')}</summary>
                 <pre>{entry.details}</pre>
               </details>
             )}
@@ -105,15 +107,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
         message.role === 'user' ? 'player-message' : message.role === 'assistant' ? 'ai-message' : 'system-message'
       }`}>
         <div className="message-header">
-          <span className="message-role">{message.role === 'user' ? 'You' : message.role === 'assistant' ? message.name : 'System'}</span>
+          <span className="message-role">{message.role === 'user' ? t('chat.you') : message.role === 'assistant' ? message.name : t('chat.system')}</span>
           <div className="message-actions">
             {message.role === 'assistant' && !message.isStreaming && (
-              <button className="message-action-btn" onClick={handleRegenerate} title="Regenerate">
+              <button className="message-action-btn" onClick={handleRegenerate} title={t('chat.regenerate')}>
                 🔄
               </button>
             )}
             {message.role === 'user' && !isEditing && (
-              <button className="message-action-btn" onClick={handleEdit} title="Edit">
+              <button className="message-action-btn" onClick={handleEdit} title={t('common.edit')}>
                 ✏️
               </button>
             )}
@@ -128,8 +130,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
               rows={Math.max(3, editContent.split('\n').length)}
             />
             <div className="message-edit-actions">
-              <button onClick={handleSaveEdit} className="message-edit-save">Save</button>
-              <button onClick={handleCancelEdit} className="message-edit-cancel">Cancel</button>
+              <button onClick={handleSaveEdit} className="message-edit-save">{t('messageItem.save')}</button>
+              <button onClick={handleCancelEdit} className="message-edit-cancel">{t('messageItem.cancel')}</button>
             </div>
           </div>
         ) : (

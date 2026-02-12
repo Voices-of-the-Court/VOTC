@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActionApprovalEntry } from '../types';
 import './ActionApprovalItem.scss';
 
@@ -7,6 +8,7 @@ interface ActionApprovalItemProps {
 }
 
 const ActionApprovalItem: React.FC<ActionApprovalItemProps> = ({ entry }) => {
+  const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = React.useState(false);
   const action = entry.action;
 
@@ -43,7 +45,7 @@ const ActionApprovalItem: React.FC<ActionApprovalItemProps> = ({ entry }) => {
   const argsDisplay =
     action.args && Object.keys(action.args).length > 0
       ? JSON.stringify(action.args)
-      : 'No parameters';
+      : t('chat.noParameters');
 
   return (
     <div className={`action-feedback-container approval ${isPending ? 'pending' : 'resolved'}`}>
@@ -53,7 +55,7 @@ const ActionApprovalItem: React.FC<ActionApprovalItemProps> = ({ entry }) => {
           title={action.actionTitle || action.actionId}
         >
           <span className="action-feedback-message">
-            {isPending ? 'Pending approval · ' : ''}
+            {isPending ? t('chat.pendingApproval') + ' · ' : ''}
             {message}
           </span>
           {isPending && (
@@ -63,14 +65,14 @@ const ActionApprovalItem: React.FC<ActionApprovalItemProps> = ({ entry }) => {
                 disabled={isProcessing}
                 className="approve-button"
               >
-                {isProcessing ? '...' : 'Approve'}
+                {isProcessing ? '...' : t('common.approve')}
               </button>
               <button
                 onClick={handleDecline}
                 disabled={isProcessing}
                 className="decline-button"
               >
-                {isProcessing ? '...' : 'Decline'}
+                {isProcessing ? '...' : t('common.decline')}
               </button>
             </div>
           )}
@@ -80,17 +82,17 @@ const ActionApprovalItem: React.FC<ActionApprovalItemProps> = ({ entry }) => {
       {isPending && (
         <div className="approval-hover">
           <div className="hover-row">
-            <span className="label">From</span>
+            <span className="label">{t('chat.from')}</span>
             <span>{action.sourceCharacterName}</span>
           </div>
           {hasTarget && (
             <div className="hover-row">
-              <span className="label">To</span>
+              <span className="label">{t('chat.to')}</span>
               <span>{action.targetCharacterName}</span>
             </div>
           )}
           <div className="hover-row">
-            <span className="label">Args</span>
+            <span className="label">{t('chat.args')}</span>
             <span className="args">{argsDisplay}</span>
           </div>
         </div>
