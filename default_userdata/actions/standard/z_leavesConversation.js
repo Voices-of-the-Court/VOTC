@@ -1,7 +1,17 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
 module.exports = {
     signature: "leavesConversation",
-    title: "Character Leaves Conversation",
+    title: {
+        en: "Character Leaves Conversation",
+        ru: "Персонаж уходит из разговора",
+        fr: "Le personnage quitte la conversation",
+        de: "Charakter verlässt das Gespräch",
+        es: "El personaje abandona la conversación",
+        ja: "キャラクターが会話を離れる",
+        ko: "캐릭터가 대화를 떠남",
+        pl: "Postać opuszcza rozmowę",
+        zh: "角色离开对话"
+    },
     isDestructive: true,
   
     /**
@@ -42,18 +52,39 @@ module.exports = {
      * @param {Record<string, number|string|null>} params.args
      * @param {Conversation} params.conversation
      * @param {boolean} params.dryRun
+     * @param {string} params.lang - Language code for i18n
      */
-    run: async ({ gameData, sourceCharacter, targetCharacter, runGameEffect, conversation, dryRun }) => {
+    run: async ({ gameData, sourceCharacter, targetCharacter, runGameEffect, conversation, dryRun, lang = "en" }) => {
         if (!targetCharacter) {
             return {
-                message: "Failed: No character specified to leave",
+                message: {
+                    en: "Failed: No character specified to leave",
+                    ru: "Ошибка: Не указан персонаж для ухода",
+                    fr: "Échec : Aucun personnage spécifié pour partir",
+                    de: "Fehler: Kein Charakter zum Verlassen angegeben",
+                    es: "Error: No se especificó ningún personaje para salir",
+                    ja: "失敗: 離れるキャラクターが指定されていません",
+                    ko: "실패: 떠날 캐릭터가 지정되지 않았습니다",
+                    pl: "Niepowodzenie: Nie określono postaci do wyjścia",
+                    zh: "失败: 未指定要离开的角色"
+                },
                 sentiment: 'negative'
             };
         }
 
         if (!conversation) {
             return {
-                message: "Failed: No active conversation",
+                message: {
+                    en: "Failed: No active conversation",
+                    ru: "Ошибка: Нет активного разговора",
+                    fr: "Échec : Aucune conversation active",
+                    de: "Fehler: Kein aktives Gespräch",
+                    es: "Error: No hay conversación activa",
+                    ja: "失敗: アクティブな会話がありません",
+                    ko: "실패: 활성 대화가 없습니다",
+                    pl: "Niepowodzenie: Brak aktywnej rozmowy",
+                    zh: "失败: 没有活动的对话"
+                },
                 sentiment: 'negative'
             };
         }
@@ -61,7 +92,17 @@ module.exports = {
         // If this is a dry run (preview), just return the preview message
         if (dryRun) {
             return {
-                message: `${targetCharacter.shortName} will leave the conversation`,
+                message: {
+                    en: `${targetCharacter.shortName} will leave the conversation`,
+                    ru: `${targetCharacter.shortName} уйдет из разговора`,
+                    fr: `${targetCharacter.shortName} quittera la conversation`,
+                    de: `${targetCharacter.shortName} wird das Gespräch verlassen`,
+                    es: `${targetCharacter.shortName} abandonará la conversación`,
+                    ja: `${targetCharacter.shortName}は会話を離れます`,
+                    ko: `${targetCharacter.shortName}은(는) 대화를 떠날 것입니다`,
+                    pl: `${targetCharacter.shortName} opuści rozmowę`,
+                    zh: `${targetCharacter.shortName}将离开对话`
+                },
                 sentiment: 'neutral'
             };
         }
@@ -252,9 +293,19 @@ root = {trigger_event = mcc_event_v2.9003}`);
             console.log(`[leavesConversation] Removing ${targetCharacter.fullName} from conversation`);
             conversation.removeCharacterFromConversation(targetCharacter.id);
             console.log(`[leavesConversation] Character removed successfully`);
-            
+
             const feedbackMessage = {
-                message: `${targetCharacter.shortName} has left the conversation`,
+                message: {
+                    en: `${targetCharacter.shortName} has left the conversation`,
+                    ru: `${targetCharacter.shortName} ушел из разговора`,
+                    fr: `${targetCharacter.shortName} a quitté la conversation`,
+                    de: `${targetCharacter.shortName} hat das Gespräch verlassen`,
+                    es: `${targetCharacter.shortName} ha abandonado la conversación`,
+                    ja: `${targetCharacter.shortName}は会話を離れました`,
+                    ko: `${targetCharacter.shortName}은(는) 대화를 떠났습니다`,
+                    pl: `${targetCharacter.shortName} opuścił rozmowę`,
+                    zh: `${targetCharacter.shortName}已经离开了对话`
+                },
                 sentiment: 'neutral'
             };
             console.log(`[leavesConversation] Returning feedback:`, feedbackMessage);

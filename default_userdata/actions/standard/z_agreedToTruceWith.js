@@ -1,7 +1,17 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
 module.exports = {
   signature: "agreedToTruceWith",
-  title: "Mutual Truce",
+  title: {
+    en: "Mutual Truce",
+    ru: "Взаимное перемирие",
+    fr: "Trêve mutuelle",
+    de: "Gegenseitiger Waffenstillstand",
+    es: "Tregua mutua",
+    ja: "相互休戦",
+    ko: "상호 휴전",
+    pl: "Wzajemne rozejm",
+    zh: "相互休战"
+  },
 
   /**
    * @param {object} params
@@ -47,15 +57,26 @@ module.exports = {
    * @param {Character} params.targetCharacter
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|null>} params.args
+   * @param {string} params.lang - Language code for i18n
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
     if (!targetCharacter) {
       return {
-        message: "Failed: No target character specified for truce",
+        message: {
+          en: "Failed: No target character specified for truce",
+          ru: "Ошибка: Целевой персонаж для перемирия не указан",
+          fr: "Échec : Aucun personnage cible spécifié pour la trêve",
+          de: "Fehler: Kein Zielcharakter für den Waffenstillstand angegeben",
+          es: "Error: No se especificó un personaje objetivo para la tregua",
+          ja: "失敗: 休戦のターゲットキャラクターが指定されていません",
+          ko: "실패: 휴전을 위한 대상 캐릭터가 지정되지 않았습니다",
+          pl: "Niepowodzenie: Nie określono postaci docelowej dla rozejmu",
+          zh: "失败: 未指定休战的目标角色"
+        },
         sentiment: 'negative'
       };
     }
-    
+
     let years = 3;
     const raw = args?.years;
     if (typeof raw === "number" && Number.isFinite(raw)) {
@@ -72,7 +93,17 @@ global_var:votc_action_source = {
 }`);
 
     return {
-      message: `${sourceCharacter.shortName} and ${targetCharacter.shortName} agreed to a ${years}-year truce`,
+      message: {
+        en: `${sourceCharacter.shortName} and ${targetCharacter.shortName} agreed to a ${years}-year truce`,
+        ru: `${sourceCharacter.shortName} и ${targetCharacter.shortName} согласились на ${years}-летнее перемирие`,
+        fr: `${sourceCharacter.shortName} et ${targetCharacter.shortName} ont accepté une trêve de ${years} ans`,
+        de: `${sourceCharacter.shortName} und ${targetCharacter.shortName} vereinbarten einen ${years}-jährigen Waffenstillstand`,
+        es: `${sourceCharacter.shortName} y ${targetCharacter.shortName} acordaron una tregua de ${years} años`,
+        ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は${years}年間の休戦に同意しました`,
+        ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) ${years}년간의 휴전에 동의했습니다`,
+        pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} zgodzili się na ${years}-letni rozejm`,
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}同意了${years}年的休战`
+      },
       sentiment: 'positive'
     };
   },
