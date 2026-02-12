@@ -9,6 +9,32 @@ import ContextLengthField from './ContextLengthField';
 import FormGroupInput from './FormGroupInput';
 import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent } from './ConfigFields';
 
+const Player2OpenAppButton: React.FC = () => {
+  const { t } = useTranslation();
+  
+  const handleOpenPlayer2 = async () => {
+    try {
+      const result = await window.electronAPI.openExternal('player2://');
+      if (!result.success) {
+        console.error('Failed to open Player2 app:', result.error);
+      }
+    } catch (error) {
+      console.error('Error opening Player2 app:', error);
+    }
+  };
+
+  return (
+    <div className="form-group">
+      <button type="button" onClick={handleOpenPlayer2} className="open-player2-button">
+        {t('connection.openPlayer2App', 'Open Player2 App')}
+      </button>
+      <small className="form-help-text">
+        {t('connection.player2AppHelp', 'Click to open the Player2 application. Make sure it is installed and running.')}
+      </small>
+    </div>
+  );
+};
+
 type ChangeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 
 interface CommonFieldProps {
@@ -137,11 +163,15 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
         
         {SpecificProviderFields && <SpecificProviderFields config={config} onInputChange={onInputChange} />}
         
-        <ModelSelector
-          config={config}
-          onInputChange={onInputChange}
-          onModelSelect={(modelId) => updateEditingConfig({ defaultModel: modelId })}
-        />
+        {config.providerType === 'player2' ? (
+          <Player2OpenAppButton />
+        ) : (
+          <ModelSelector
+            config={config}
+            onInputChange={onInputChange}
+            onModelSelect={(modelId) => updateEditingConfig({ defaultModel: modelId })}
+          />
+        )}
         
         <ContextLengthField
           config={config}

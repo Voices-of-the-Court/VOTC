@@ -77,7 +77,17 @@ const VALID_LOCATIONS = [
 
 module.exports = {
   signature: "changeLocation",
-  title: "Change Scene Location",
+  title: {
+    en: "Change Scene Location",
+    ru: "Сменить локацию сцены",
+    fr: "Changer le lieu de la scène",
+    de: "Szenenort ändern",
+    es: "Cambiar ubicación de la escena",
+    ja: "シーンの場所を変更",
+    ko: "장면 장소 변경",
+    pl: "Zmień lokalizację sceny",
+    zh: "更改场景位置"
+  },
 
   /**
    * @param {object} params
@@ -119,20 +129,41 @@ module.exports = {
    * @param {Character} params.targetCharacter
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|null>} params.args
+   * @param {string} params.lang - Language code for i18n
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
     const location = typeof args?.location === "string" ? args.location.toLowerCase().trim() : "";
 
     if (!location) {
       return {
-        message: `Failed: No location specified. Arguments: ${JSON.stringify(args)}`,
+        message: {
+          en: `Failed: No location specified. Arguments: ${JSON.stringify(args)}`,
+          ru: `Ошибка: Локация не указана. Аргументы: ${JSON.stringify(args)}`,
+          fr: `Échec : Aucun lieu spécifié. Arguments : ${JSON.stringify(args)}`,
+          de: `Fehler: Kein Ort angegeben. Argumente: ${JSON.stringify(args)}`,
+          es: `Error: No se especificó una ubicación. Argumentos: ${JSON.stringify(args)}`,
+          ja: `失敗: 場所が指定されていません。引数: ${JSON.stringify(args)}`,
+          ko: `실패: 장소가 지정되지 않았습니다. 인수: ${JSON.stringify(args)}`,
+          pl: `Niepowodzenie: Nie określono lokalizacji. Argumenty: ${JSON.stringify(args)}`,
+          zh: `失败: 未指定位置。参数: ${JSON.stringify(args)}`
+        },
         sentiment: 'negative',
       };
     }
 
     if (!VALID_LOCATIONS.includes(location)) {
       return {
-        message: `Failed: Invalid location "${location}"`,
+        message: {
+          en: `Failed: Invalid location "${location}"`,
+          ru: `Ошибка: Неверная локация "${location}"`,
+          fr: `Échec : Lieu invalide "${location}"`,
+          de: `Fehler: Ungültiger Ort "${location}"`,
+          es: `Error: Ubicación inválida "${location}"`,
+          ja: `失敗: 無効な場所 "${location}"`,
+          ko: `실패: 잘못된 장소 "${location}"`,
+          pl: `Niepowodzenie: Nieprawidłowa lokalizacja "${location}"`,
+          zh: `失败: 无效的位置 "${location}"`
+        },
         sentiment: 'negative',
       };
     }
@@ -140,7 +171,17 @@ module.exports = {
     runGameEffect(`set_global_variable = { name = talk_scene value = flag:talk_scene_${location} }`);
 
     return {
-      message: `Scene changed to ${location.replace(/_/g, ' ')}`,
+      message: {
+        en: `Scene changed to ${location.replace(/_/g, ' ')}`,
+        ru: `Сцена изменена на ${location.replace(/_/g, ' ')}`,
+        fr: `Scène changée pour ${location.replace(/_/g, ' ')}`,
+        de: `Szene geändert zu ${location.replace(/_/g, ' ')}`,
+        es: `Escena cambiada a ${location.replace(/_/g, ' ')}`,
+        ja: `シーンが ${location.replace(/_/g, ' ')} に変更されました`,
+        ko: `장면이 ${location.replace(/_/g, ' ')}(으)로 변경되었습니다`,
+        pl: `Scena zmieniona na ${location.replace(/_/g, ' ')}`,
+        zh: `场景已更改为 ${location.replace(/_/g, ' ')}`
+      },
       sentiment: 'neutral',
     };
   },

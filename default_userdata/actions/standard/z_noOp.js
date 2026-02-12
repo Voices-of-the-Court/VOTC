@@ -3,7 +3,17 @@
 
 module.exports = {
   signature: "noOp",
-  title: "No executed actions fallback",
+  title: {
+    en: "No executed actions fallback",
+    ru: "Отсутствие выполненных действий",
+    fr: "Aucune action exécutée",
+    de: "Keine ausgeführten Aktionen",
+    es: "Respaldo sin acciones ejecutadas",
+    ja: "実行されたアクションなし",
+    ko: "실행된 작업 없음",
+    pl: "Brak wykonanych akcji",
+    zh: "无执行操作回退"
+  },
 
   // Dynamic args receive sourceCharacter (kept empty for this action, but enables richer prompts)
   args: ({ sourceCharacter }) => [],

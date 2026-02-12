@@ -1,7 +1,17 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
 module.exports = {
   signature: "setEmotion",
-  title: "Set Target Emotion",
+  title: {
+    en: "Set Target Emotion",
+    ru: "Установить эмоцию цели",
+    fr: "Définir l'émotion de la cible",
+    de: "Ziel-Emotion festlegen",
+    es: "Establecer emoción del objetivo",
+    ja: "ターゲットの感情を設定",
+    ko: "대상 감정 설정",
+    pl: "Ustaw emocję celu",
+    zh: "设置目标情绪"
+  },
 
   /**
    * @param {object} params

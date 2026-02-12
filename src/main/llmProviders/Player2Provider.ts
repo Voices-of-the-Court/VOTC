@@ -2,7 +2,6 @@ import { providerRegistry } from './ProviderRegistry';
 import {
   ILLMCompletionRequest,
   ILLMCompletionResponse,
-  ILLMModel,
   ILLMStreamChunk,
   ILLMOutput,
 } from './types';
@@ -12,6 +11,26 @@ import OpenAI from 'openai'; // Import OpenAI SDK
 export class Player2Provider extends BaseProvider {
   providerId = 'player2';
   name = 'Player2';
+
+  /**
+   * Override validateConfig to skip API key requirement for Player2
+   * Player2 runs locally and doesn't need a real API key
+   */
+  protected validateConfig(config: any): void {
+    // Player2 doesn't require API key validation since it uses a dummy key
+    // Just validate that we have a model
+    if (!config.defaultModel) {
+      throw new Error(`Default model is required for ${this.name}`);
+    }
+  }
+
+  /**
+   * Override listModels to return empty array since Player2 doesn't support model listing
+   */
+  async listModels(): Promise<any[]> {
+    // Player2 doesn't support dynamic model listing
+    return [];
+  }
 
   /**
    * Determine if an error should trigger a retry
@@ -27,15 +46,6 @@ export class Player2Provider extends BaseProvider {
     // Retry on network errors or other transient issues
     // OpenAI SDK typically wraps these in APIError, but as fallback
     return error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND';
-  }
-
-  async listModels(): Promise<ILLMModel[]> {
-    const player2Models: ILLMModel[] = [
-      { id: 'gpt-oss-120b', name: 'gpt-oss-120b', isFree: true },
-      { id: 'Qwen3-235B-A22B-Instruct', name: 'Qwen3-235B-A22B-Instruct' },
-      { id: 'player2-685b', name: 'Player2 685B' },
-    ];
-    return player2Models;
   }
 
   chatCompletion(

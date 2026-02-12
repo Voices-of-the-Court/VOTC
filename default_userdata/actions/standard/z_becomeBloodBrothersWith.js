@@ -1,7 +1,17 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
 module.exports = {
   signature: "becomeBloodBrothersWith",
-  title: "Become Blood Brothers",
+  title: {
+    en: "Become Blood Brothers",
+    ru: "Стать побратимами",
+    fr: "Devenir frères de sang",
+    de: "Blutsbrüder werden",
+    es: "Convertirse en hermanos de sangre",
+    ja: "血の盟友になる",
+    ko: "결의 형제가 되다",
+    pl: "Zostać braćmi krwi",
+    zh: "成为结拜兄弟"
+  },
 
   /**
    * @param {object} params
@@ -46,17 +56,28 @@ module.exports = {
    * @param {Character} params.targetCharacter
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
+   * @param {string} params.lang - Language code for i18n
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
     if (!targetCharacter) {
       return {
-        message: "Failed: No target character specified",
+        message: {
+          en: "Failed: No target character specified",
+          ru: "Ошибка: Целевой персонаж не указан",
+          fr: "Échec : Aucun personnage cible spécifié",
+          de: "Fehler: Kein Zielcharakter angegeben",
+          es: "Error: No se especificó un personaje objetivo",
+          ja: "失敗: ターゲットキャラクターが指定されていません",
+          ko: "실패: 대상 캐릭터가 지정되지 않았습니다",
+          pl: "Niepowodzenie: Nie określono postaci docelowej",
+          zh: "失败: 未指定目标角色"
+        },
         sentiment: 'negative'
       };
     }
 
-    const reason = typeof args?.reason === "string" && args.reason.trim() 
-      ? args.reason.trim() 
+    const reason = typeof args?.reason === "string" && args.reason.trim()
+      ? args.reason.trim()
       : "became_blood_brothers";
 
     runGameEffect(`
@@ -68,7 +89,17 @@ global_var:votc_action_source = {
 }`);
 
     return {
-      message: `${sourceCharacter.shortName} and ${targetCharacter.shortName} became blood brothers`,
+      message: {
+        en: `${sourceCharacter.shortName} and ${targetCharacter.shortName} became blood brothers`,
+        ru: `${sourceCharacter.shortName} и ${targetCharacter.shortName} стали побратимами`,
+        fr: `${sourceCharacter.shortName} et ${targetCharacter.shortName} sont devenus frères de sang`,
+        de: `${sourceCharacter.shortName} und ${targetCharacter.shortName} wurden Blutsbrüder`,
+        es: `${sourceCharacter.shortName} y ${targetCharacter.shortName} se convirtieron en hermanos de sangre`,
+        ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は血の盟友になりました`,
+        ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 결의 형제가 되었습니다`,
+        pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} stali się braćmi krwi`,
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了结拜兄弟`
+      },
       sentiment: 'positive'
     };
   },

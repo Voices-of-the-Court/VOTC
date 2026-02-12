@@ -1,7 +1,17 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
 module.exports = {
   signature: "characterIsKilled",
-  title: "Source Character Is Killed",
+  title: {
+    en: "Source Character Is Killed",
+    ru: "Исходный персонаж убит",
+    fr: "Le personnage source est tué",
+    de: "Quellcharakter wird getötet",
+    es: "El personaje fuente es asesinado",
+    ja: "ソースキャラクターが殺される",
+    ko: "출처 캐릭터가 살해됨",
+    pl: "Postać źródłowa jest zabita",
+    zh: "源角色被杀"
+  },
   isDestructive: true,
 
   /**
@@ -47,12 +57,22 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {GameData} params.gameData
    * @param {Record<string, number|string|boolean|null>} params.args
+   * @param {string} params.lang - Language code for i18n
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args }) => {
-    // If for some reason target wasn't provided, do nothing.
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
     if (!targetCharacter) {
       return {
-        message: "Failed: No killer specified",
+        message: {
+          en: "Failed: No killer specified",
+          ru: "Ошибка: Убийца не указан",
+          fr: "Échec : Aucun meurtrier spécifié",
+          de: "Fehler: Kein Mörder angegeben",
+          es: "Error: No se especificó un asesino",
+          ja: "失敗: 殺害者が指定されていません",
+          ko: "실패: 살인자가 지정되지 않았습니다",
+          pl: "Niepowodzenie: Nie określono zabójcy",
+          zh: "失败: 未指定杀手"
+        },
         sentiment: 'negative'
       };
     }
@@ -69,7 +89,17 @@ root = {
 }`);
 
       return {
-        message: `${gameData.playerName} was killed by ${targetCharacter.shortName}`,
+        message: {
+          en: `${gameData.playerName} was killed by ${targetCharacter.shortName}`,
+          ru: `${gameData.playerName} был убит ${targetCharacter.shortName}`,
+          fr: `${gameData.playerName} a été tué par ${targetCharacter.shortName}`,
+          de: `${gameData.playerName} wurde von ${targetCharacter.shortName} getötet`,
+          es: `${gameData.playerName} fue asesinado por ${targetCharacter.shortName}`,
+          ja: `${gameData.playerName}は${targetCharacter.shortName}に殺されました`,
+          ko: `${gameData.playerName}은(는) ${targetCharacter.shortName}에 의해 살해되었습니다`,
+          pl: `${gameData.playerName} został zabity przez ${targetCharacter.shortName}`,
+          zh: `${gameData.playerName}被${targetCharacter.shortName}杀害`
+        },
         sentiment: 'negative'
       };
     } else {
@@ -82,7 +112,17 @@ global_var:votc_action_source = {
 }`);
 
       return {
-        message: `${sourceCharacter.shortName} was killed by ${targetCharacter.shortName}`,
+        message: {
+          en: `${sourceCharacter.shortName} was killed by ${targetCharacter.shortName}`,
+          ru: `${sourceCharacter.shortName} был убит ${targetCharacter.shortName}`,
+          fr: `${sourceCharacter.shortName} a été tué par ${targetCharacter.shortName}`,
+          de: `${sourceCharacter.shortName} wurde von ${targetCharacter.shortName} getötet`,
+          es: `${sourceCharacter.shortName} fue asesinado por ${targetCharacter.shortName}`,
+          ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}に殺されました`,
+          ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}에 의해 살해되었습니다`,
+          pl: `${sourceCharacter.shortName} został zabity przez ${targetCharacter.shortName}`,
+          zh: `${sourceCharacter.shortName}被${targetCharacter.shortName}杀害`
+        },
         sentiment: 'negative'
       };
     }
