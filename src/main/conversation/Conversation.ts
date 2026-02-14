@@ -215,23 +215,22 @@ export class Conversation {
         this.messages.push(placeholder);
         this.emitUpdate();
 
-        // Has to be called after emitUpdate to show placeholder in UI in right time
-        await this.checkAndSummarizeIfNeeded(npc);
-        
-        const llmMessages = PromptBuilder.buildMessages(
-            this.getHistory().slice(this.lastSummarizedMessageIndex), 
-            npc, 
-            this.gameData,
-            this.currentSummary
-        );
-
-
         // Create AbortController for this stream
         this.currentStreamController = new AbortController();
         let wasCancelled = false;
         let streamCompleted = false;
 
         try {
+            // Has to be called after emitUpdate to show placeholder in UI in right time
+            await this.checkAndSummarizeIfNeeded(npc);
+            
+            const llmMessages = PromptBuilder.buildMessages(
+                this.getHistory().slice(this.lastSummarizedMessageIndex), 
+                npc, 
+                this.gameData,
+                this.currentSummary
+            );
+
             console.log(`Message from ${npc.fullName}:`, llmMessages);
             console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, this.estimateTokenCount(llmMessages));
             
@@ -522,7 +521,12 @@ export class Conversation {
 
         while (this.npcQueue.length > 0 && !this.isPaused) {
             const npc = this.npcQueue.shift()!;
-            await this.respondAs(npc);
+            try {
+                await this.respondAs(npc);
+            } catch (error) {
+                console.error('Unhandled error in respondAs for', npc.shortName, ':', error);
+                this.emitUpdate();
+            }
         }
 
         // Clear pause state if queue is now empty (handles case where queue was emptied during processing)

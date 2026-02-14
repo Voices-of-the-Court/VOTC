@@ -12,6 +12,7 @@ export interface PromptBlockWithTokens {
     block: PromptBlock;
     content: string;
     tokens: number;
+    error?: string;
 }
 
 export interface PromptPreviewResult {
@@ -111,8 +112,13 @@ export class PromptBuilder {
         }
 
         if (promptSettings.suffix?.enabled && promptSettings.suffix.template) {
-            const suffixContent = this.templateEngine.renderTemplateString(promptSettings.suffix.template, context);
-            llmMessages.push({ role: 'system', content: suffixContent });
+            try {
+                const suffixContent = this.templateEngine.renderTemplateString(promptSettings.suffix.template, context);
+                llmMessages.push({ role: 'system', content: suffixContent });
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                throw new Error(`Template error in Suffix block: ${errorMsg}`);
+            }
         }
 
         return llmMessages;
@@ -238,10 +244,21 @@ static buildFinalSummary(
 
     private static applyBlock(block: PromptBlock, messages: any[], history: any[], baseContext: any, promptSettings: PromptSettings): void {
         const { character, gameData, summary } = baseContext;
+
+        const renderTemplate = (template: string, context: any): string => {
+            try {
+                return this.templateEngine.renderTemplateString(template, context);
+            } catch (error) {
+                const blockLabel = block.label || block.type;
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                throw new Error(`Template error in block "${blockLabel}" (${block.type}): ${errorMsg}`);
+            }
+        };
+
         switch (block.type) {
             case 'main': {
                 const template = promptSettings.mainTemplate || promptConfigManager.getDefaultMainTemplateContent();
-                const content = this.templateEngine.renderTemplateString(template, baseContext);
+                const content = renderTemplate(template, baseContext);
                 if (content?.trim()) {
                     messages.push({ role: block.role || 'system', content });
                 }
@@ -284,7 +301,7 @@ static buildFinalSummary(
                 const pastSummaries = this.buildPastSummariesContext(character, gameData);
                 if (pastSummaries) {
                     const content = block.template
-                        ? this.templateEngine.renderTemplateString(block.template, { ...baseContext, pastSummaries })
+                        ? renderTemplate(block.template, { ...baseContext, pastSummaries })
                         : pastSummaries;
                     messages.push({ role: block.role || 'system', content });
                 }
@@ -293,7 +310,7 @@ static buildFinalSummary(
             case 'rolling_summary': {
                 if (summary) {
                     const tpl = block.template || 'Summary of earlier messages in this conversation:\n{{summary}}';
-                    const content = this.templateEngine.renderTemplateString(tpl, { ...baseContext, summary });
+                    const content = renderTemplate(tpl, { ...baseContext, summary });
                     messages.push({ role: block.role || 'system', content });
                 }
                 break;
@@ -309,7 +326,7 @@ static buildFinalSummary(
             }
             case 'instruction': {
                 const tpl = block.template || '[Write next reply only as {{character.fullName}}]';
-                const content = this.templateEngine.renderTemplateString(tpl, baseContext);
+                const content = renderTemplate(tpl, baseContext);
                 messages.push({
                     role: block.role || 'user',
                     content
@@ -318,7 +335,7 @@ static buildFinalSummary(
             }
             case 'custom': {
                 if (!block.template) break;
-                const content = this.templateEngine.renderTemplateString(block.template, baseContext);
+                const content = renderTemplate(block.template, baseContext);
                 messages.push({ role: block.role || 'system', content });
                 break;
             }
@@ -365,22 +382,24 @@ static buildFinalSummary(
         }
 
         if (promptSettings.suffix?.enabled && promptSettings.suffix.template) {
-            const suffixContent = this.templateEngine.renderTemplateString(promptSettings.suffix.template, context);
-            const suffixTokens = TokenCounter.estimateTokens(suffixContent);
-            llmMessages.push({ role: 'system', content: suffixContent });
-            
-            blocksWithTokens.push({
-                block: {
-                    id: 'suffix',
-                    type: 'custom' as any,
-                    label: promptSettings.suffix.label || 'Suffix',
-                    enabled: true,
-                    role: 'system',
-                    template: promptSettings.suffix.template
-                },
-                content: suffixContent,
-                tokens: suffixTokens
-            });
+            const suffixBlock: PromptBlock = {
+                id: 'suffix',
+                type: 'custom' as any,
+                label: promptSettings.suffix.label || 'Suffix',
+                enabled: true,
+                role: 'system',
+                template: promptSettings.suffix.template
+            };
+            try {
+                const suffixContent = this.templateEngine.renderTemplateString(promptSettings.suffix.template, context);
+                const suffixTokens = TokenCounter.estimateTokens(suffixContent);
+                llmMessages.push({ role: 'system', content: suffixContent });
+                blocksWithTokens.push({ block: suffixBlock, content: suffixContent, tokens: suffixTokens });
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                console.error('Template error in Suffix block:', errorMsg);
+                blocksWithTokens.push({ block: suffixBlock, content: '', tokens: 0, error: `Template error in Suffix block. Check Handlebars syntax.` });
+            }
         }
 
         const totalTokens = TokenCounter.calculateTotalTokens(llmMessages);
@@ -393,7 +412,8 @@ static buildFinalSummary(
     }
 
     /**
-     * Apply a single block with token counting
+     * Apply a single block with token counting.
+     * Template errors are caught and returned as error info in the result rather than thrown.
      */
     private static applyBlockWithTokenCount(
         block: PromptBlock,
@@ -403,18 +423,27 @@ static buildFinalSummary(
         promptSettings: PromptSettings
     ): PromptBlockWithTokens | null {
         const { character, gameData, summary } = baseContext;
+
+        const renderTemplate = (template: string, context: any): string | null => {
+            try {
+                return this.templateEngine.renderTemplateString(template, context);
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                console.error(`Template error in block "${block.label || block.type}":`, errorMsg);
+                return null;
+            }
+        };
         
         switch (block.type) {
             case 'main': {
                 const template = promptSettings.mainTemplate || promptConfigManager.getDefaultMainTemplateContent();
-                const content = this.templateEngine.renderTemplateString(template, baseContext);
+                const content = renderTemplate(template, baseContext);
+                if (content === null) {
+                    return { block, content: '', tokens: 0, error: `Template error in "${block.label || 'Main Prompt'}" block. Check Handlebars syntax.` };
+                }
                 if (content?.trim()) {
                     messages.push({ role: block.role || 'system', content });
-                    return {
-                        block,
-                        content,
-                        tokens: TokenCounter.estimateTokens(content)
-                    };
+                    return { block, content, tokens: TokenCounter.estimateTokens(content) };
                 }
                 break;
             }
@@ -425,14 +454,12 @@ static buildFinalSummary(
                     const descriptionBlock = this.scriptLoader.executeDescription(descScriptPath, gameData, character.id);
                     if (descriptionBlock) {
                         messages.push({ role: 'system', content: descriptionBlock });
-                        return {
-                            block,
-                            content: descriptionBlock,
-                            tokens: TokenCounter.estimateTokens(descriptionBlock)
-                        };
+                        return { block, content: descriptionBlock, tokens: TokenCounter.estimateTokens(descriptionBlock) };
                     }
                 } catch (error) {
+                    const errorMsg = error instanceof Error ? error.message : String(error);
                     console.error('Failed to run description script:', error);
+                    return { block, content: '', tokens: 0, error: `Script error: ${errorMsg}` };
                 }
                 break;
             }
@@ -444,26 +471,25 @@ static buildFinalSummary(
                     if (Array.isArray(exampleMessages) && exampleMessages.length > 0) {
                         messages.push(...exampleMessages);
                         const content = exampleMessages.map(m => `${m.role}: ${m.content}`).join('\n\n');
-                        return {
-                            block,
-                            content,
-                            tokens: TokenCounter.calculateTotalTokens(exampleMessages)
-                        };
+                        return { block, content, tokens: TokenCounter.calculateTotalTokens(exampleMessages) };
                     }
                 } catch (error) {
+                    const errorMsg = error instanceof Error ? error.message : String(error);
                     console.error('Failed to run example script:', error);
+                    return { block, content: '', tokens: 0, error: `Script error: ${errorMsg}` };
                 }
                 break;
             }
             case 'memories': {
-                const memoriesBlock = this.buildMemoriesBlock(gameData, block.limit ?? 5, block.template, baseContext);
-                if (memoriesBlock) {
-                    messages.push({ role: block.role || 'system', content: memoriesBlock });
-                    return {
-                        block,
-                        content: memoriesBlock,
-                        tokens: TokenCounter.estimateTokens(memoriesBlock)
-                    };
+                try {
+                    const memoriesBlock = this.buildMemoriesBlock(gameData, block.limit ?? 5, block.template, baseContext);
+                    if (memoriesBlock) {
+                        messages.push({ role: block.role || 'system', content: memoriesBlock });
+                        return { block, content: memoriesBlock, tokens: TokenCounter.estimateTokens(memoriesBlock) };
+                    }
+                } catch (error) {
+                    const errorMsg = error instanceof Error ? error.message : String(error);
+                    return { block, content: '', tokens: 0, error: `Template error in "${block.label || 'Memories'}" block: ${errorMsg}` };
                 }
                 break;
             }
@@ -471,27 +497,25 @@ static buildFinalSummary(
                 const pastSummaries = this.buildPastSummariesContext(character, gameData);
                 if (pastSummaries) {
                     const content = block.template
-                        ? this.templateEngine.renderTemplateString(block.template, { ...baseContext, pastSummaries })
+                        ? renderTemplate(block.template, { ...baseContext, pastSummaries })
                         : pastSummaries;
+                    if (content === null) {
+                        return { block, content: '', tokens: 0, error: `Template error in "${block.label || 'Past Summaries'}" block. Check Handlebars syntax.` };
+                    }
                     messages.push({ role: block.role || 'system', content });
-                    return {
-                        block,
-                        content,
-                        tokens: TokenCounter.estimateTokens(content)
-                    };
+                    return { block, content, tokens: TokenCounter.estimateTokens(content) };
                 }
                 break;
             }
             case 'rolling_summary': {
                 if (summary) {
                     const tpl = block.template || 'Summary of earlier messages in this conversation:\n{{summary}}';
-                    const content = this.templateEngine.renderTemplateString(tpl, { ...baseContext, summary });
+                    const content = renderTemplate(tpl, { ...baseContext, summary });
+                    if (content === null) {
+                        return { block, content: '', tokens: 0, error: `Template error in "${block.label || 'Rolling Summary'}" block. Check Handlebars syntax.` };
+                    }
                     messages.push({ role: block.role || 'system', content });
-                    return {
-                        block,
-                        content,
-                        tokens: TokenCounter.estimateTokens(content)
-                    };
+                    return { block, content, tokens: TokenCounter.estimateTokens(content) };
                 }
                 break;
             }
@@ -502,34 +526,25 @@ static buildFinalSummary(
                 }));
                 messages.push(...historyMessages);
                 const content = historyMessages.map(m => `${m.role}: ${m.content}`).join('\n\n');
-                return {
-                    block,
-                    content,
-                    tokens: TokenCounter.calculateTotalTokens(historyMessages)
-                };
+                return { block, content, tokens: TokenCounter.calculateTotalTokens(historyMessages) };
             }
             case 'instruction': {
                 const tpl = block.template || '[Write next reply only as {{character.fullName}}]';
-                const content = this.templateEngine.renderTemplateString(tpl, baseContext);
-                messages.push({
-                    role: block.role || 'user',
-                    content
-                });
-                return {
-                    block,
-                    content,
-                    tokens: TokenCounter.estimateTokens(content)
-                };
+                const content = renderTemplate(tpl, baseContext);
+                if (content === null) {
+                    return { block, content: '', tokens: 0, error: `Template error in "${block.label || 'Instruction'}" block. Check Handlebars syntax.` };
+                }
+                messages.push({ role: block.role || 'user', content });
+                return { block, content, tokens: TokenCounter.estimateTokens(content) };
             }
             case 'custom': {
                 if (!block.template) break;
-                const content = this.templateEngine.renderTemplateString(block.template, baseContext);
+                const content = renderTemplate(block.template, baseContext);
+                if (content === null) {
+                    return { block, content: '', tokens: 0, error: `Template error in "${block.label || 'Custom'}" block. Check Handlebars syntax.` };
+                }
                 messages.push({ role: block.role || 'system', content });
-                return {
-                    block,
-                    content,
-                    tokens: TokenCounter.estimateTokens(content)
-                };
+                return { block, content, tokens: TokenCounter.estimateTokens(content) };
             }
             default:
                 break;

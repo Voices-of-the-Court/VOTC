@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useConfigStore } from './store/useConfigStore';
 import type { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
 import PromptPreview from './components/PromptPreview';
+import HandlebarsTextarea from './components/HandlebarsTextarea';
 
 type BlockUpdater = (block: PromptBlock) => PromptBlock;
 
@@ -231,10 +232,10 @@ const PromptsView: React.FC = () => {
         return (
           <>
             <label>{t('prompts.memoriesPretext')}</label>
-            <textarea
+            <HandlebarsTextarea
               value={block.template || ''}
               rows={3}
-              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+              onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
             <label>{t('prompts.memoriesToInclude')}</label>
             <input
@@ -249,10 +250,10 @@ const PromptsView: React.FC = () => {
         return (
           <>
             <label>{t('prompts.rollingSummaryPretext')}</label>
-            <textarea
+            <HandlebarsTextarea
               value={block.template || ''}
               rows={3}
-              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+              onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
           </>
         );
@@ -260,11 +261,11 @@ const PromptsView: React.FC = () => {
         return (
           <>
             <label>{t('prompts.pastSummariesPretext')}</label>
-            <textarea
+            <HandlebarsTextarea
               value={block.template || ''}
               rows={3}
               placeholder={t('prompts.leaveEmptyDefault')}
-              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+              onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
           </>
         );
@@ -272,10 +273,10 @@ const PromptsView: React.FC = () => {
         return (
           <>
             <label>{t('prompts.mainInstruction')}</label>
-            <textarea
+            <HandlebarsTextarea
               value={block.template || ''}
               rows={3}
-              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+              onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
             <div className="field-row compact">
               <label>{t('prompts.role')}</label>
@@ -311,10 +312,10 @@ const PromptsView: React.FC = () => {
               </select>
             </div>
             <label>{t('prompts.template')}</label>
-            <textarea
+            <HandlebarsTextarea
               value={block.template || ''}
               rows={4}
-              onChange={(e) => updateBlock(block.id, (b) => ({ ...b, template: e.target.value }))}
+              onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
             <div className="mini-buttons spaced">
               <button onClick={() => removeBlock(block.id)}>{t('prompts.deleteBlock')}</button>
@@ -419,10 +420,10 @@ const PromptsView: React.FC = () => {
             <button onClick={handleResetMain}>{t('prompts.resetToDefault')}</button>
           </div>
         </div>
-        <textarea
+        <HandlebarsTextarea
           value={localSettings.mainTemplate}
           rows={8}
-          onChange={(e) => persist({ ...localSettings, mainTemplate: e.target.value })}
+          onChange={(val) => persist({ ...localSettings, mainTemplate: val })}
         />
       </div>
 
@@ -488,12 +489,12 @@ const PromptsView: React.FC = () => {
           </label>
         </div>
         {localSettings.suffix?.enabled && (
-          <textarea
+          <HandlebarsTextarea
             value={localSettings.suffix?.template || ''}
             rows={4}
-            onChange={(e) => persist({
+            onChange={(val) => persist({
               ...localSettings,
-              suffix: { ...localSettings.suffix, template: e.target.value }
+              suffix: { ...localSettings.suffix, template: val }
             })}
           />
         )}

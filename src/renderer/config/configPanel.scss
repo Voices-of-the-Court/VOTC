@@ -931,6 +931,38 @@ hr {
   border-radius: 8px;
   padding: 8px;
   box-sizing: border-box;
+
+  &.template-error {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 6px rgba(255, 107, 107, 0.3);
+  }
+}
+
+.handlebars-textarea-wrapper {
+  width: 100%;
+
+  textarea {
+    width: 100%;
+  }
+
+  .template-error-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 6px;
+    color: #ff6b6b;
+    font-size: 0.85em;
+    line-height: 1.4;
+
+    .error-icon {
+      flex-shrink: 0;
+      font-size: 1em;
+    }
+  }
 }
 
 .prompts-view .main-prompt-card textarea {

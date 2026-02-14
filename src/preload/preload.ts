@@ -104,6 +104,8 @@ contextBridge.exposeInMainWorld('promptsAPI', {
   openPromptFile: (relativePath: string): Promise<void> => ipcRenderer.invoke('prompts:openPromptFile', relativePath),
   exportZip: (payload: { settings?: any, path?: string }): Promise<{ success?: boolean; cancelled?: boolean; path?: string }> =>
     ipcRenderer.invoke('prompts:exportZip', payload),
+  validateTemplate: (templateString: string): Promise<{ valid: boolean; error?: string; line?: number; column?: number }> =>
+    ipcRenderer.invoke('prompts:validateTemplate', templateString),
 });
 
 contextBridge.exposeInMainWorld('lettersAPI', {
