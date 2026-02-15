@@ -9,7 +9,7 @@ import {
   ActionArgumentDefinition,
   ActionInvocation,
 } from "./types";
-import { VOTC_ACTIONS_DIR } from "../utils/paths";
+import { VOTC_ACTIONS_DIR, VOTC_DATA_DIR } from "../utils/paths";
 import {
   ActionSettings,
   ActionValidationStatus,
@@ -215,6 +215,14 @@ export class ActionRegistry extends EventEmitter {
     
     if (fs.existsSync(defaultStandardDir)) {
       copyRecursive(defaultStandardDir, userStandardDir);
+    }
+
+    // Copy gamedata_typedefs.js to user data directory
+    const defaultTypeDefsPath = path.join(path.dirname(DEFAULT_USERDATA_DIR), 'gamedata_typedefs.js');
+    const userTypeDefsPath = path.join(VOTC_DATA_DIR, 'gamedata_typedefs.js');
+    
+    if (fs.existsSync(defaultTypeDefsPath)) {
+      fs.copyFileSync(defaultTypeDefsPath, userTypeDefsPath);
     }
   }
 
