@@ -215,23 +215,22 @@ export class Conversation {
         this.messages.push(placeholder);
         this.emitUpdate();
 
-        // Has to be called after emitUpdate to show placeholder in UI in right time
-        await this.checkAndSummarizeIfNeeded(npc);
-        
-        const llmMessages = PromptBuilder.buildMessages(
-            this.getHistory().slice(this.lastSummarizedMessageIndex), 
-            npc, 
-            this.gameData,
-            this.currentSummary
-        );
-
-
         // Create AbortController for this stream
         this.currentStreamController = new AbortController();
         let wasCancelled = false;
         let streamCompleted = false;
 
         try {
+            // Has to be called after emitUpdate to show placeholder in UI in right time
+            await this.checkAndSummarizeIfNeeded(npc);
+            
+            const llmMessages = PromptBuilder.buildMessages(
+                this.getHistory().slice(this.lastSummarizedMessageIndex), 
+                npc, 
+                this.gameData,
+                this.currentSummary
+            );
+
             console.log(`Message from ${npc.fullName}:`, llmMessages);
             console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, this.estimateTokenCount(llmMessages));
             
@@ -522,7 +521,12 @@ export class Conversation {
 
         while (this.npcQueue.length > 0 && !this.isPaused) {
             const npc = this.npcQueue.shift()!;
-            await this.respondAs(npc);
+            try {
+                await this.respondAs(npc);
+            } catch (error) {
+                console.error('Unhandled error in respondAs for', npc.shortName, ':', error);
+                this.emitUpdate();
+            }
         }
 
         // Clear pause state if queue is now empty (handles case where queue was emptied during processing)
@@ -706,7 +710,7 @@ export class Conversation {
 
     // Edit user message and resend
     async editUserMessage(messageId: number, newContent: string): Promise<void> {
-        console.log('Editing user message with ID:', messageId);
+        console.log('Editing message with ID:', messageId);
 
         // Find target message
         const targetIndex = this.messages.findIndex(msg => 'id' in msg && msg.id === messageId);
@@ -716,19 +720,26 @@ export class Conversation {
         }
 
         const targetMessage = this.messages[targetIndex] as Message;
-        if (targetMessage.role !== 'user') {
-            console.error('Can only edit user messages:', targetMessage.role);
+        if (targetMessage.role !== 'user' && targetMessage.role !== 'assistant') {
+            console.error('Can only edit user or assistant messages:', targetMessage.role);
             return;
         }
 
-        // Remove messages from last to target (inclusive)
-        for (let i = this.messages.length - 1; i >= targetIndex; i--) {
-            this.messages.splice(i, 1);
+        // For user messages: remove and resend
+        if (targetMessage.role === 'user') {
+            // Remove messages from last to target (inclusive)
+            for (let i = this.messages.length - 1; i >= targetIndex; i--) {
+                this.messages.splice(i, 1);
+            }
+
+            this.emitUpdate();
+
+            await this.sendMessage(newContent);
+        } else {
+            // For assistant messages: just update the content
+            targetMessage.content = newContent;
+            this.emitUpdate();
         }
-
-        this.emitUpdate();
-
-        await this.sendMessage(newContent);
     }
 
 

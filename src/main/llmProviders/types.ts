@@ -142,6 +142,12 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<ProviderType, Partial<LLMProviderC
     defaultModel: 'player2-model',
     defaultParameters: { temperature: 0.7, max_tokens: 2048 },
   },
+  deepseek: {
+    apiKey: '',
+    baseUrl: 'https://api.deepseek.com',
+    defaultModel: 'deepseek-chat',
+    defaultParameters: { temperature: 0.7, max_tokens: 2048 },
+  },
 };
 
 // Helper function to get default configuration for a provider type
@@ -163,10 +169,11 @@ export type OpenRouterConfig = ProviderConfigBase & { providerType: 'openrouter'
 export type OpenAICompatibleConfig = ProviderConfigBase & { providerType: 'openai-compatible'; };
 export type OllamaConfig = ProviderConfigBase & { providerType: 'ollama'; baseUrl: string; }; // baseUrl is mandatory for Ollama
 export type Player2Config = ProviderConfigBase & { providerType: 'player2'; };
+export type DeepseekConfig = ProviderConfigBase & { providerType: 'deepseek'; };
 
 // LLMProviderConfig can be a base provider config or a preset.
 // Presets will have a customName. Base configs can derive their name from providerType.
-export type LLMProviderConfig = (OpenRouterConfig | OpenAICompatibleConfig | OllamaConfig | Player2Config) & {
+export type LLMProviderConfig = (OpenRouterConfig | OpenAICompatibleConfig | OllamaConfig | Player2Config | DeepseekConfig) & {
   customName?: string; // User-defined name, primarily for presets.
 };
 

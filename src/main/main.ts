@@ -12,6 +12,7 @@ import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR, VOTC_SUMMARIES_DIR } from './utils/
 import { SummariesManager } from './utils/SummariesManager';
 import { actionRegistry } from './actions/ActionRegistry';
 import { promptConfigManager } from './conversation/PromptConfigManager';
+import { TemplateEngine } from './conversation/TemplateEngine';
 import { appUpdater } from './AutoUpdater';
 import { focusMonitor } from './FocusMonitor';
 import { resolveI18nString } from './actions/i18nUtils';
@@ -21,6 +22,8 @@ import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
 import './llmProviders/Player2Provider';
+import './llmProviders/DeepseekProvider';
+
 import { letterManager } from './letter/LetterManager';
 import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
@@ -218,6 +221,10 @@ const setupIpcHandlers = () => {
     const full = promptConfigManager.resolvePath(relativePath);
     await shell.openPath(full);
     return true;
+  });
+
+  ipcMain.handle('prompts:validateTemplate', (_event, templateString: string) => {
+    return TemplateEngine.validateTemplate(templateString);
   });
 
   ipcMain.handle('prompts:exportZip', async (_event, payload: { settings?: PromptSettings, path?: string }) => {

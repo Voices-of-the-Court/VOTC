@@ -13,6 +13,13 @@ type TemplateContext = {
   examples?: any[];
 };
 
+export interface TemplateValidationResult {
+  valid: boolean;
+  error?: string;
+  line?: number;
+  column?: number;
+}
+
 export class TemplateEngine {
   private helpersRegistered = false;
 
@@ -108,6 +115,27 @@ export class TemplateEngine {
       allowProtoPropertiesByDefault: true,
       allowProtoMethodsByDefault: true,
     });
+  }
+
+  /**
+   * Validate a Handlebars template string without rendering it.
+   * Returns validation result with error details if invalid.
+   */
+  static validateTemplate(templateString: string): TemplateValidationResult {
+    try {
+      Handlebars.precompile(templateString);
+      return { valid: true };
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      const lineMatch = errorMsg.match(/on line (\d+)/);
+      const columnMatch = errorMsg.match(/column (\d+)/);
+      return {
+        valid: false,
+        error: errorMsg,
+        line: lineMatch ? parseInt(lineMatch[1]) : undefined,
+        column: columnMatch ? parseInt(columnMatch[1]) : undefined,
+      };
+    }
   }
 
   private loadCustomHelpers(): void {

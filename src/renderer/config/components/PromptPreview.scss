@@ -128,6 +128,19 @@
             box-shadow: 0 0 8px rgba(239, 177, 106, 0.4);
           }
           
+          &.has-error {
+            border-color: #ff6b6b;
+            
+            &:hover {
+              border-color: #ff8888;
+            }
+            
+            &.expanded {
+              border-color: #ff6b6b;
+              box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+            }
+          }
+          
           .block-header {
             display: flex;
             justify-content: space-between;
@@ -167,6 +180,13 @@
                 border-radius: 6px;
                 font-size: 0.8em;
                 font-weight: normal;
+                
+                &.error-badge {
+                  background: rgba(255, 107, 107, 0.2);
+                  color: #ff6b6b;
+                  border-color: #ff6b6b;
+                  font-weight: bold;
+                }
               }
             }
             
@@ -211,6 +231,24 @@
               font-size: 0.9em;
               line-height: 1.5;
               color: #ddd;
+            }
+            
+            .block-error-message {
+              display: flex;
+              align-items: flex-start;
+              gap: 8px;
+              padding: 10px;
+              background: rgba(255, 107, 107, 0.1);
+              border: 1px solid rgba(255, 107, 107, 0.3);
+              border-radius: 8px;
+              color: #ff6b6b;
+              font-size: 0.9em;
+              line-height: 1.5;
+              
+              .error-icon {
+                flex-shrink: 0;
+                font-size: 1.1em;
+              }
             }
           }
         }

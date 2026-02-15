@@ -83,7 +83,7 @@ export class OpenRouterProvider extends BaseProvider {
         baseURL: 'https://openrouter.ai/api/v1',
       });
   
-      const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
+      const requestParams = {
         model: request.model,
         messages: request.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
         stream: request.stream,
@@ -93,7 +93,11 @@ export class OpenRouterProvider extends BaseProvider {
         presence_penalty: request.presence_penalty,
         frequency_penalty: request.frequency_penalty,
         ...(request.response_format ? { response_format: request.response_format as any } : {}),
-      };
+        // OpenRouter-specific: exclude reasoning/thinking tokens from the response
+        reasoning: {
+          exclude: true,
+        },
+      } as OpenAI.Chat.Completions.ChatCompletionCreateParams;
   
       if (requestParams.stream) {
         return this._streamChatCompletion(requestParams, openAIClient, request.signal);

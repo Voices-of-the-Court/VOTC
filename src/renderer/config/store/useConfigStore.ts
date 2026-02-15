@@ -115,6 +115,7 @@ const getCacheKey = (config: Partial<LLMProviderConfig>): string => {
   // All OpenRouter configs (base + presets) share one cache
   if (config.providerType === 'openrouter') return 'openrouter';
   if (config.providerType === 'player2') return 'player2';
+  if (config.providerType === 'deepseek') return 'deepseek';
   // OpenAI-compatible and Ollama use instanceId (each has own cache)
   return config.instanceId || '';
 };

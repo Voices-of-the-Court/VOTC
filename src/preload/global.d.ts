@@ -110,6 +110,7 @@ declare global {
       openPromptsFolder: () => Promise<void>;
       openPromptFile: (relativePath: string) => Promise<void>;
       exportZip: (payload: { settings?: any, path?: string }) => Promise<{ success?: boolean; cancelled?: boolean; path?: string }>;
+      validateTemplate: (templateString: string) => Promise<{ valid: boolean; error?: string; line?: number; column?: number }>;
     };
     lettersAPI: {
       getPromptPreview: () => Promise<string | null>;

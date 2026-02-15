@@ -50,12 +50,7 @@ const ConnectionView: React.FC = () => {
   };
 
   const handleContextLengthChange = (contextLength: number | undefined) => {
-    if (contextLength === undefined) {
-      const { customContextLength, ...rest } = editingConfig;
-      updateEditingConfig(rest);
-    } else {
-      updateEditingConfig({ customContextLength: contextLength });
-    }
+    updateEditingConfig({ customContextLength: contextLength });
   };
 
   const handleDeletePreset = (id: string) => {

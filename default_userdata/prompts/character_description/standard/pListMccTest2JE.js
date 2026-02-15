@@ -89,7 +89,7 @@ module.exports = (gameData, currentCharacterId) => {
   if (personalityTraits.length) {
     items.push(
       `personality traits: ${personalityTraits
-        .map((t) => `${t.name}${t.desc ? ` (${t.desc})` : ""}`)
+        .map((t) => `${t.name}`)
         .join(", ")}`
     );
   }
@@ -249,105 +249,25 @@ function personalityDescription(char) {
   const traits = [];
   
   // BOLDNESS: Craven (-100) ↔ Brave (+100)
-  if (typeof char.boldness === "number") {
-    if (char.boldness >= 70) traits.push("exceptionally brave");
-    else if (char.boldness >= 40) traits.push("brave");
-    else if (char.boldness >= 20) traits.push("somewhat brave");
-    else if (char.boldness <= -70) traits.push("extremely craven");
-    else if (char.boldness <= -40) traits.push("cowardly");
-    else if (char.boldness <= -20) traits.push("somewhat timid");
-  }
-  
+  traits.push(`boldness: ${char.boldness}`);
   // COMPASSION: Callous (-100) ↔ Kind (+100)
-  if (typeof char.compassion === "number") {
-    if (char.compassion >= 70) traits.push("exceptionally kind");
-    else if (char.compassion >= 40) traits.push("compassionate");
-    else if (char.compassion >= 20) traits.push("somewhat kind");
-    else if (char.compassion <= -70) traits.push("extremely callous");
-    else if (char.compassion <= -40) traits.push("cruel");
-    else if (char.compassion <= -20) traits.push("somewhat callous");
-  }
-  
+  traits.push(`compassion: ${char.compassion}`);
   // ENERGY: Lazy (-100) ↔ Diligent (+100)
-  if (typeof char.energy === "number") {
-    if (char.energy >= 70) traits.push("exceptionally diligent");
-    else if (char.energy >= 40) traits.push("hardworking");
-    else if (char.energy >= 20) traits.push("somewhat diligent");
-    else if (char.energy <= -70) traits.push("extremely lazy");
-    else if (char.energy <= -40) traits.push("slothful");
-    else if (char.energy <= -20) traits.push("somewhat lazy");
-  }
-  
+  traits.push(`energy: ${char.energy}`);
   // GREED: Generous (-100) ↔ Greedy (+100)
-  if (typeof char.greed === "number") {
-    if (char.greed >= 70) traits.push("exceptionally greedy");
-    else if (char.greed >= 40) traits.push("greedy");
-    else if (char.greed >= 20) traits.push("somewhat greedy");
-    else if (char.greed <= -70) traits.push("exceptionally generous");
-    else if (char.greed <= -40) traits.push("generous");
-    else if (char.greed <= -20) traits.push("somewhat generous");
-  }
-  
+  traits.push(`greed: ${char.greed}`);
   // HONOR: Deceitful (-100) ↔ Honest (+100)
-  if (typeof char.honor === "number") {
-    if (char.honor >= 70) traits.push("exceptionally honest");
-    else if (char.honor >= 40) traits.push("honorable");
-    else if (char.honor >= 20) traits.push("somewhat honest");
-    else if (char.honor <= -70) traits.push("extremely deceitful");
-    else if (char.honor <= -40) traits.push("dishonest");
-    else if (char.honor <= -20) traits.push("somewhat deceitful");
-  }
-  
+  traits.push(`honor: ${char.honor}`);
   // RATIONALITY: Emotional (-100) ↔ Logical (+100)
-  if (typeof char.rationality === "number") {
-    if (char.rationality >= 70) traits.push("exceptionally rational");
-    else if (char.rationality >= 40) traits.push("logical");
-    else if (char.rationality >= 20) traits.push("somewhat rational");
-    else if (char.rationality <= -70) traits.push("extremely emotional");
-    else if (char.rationality <= -40) traits.push("emotional");
-    else if (char.rationality <= -20) traits.push("somewhat emotional");
-  }
-  
+  traits.push(`rationality: ${char.rationality}`);
   // SOCIABILITY: Shy (-100) ↔ Gregarious (+100)
-  if (typeof char.sociability === "number") {
-    if (char.sociability >= 70) traits.push("exceptionally gregarious");
-    else if (char.sociability >= 40) traits.push("sociable");
-    else if (char.sociability >= 20) traits.push("somewhat outgoing");
-    else if (char.sociability <= -70) traits.push("extremely shy");
-    else if (char.sociability <= -40) traits.push("introverted");
-    else if (char.sociability <= -20) traits.push("somewhat shy");
-  }
-  
+  traits.push(`sociability: ${char.sociability}`);
   // VENGEFULNESS: Forgiving (-100) ↔ Vengeful (+100)
-  if (typeof char.vengefulness === "number") {
-    if (char.vengefulness >= 70) traits.push("exceptionally vengeful");
-    else if (char.vengefulness >= 40) traits.push("vengeful");
-    else if (char.vengefulness >= 20) traits.push("somewhat vengeful");
-    else if (char.vengefulness <= -70) traits.push("exceptionally forgiving");
-    else if (char.vengefulness <= -40) traits.push("forgiving");
-    else if (char.vengefulness <= -20) traits.push("somewhat forgiving");
-  }
-  
+  traits.push(`vengefulness: ${char.vengefulness}`);
   // ZEAL: Cynical (-100) ↔ Zealous (+100)
-  if (typeof char.zeal === "number") {
-    if (char.zeal >= 70) traits.push("exceptionally zealous");
-    else if (char.zeal >= 40) traits.push("zealous");
-    else if (char.zeal >= 20) traits.push("somewhat zealous");
-    else if (char.zeal <= -70) traits.push("extremely cynical");
-    else if (char.zeal <= -40) traits.push("cynical");
-    else if (char.zeal <= -20) traits.push("somewhat cynical");
-  }
-  
-  if (traits.length === 0) return null;
-  return `personality_core: ${traits.join(", ")}`;
-}
+  traits.push(`zeal: ${char.zeal}`);
 
-function greediness(char) {
-  if (char.greed > 75) return "very greedy";
-  if (char.greed > 50) return "greedy";
-  if (char.greed > 25) return "slightly greedy";
-  if (char.greed < -25) return "generous";
-  return "neutral greed";
+  return `personality_core: \n${traits.join("\n")}`;
 }
 
 function opinionBreakdownLine(char, targetId, gameData) {

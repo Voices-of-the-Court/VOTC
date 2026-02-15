@@ -7,7 +7,7 @@ import { DEFAULT_PARAMETERS } from '../../../main/llmProviders/types';
 import ModelSelector from './ModelSelector';
 import ContextLengthField from './ContextLengthField';
 import FormGroupInput from './FormGroupInput';
-import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent } from './ConfigFields';
+import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent, DeepseekConfigFieldsComponent } from './ConfigFields';
 
 const Player2OpenAppButton: React.FC = () => {
   const { t } = useTranslation();
@@ -111,6 +111,7 @@ const ProviderFieldComponents: Record<string, React.FC<CommonFieldProps>> = {
   openrouter: OpenRouterConfigFieldsComponent,
   'openai-compatible': OpenAICompatibleConfigFieldsComponent,
   ollama: OllamaConfigFieldsComponent,
+  deepseek: DeepseekConfigFieldsComponent,
 };
 
 interface ProviderConfigPanelProps {

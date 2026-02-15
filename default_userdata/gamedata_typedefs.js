@@ -266,7 +266,14 @@ export class GameData {
         fs.mkdirSync(summariesPath, { recursive: true });
         const target = this.characters.get(characterId);
         if (!target) return;
-        target.conversationSummaries.unshift(summary);
+        
+        // Add character name to summary for backward compatibility
+        const summaryWithName = {
+            ...summary,
+            characterName: target.fullName
+        };
+        
+        target.conversationSummaries.unshift(summaryWithName);
         target.saveSummaries(path.join(summariesPath, `${characterId}.json`));
     }
 
@@ -278,7 +285,8 @@ export class GameData {
                 {
                     date: this.date,
                     totalDays: this.totalDays,
-                    content: finalSummary
+                    content: finalSummary,
+                    characterName: character.fullName
                 }
             )
             character.saveSummaries(path.join(summariesPath, character.id.toString() + '.json'));
@@ -649,5 +657,6 @@ export interface ConversationSummary {
     date: string;
     totalDays: number;
     content: string;
+    characterName?: string; // Optional for backward compatibility
 }
 

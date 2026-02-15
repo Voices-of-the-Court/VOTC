@@ -1,7 +1,7 @@
 {
   "name": "voices-of-the-court",
   "productName": "VOTC",
-  "version": "2.0.0-alpha.9",
+  "version": "2.0.0-alpha.rc1",
   "description": "Reimplementation of Voices of the Court mod for Crusader Kings III for better experience",
   "main": "out/main/main.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev -w --inspect",
-    "build": "npm run typecheck && electron-vite build",
+    "build": "npm run typedefs && npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",

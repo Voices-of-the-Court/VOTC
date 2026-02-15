@@ -11,6 +11,7 @@ interface PromptBlock {
   block: any;
   content: string;
   tokens: number;
+  error?: string;
 }
 
 interface PreviewData {
@@ -154,18 +155,26 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({ onCharacterChange, prompt
             <div className="preview-blocks">
               <h4>{t('promptPreview.promptBlocks')} ({previewData.blocks.length}):</h4>
               {previewData.blocks.map((block, index) => (
-                <div key={index} className={`preview-block ${expandedBlocks.has(index) ? 'expanded' : ''}`}>
+                <div key={index} className={`preview-block ${expandedBlocks.has(index) ? 'expanded' : ''} ${block.error ? 'has-error' : ''}`}>
                   <div className="block-header" onClick={() => toggleBlockExpanded(index)}>
                     <div className="block-title">
                       <span className="expand-icon">{expandedBlocks.has(index) ? '▼' : '▶'}</span>
                       <strong>{block.block.label}</strong>
                       <span className="badge">{block.block.type}</span>
+                      {block.error && <span className="badge error-badge">error</span>}
                     </div>
                     <span className="token-count">{block.tokens} {t('common.tokens')}</span>
                   </div>
                   {expandedBlocks.has(index) && (
                     <div className="block-content">
-                      <pre>{block.content}</pre>
+                      {block.error ? (
+                        <div className="block-error-message">
+                          <span className="error-icon">⚠</span>
+                          <span>{block.error}</span>
+                        </div>
+                      ) : (
+                        <pre>{block.content}</pre>
+                      )}
                     </div>
                   )}
                 </div>

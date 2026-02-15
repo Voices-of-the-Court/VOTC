@@ -38,14 +38,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
   };
 
   const handleEdit = () => {
-    if (entry.type === 'message' && entry.role === 'user') {
+    if (entry.type === 'message' && (entry.role === 'user' || entry.role === 'assistant')) {
       setIsEditing(true);
       setEditContent(entry.content);
     }
   };
 
   const handleSaveEdit = async () => {
-    if (entry.type === 'message' && entry.role === 'user') {
+    if (entry.type === 'message' && (entry.role === 'user' || entry.role === 'assistant')) {
       try {
         await window.conversationAPI.editUserMessage(entry.id, editContent);
         setIsEditing(false);
@@ -114,14 +114,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
                 🔄
               </button>
             )}
-            {message.role === 'user' && !isEditing && (
+            {(message.role === 'user' || message.role === 'assistant') && !isEditing && (
               <button className="message-action-btn" onClick={handleEdit} title={t('common.edit')}>
                 ✏️
               </button>
             )}
           </div>
         </div>
-        {isEditing && message.role === 'user' ? (
+        {isEditing && (message.role === 'user' || message.role === 'assistant') ? (
           <div className="message-edit">
             <textarea
               value={editContent}

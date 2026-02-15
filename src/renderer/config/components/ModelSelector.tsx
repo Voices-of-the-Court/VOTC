@@ -74,7 +74,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     <div className="form-group">
       <label htmlFor="defaultModel">Default Model ID:</label>
       
-      {config.providerType === 'ollama' ? (
+      {config.providerType === 'ollama' || config.providerType === 'deepseek' ? (
         <select
           id="defaultModel"
           name="defaultModel"
