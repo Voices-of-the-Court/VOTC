@@ -6,7 +6,7 @@
 
 // List of all base provider types
 // When adding a new provider, add it to this array
-export const PROVIDER_TYPES = ['player2', 'openrouter', 'openai-compatible', 'ollama'] as const;
+export const PROVIDER_TYPES = ['player2', 'openrouter', 'openai-compatible', 'ollama', 'deepseek'] as const;
 
 // Type for provider types (derived from PROVIDER_TYPES)
 export type ProviderType = (typeof PROVIDER_TYPES)[number];
@@ -17,6 +17,7 @@ export const DEFAULT_BASE_URLS: Record<ProviderType, string> = {
   'openai-compatible': '',
   ollama: 'http://localhost:11434',
   player2: 'http://localhost:4315/v1',
+  deepseek: 'https://api.deepseek.com',
 };
 
 // Default provider to use when no active provider is set

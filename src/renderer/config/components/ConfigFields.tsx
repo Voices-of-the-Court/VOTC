@@ -55,3 +55,15 @@ export const OllamaConfigFieldsComponent: React.FC<CommonFieldProps> = ({ config
         required
     />
 );
+
+export const DeepseekConfigFieldsComponent: React.FC<CommonFieldProps> = ({ config, onInputChange }) => (
+    <FormGroupInput
+        id="apiKey"
+        label="Deepseek API Key:"
+        type="password"
+        name="apiKey"
+        value={config.apiKey || ''}
+        onChange={onInputChange}
+        placeholder="sk-..."
+    />
+);

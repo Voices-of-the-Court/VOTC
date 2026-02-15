@@ -22,6 +22,8 @@ import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
 import './llmProviders/Player2Provider';
+import './llmProviders/DeepseekProvider';
+
 import { letterManager } from './letter/LetterManager';
 import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
