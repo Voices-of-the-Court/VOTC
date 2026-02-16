@@ -245,7 +245,9 @@
     "selectFolder": "Wybierz folder",
     "showSettingsOnStartup": "Pokaż ustawienia przy starcie",
     "viewLettersStatus": "Zobacz status listów",
-    "votcModLocation": "Lokalizacja moda VOTC"
+    "votcModLocation": "Lokalizacja moda VOTC",
+    "ck3UserFolderHelp": "Zwykle jest to:",
+    "ck3UserFolderExample": "NAZWA_UŻYTKOWNIKA"
   },
   "summaries": {
     "aboutSummaryGeneration": "O generowaniu podsumowań",

@@ -295,6 +295,24 @@ hr {
 
 .settings-view {
   color: #ddd;
+  
+  .path-text {
+    font-family: 'Courier New', monospace;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 8px 12px;
+    margin-right: 20px;
+    margin-top: 0px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    color: #bbb;
+    font-size: 0.8em;
+    word-break: break-all;
+  }
+  
+  .example-path {
+    color: #EFB16A;
+    font-weight: bold;
+  }
 }
 
 .settings-view .form-group label {

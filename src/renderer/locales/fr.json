@@ -245,7 +245,9 @@
     "selectFolder": "Sélectionner un dossier",
     "showSettingsOnStartup": "Afficher les paramètres au démarrage",
     "viewLettersStatus": "Voir le statut des lettres",
-    "votcModLocation": "Emplacement du mod VOTC"
+    "votcModLocation": "Emplacement du mod VOTC",
+    "ck3UserFolderHelp": "Il s'agit généralement de :",
+    "ck3UserFolderExample": "NOM_UTILISATEUR"
   },
   "summaries": {
     "aboutSummaryGeneration": "À propos de la génération de résumés",

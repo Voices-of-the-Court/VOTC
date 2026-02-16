@@ -245,7 +245,9 @@
     "selectFolder": "フォルダを選択",
     "showSettingsOnStartup": "起動時に設定を表示",
     "viewLettersStatus": "手紙のステータスを表示",
-    "votcModLocation": "VOTCモッドの場所"
+    "votcModLocation": "VOTCモッドの場所",
+    "ck3UserFolderHelp": "通常は次のようになります。",
+    "ck3UserFolderExample": "ユーザー名"
   },
   "summaries": {
     "aboutSummaryGeneration": "要約生成について",

@@ -245,7 +245,9 @@
     "selectFolder": "选择文件夹",
     "showSettingsOnStartup": "启动时显示设置",
     "viewLettersStatus": "查看信件状态",
-    "votcModLocation": "VOTC 模组位置"
+    "votcModLocation": "VOTC 模组位置",
+    "ck3UserFolderHelp": "通常是：",
+    "ck3UserFolderExample": "用户名"
   },
   "summaries": {
     "aboutSummaryGeneration": "关于摘要生成",

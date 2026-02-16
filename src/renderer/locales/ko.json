@@ -245,7 +245,9 @@
     "selectFolder": "폴더 선택",
     "showSettingsOnStartup": "시작 시 설정 표시",
     "viewLettersStatus": "편지 상태 보기",
-    "votcModLocation": "VOTC 모드 위치"
+    "votcModLocation": "VOTC 모드 위치",
+    "ck3UserFolderHelp": "일반적으로 다음과 같습니다.",
+    "ck3UserFolderExample": "사용자명"
   },
   "summaries": {
     "aboutSummaryGeneration": "요약 생성 정보",

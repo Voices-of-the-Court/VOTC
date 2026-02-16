@@ -247,7 +247,9 @@
     "selectFolder": "Select Folder",
     "showSettingsOnStartup": "Show Settings on Startup",
     "viewLettersStatus": "View Letters Status",
-    "votcModLocation": "VOTC Mod Location"
+    "votcModLocation": "VOTC Mod Location",
+    "ck3UserFolderHelp": "Usually it is:",
+    "ck3UserFolderExample": "YOUR_USERNAME"
   },
   "summaries": {
     "aboutSummaryGeneration": "About Summary Generation",

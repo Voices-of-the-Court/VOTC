@@ -245,7 +245,9 @@
     "selectFolder": "Seleccionar carpeta",
     "showSettingsOnStartup": "Mostrar configuración al iniciar",
     "viewLettersStatus": "Ver estado de cartas",
-    "votcModLocation": "Ubicación del mod VOTC"
+    "votcModLocation": "Ubicación del mod VOTC",
+    "ck3UserFolderHelp": "Generalmente es:",
+    "ck3UserFolderExample": "NOMBRE_USUARIO"
   },
   "summaries": {
     "aboutSummaryGeneration": "Acerca de la generación de resúmenes",

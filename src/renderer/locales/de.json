@@ -245,7 +245,9 @@
     "selectFolder": "Ordner auswählen",
     "showSettingsOnStartup": "Einstellungen beim Start anzeigen",
     "viewLettersStatus": "Briefstatus anzeigen",
-    "votcModLocation": "VOTC-Mod-Speicherort"
+    "votcModLocation": "VOTC-Mod-Speicherort",
+    "ck3UserFolderHelp": "Normalerweise ist es:",
+    "ck3UserFolderExample": "BENUTZERNAME"
   },
   "summaries": {
     "aboutSummaryGeneration": "Über Zusammenfassungsgenerierung",

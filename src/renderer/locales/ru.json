@@ -245,7 +245,9 @@
     "selectFolder": "Выбрать папку",
     "showSettingsOnStartup": "Показывать настройки при запуске",
     "viewLettersStatus": "Просмотреть статус писем",
-    "votcModLocation": "Расположение мода VOTC"
+    "votcModLocation": "Расположение мода VOTC",
+    "ck3UserFolderHelp": "Обычно это:",
+    "ck3UserFolderExample": "ИМЯ_ПОЛЬЗОВАТЕЛЯ"
   },
   "summaries": {
     "aboutSummaryGeneration": "О генерации саммари",
