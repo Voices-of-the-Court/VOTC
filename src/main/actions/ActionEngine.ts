@@ -11,6 +11,7 @@ import { healJsonResponseWithLogging } from "./responseHealing";
 import type { SchemaBuildInput } from "./jsonSchema";
 import { settingsRepository } from "../SettingsRepository";
 import { resolveI18nString } from "./i18nUtils";
+import { ActionSandbox } from "./ActionSandbox";
 
 export interface ActionEvaluationResult {
   autoApproved: ActionExecutionResult[];
@@ -295,8 +296,6 @@ export class ActionEngine {
       };
     }
 
-    const action = loaded.definition;
-
     const targetId = inv.targetCharacterId ?? null;
     const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
 
@@ -321,7 +320,8 @@ export class ActionEngine {
     const args: ActionArgumentValues = inv.args ?? {};
 
     try {
-      const result = await action.run({
+      // Execute action in sandboxed VM context for security
+      const result = await ActionSandbox.executeAction(loaded.filePath, {
         gameData: conv.gameData,
         sourceCharacter: npc,
         targetCharacter: target,
