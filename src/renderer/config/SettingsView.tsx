@@ -11,28 +11,10 @@ const SettingsView: React.FC = () => {
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
   const updateMessageFontSize = useConfigStore((state) => state.updateMessageFontSize);
   const updateShowSettingsOnStartup = useConfigStore((state) => state.updateShowSettingsOnStartup);
-  const getActionApprovalSettings = useConfigStore((state) => state.getActionApprovalSettings);
-  const saveActionApprovalSettings = useConfigStore((state) => state.saveActionApprovalSettings);
-  const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
-  const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
+  // const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
   
-  const [actionApprovalSettings, setActionApprovalSettings] = React.useState<any>(null);
   const [showLettersModal, setShowLettersModal] = React.useState(false);
   
-  // Load action approval settings on mount
-  React.useEffect(() => {
-    const loadActionApprovalSettings = async () => {
-      try {
-        const settings = await getActionApprovalSettings();
-        setActionApprovalSettings(settings);
-      } catch (error) {
-        console.error('Failed to load action approval settings:', error);
-      }
-    };
-    
-    loadActionApprovalSettings();
-  }, [getActionApprovalSettings]);
-
   if (!appSettings) {
     return <div>{t('common.loading')}</div>;
   }
@@ -57,45 +39,10 @@ const SettingsView: React.FC = () => {
     await updateShowSettingsOnStartup(e.target.checked);
   };
 
-  const handleApprovalModeChange = async (e: ChangeEvent<HTMLSelectElement>) => {
-    if (!actionApprovalSettings) return;
-    
-    const newSettings = {
-      ...actionApprovalSettings,
-      approvalMode: e.target.value
-    };
-    
-    try {
-      await saveActionApprovalSettings(newSettings);
-      setActionApprovalSettings(newSettings);
-    } catch (error) {
-      console.error('Failed to save action approval settings:', error);
-    }
-  };
 
-  const handlePauseOnApprovalToggle = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!actionApprovalSettings) return;
-    
-    const newSettings = {
-      ...actionApprovalSettings,
-      pauseOnApproval: e.target.checked
-    };
-    
-    try {
-      await saveActionApprovalSettings(newSettings);
-      setActionApprovalSettings(newSettings);
-    } catch (error) {
-      console.error('Failed to save action approval settings:', error);
-    }
-  };
-
-  const handleSelectCK3Folder = async () => {
-    await selectCK3Folder();
-  };
-
-  const handleSelectModLocationPath = async () => {
-    await selectModLocationPath();
-  };
+  // const handleSelectModLocationPath = async () => {
+  //   await selectModLocationPath();
+  // };
 
   return (
     <div className="settings-view">
@@ -161,46 +108,9 @@ const SettingsView: React.FC = () => {
       
       <hr />
       
-      <div className="form-group">
-        <h4>{t('settings.actionApprovalSettings')}</h4>
-        <p className="help-text">
-          {t('settings.actionApprovalHelp')}
-        </p>
-        
-        <div className="form-group">
-          <label htmlFor="approvalMode">{t('settings.approvalMode')}:</label>
-          <select
-            id="approvalMode"
-            name="approvalMode"
-            value={actionApprovalSettings?.approvalMode || 'none'}
-            onChange={handleApprovalModeChange}
-          >
-            <option value="none">{t('settings.approvalModeNone')}</option>
-            <option value="non-destructive">{t('settings.approvalModeNonDestructive')}</option>
-            <option value="all">{t('settings.approvalModeAll')}</option>
-          </select>
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="pauseOnApproval">{t('settings.pauseOnApproval')}:</label>
-          <input
-            type="checkbox"
-            id="pauseOnApproval"
-            name="pauseOnApproval"
-            checked={actionApprovalSettings?.pauseOnApproval ?? true}
-            onChange={handlePauseOnApprovalToggle}
-          />
-          <span className="help-text">
-            {t('settings.pauseOnApprovalHelp')}
-          </span>
-        </div>
-      </div>
-      
-      <hr />
-      
       <div className="form-group letter-management">
         <h4>{t('settings.letterStatusManagement')}</h4>
-        <p className="help-text">
+        <p style={{marginTop: "-5px", marginBottom: "5px"}}>
           {t('settings.letterStatusHelp')}
         </p>
         <div className="button-group">
@@ -213,23 +123,7 @@ const SettingsView: React.FC = () => {
         </div>
       </div>
       
-      <hr />
-      
-      <div className="form-group">
-        <h4>{t('settings.ck3UserFolder')}</h4>
-        <label htmlFor="ck3UserFolderPath">{t('settings.currentPath')}:</label>
-        <input
-          type="text"
-          id="ck3UserFolderPath"
-          value={appSettings.ck3UserFolderPath || ''}
-          readOnly
-        />
-        <button type="button" onClick={handleSelectCK3Folder}>
-          {t('settings.selectFolder')}
-        </button>
-      </div>
-      
-      <div className="form-group">
+      {/* <div className="form-group">
         <h4>{t('settings.votcModLocation')}</h4>
         <label htmlFor="modLocationPath">{t('settings.currentPath')}:</label>
         <input
@@ -241,7 +135,7 @@ const SettingsView: React.FC = () => {
         <button type="button" onClick={handleSelectModLocationPath}>
           {t('settings.selectFolder')}
         </button>
-      </div>
+      </div> */}
       
       {showLettersModal && (
         <LettersStatusModal onClose={() => setShowLettersModal(false)} />

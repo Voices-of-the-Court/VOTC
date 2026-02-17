@@ -245,7 +245,11 @@
     "selectFolder": "Wybierz folder",
     "showSettingsOnStartup": "Pokaż ustawienia przy starcie",
     "viewLettersStatus": "Zobacz status listów",
-    "votcModLocation": "Lokalizacja moda VOTC"
+    "votcModLocation": "Lokalizacja moda VOTC",
+    "ck3UserFolderHelp": "Kliknij pole poniżej, aby wybrać/zmienić ścieżkę do folderu CK3. \nZwykle znajduje się w folderze „Dokumenty”. \nLokalizacja w OneDrive prawdopodobnie się nie powiedzie!",
+    "ck3UserFolderExample": "NAZWA_UŻYTKOWNIKA",
+    "selectedCK3FolderTitle": "Wybrana ścieżka dokumentów CK3",
+    "selectCK3UserFolderTitle": "Wybierz Folder dokumentów CK3"
   },
   "summaries": {
     "aboutSummaryGeneration": "O generowaniu podsumowań",

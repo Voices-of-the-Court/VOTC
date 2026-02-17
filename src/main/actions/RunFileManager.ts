@@ -27,7 +27,7 @@ export class RunFileManager{
         }
         
         try {
-            fs.writeFileSync(this.path, text);
+            fs.writeFileSync(this.path, text, 'utf-8');
             console.log(`RunFileManager: wrote to run file: ${text}`);
         } catch (error) {
             console.error(`RunFileManager: Failed to write to file ${this.path}:`, error);
@@ -41,7 +41,7 @@ export class RunFileManager{
         }
         
         try {
-            fs.appendFileSync(this.path, text);
+            fs.appendFileSync(this.path, text, 'utf-8');
             console.log(`RunFileManager: appended to run file: ${text}`);
         } catch (error) {
             console.error(`RunFileManager: Failed to append to file ${this.path}:`, error);
@@ -55,7 +55,7 @@ export class RunFileManager{
         }
         
         try {
-            fs.writeFileSync(this.path, "");
+            fs.writeFileSync(this.path, "", 'utf-8');
             console.log("RunFileManager: Run File cleared");
         } catch (error) {
             console.error(`RunFileManager: Failed to clear file ${this.path}:`, error);

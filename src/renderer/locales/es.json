@@ -245,7 +245,11 @@
     "selectFolder": "Seleccionar carpeta",
     "showSettingsOnStartup": "Mostrar configuración al iniciar",
     "viewLettersStatus": "Ver estado de cartas",
-    "votcModLocation": "Ubicación del mod VOTC"
+    "votcModLocation": "Ubicación del mod VOTC",
+    "ck3UserFolderHelp": "Haga clic en el campo a continuación para seleccionar/cambiar la ruta a la carpeta CK3. \nNormalmente está en la carpeta \"Documentos\". \n¡Es probable que la ubicación de OneDrive falle!",
+    "ck3UserFolderExample": "NOMBRE_USUARIO",
+    "selectedCK3FolderTitle": "Ruta de documentos CK3 seleccionados",
+    "selectCK3UserFolderTitle": "Seleccione la carpeta de documentos CK3"
   },
   "summaries": {
     "aboutSummaryGeneration": "Acerca de la generación de resúmenes",

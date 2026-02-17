@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, ChangeEvent } from 'react';
+import { useConfigStore } from './store/useConfigStore';
 import { useTranslation } from 'react-i18next';
 import AlertIcon from '../assets/Alert.png';
 
@@ -21,7 +22,11 @@ const ActionsView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showOnlyInvalid, setShowOnlyInvalid] = useState<boolean>(false);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
+  const [actionApprovalSettings, setActionApprovalSettings] = React.useState<any>(null);
+  const getActionApprovalSettings = useConfigStore((state) => state.getActionApprovalSettings);
 
+  const saveActionApprovalSettings = useConfigStore((state) => state.saveActionApprovalSettings);
+  
   const load = async () => {
     try {
       setIsLoading(true);
@@ -44,6 +49,19 @@ const ActionsView: React.FC = () => {
   useEffect(() => {
     load();
   }, []);
+  // Load action approval settings on mount
+  React.useEffect(() => {
+    const loadActionApprovalSettings = async () => {
+      try {
+        const settings = await getActionApprovalSettings();
+        setActionApprovalSettings(settings);
+      } catch (error) {
+        console.error('Failed to load action approval settings:', error);
+      }
+    };
+    
+    loadActionApprovalSettings();
+  }, [getActionApprovalSettings]);
 
   const visibleActions = useMemo(() => {
     let list = allActions;
@@ -170,8 +188,77 @@ const ActionsView: React.FC = () => {
     }
   };
 
+  const handleApprovalModeChange = async (e: ChangeEvent<HTMLSelectElement>) => {
+    if (!actionApprovalSettings) return;
+    
+    const newSettings = {
+      ...actionApprovalSettings,
+      approvalMode: e.target.value
+    };
+    
+    try {
+      await saveActionApprovalSettings(newSettings);
+      setActionApprovalSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to save action approval settings:', error);
+    }
+  };
+
+  const handlePauseOnApprovalToggle = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!actionApprovalSettings) return;
+    
+    const newSettings = {
+      ...actionApprovalSettings,
+      pauseOnApproval: e.target.checked
+    };
+    
+    try {
+      await saveActionApprovalSettings(newSettings);
+      setActionApprovalSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to save action approval settings:', error);
+    }
+  };
+
   return (
     <div className="actions-view">
+      <div className="form-group">
+        <h4>{t('settings.actionApprovalSettings')}</h4>
+        <p className="help-text">
+          {t('settings.actionApprovalHelp')}
+        </p>
+        
+        <div className="form-group">
+          <label htmlFor="approvalMode">{t('settings.approvalMode')}:</label>
+          <select
+            id="approvalMode"
+            name="approvalMode"
+            value={actionApprovalSettings?.approvalMode || 'none'}
+            onChange={handleApprovalModeChange}
+          >
+            <option value="none">{t('settings.approvalModeNone')}</option>
+            <option value="non-destructive">{t('settings.approvalModeNonDestructive')}</option>
+            <option value="all">{t('settings.approvalModeAll')}</option>
+          </select>
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="pauseOnApproval">{t('settings.pauseOnApproval')}:</label>
+          <input
+            type="checkbox"
+            id="pauseOnApproval"
+            name="pauseOnApproval"
+            checked={actionApprovalSettings?.pauseOnApproval ?? true}
+            onChange={handlePauseOnApprovalToggle}
+          />
+          <span className="help-text">
+            {t('settings.pauseOnApprovalHelp')}
+          </span>
+        </div>
+      </div>
+
+      <hr />
+      
       <div className="actions-toolbar">
         <button type="button" onClick={reload}>🔄 {t('actions.reloadActions')}</button>
         <button type="button" onClick={openFolder}>📂 {t('actions.openActionsFolder')}</button>

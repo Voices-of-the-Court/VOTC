@@ -366,6 +366,11 @@ hr {
 .config-main-content::-webkit-scrollbar {
   width: 10px;
   background-color: rgba(0, 0, 0, 0.9);
+  border-radius: 10px;
+
+  &-track {
+    border-radius: 10px;
+  }
 }
 
 .config-main-content::-webkit-scrollbar-thumb {
@@ -594,6 +599,99 @@ hr {
     flex: 1;
     padding-left: 15px;
     overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 10px;
+      background-color: rgba(0, 0, 0, 0.9);
+      border-radius: 10px;     
+
+      &-track {
+        border-radius: 10px;
+      }
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: #EFB16A;
+      border-radius: 10px;
+      
+      &:hover {
+        background-color: #FFA500;
+      }
+
+    }
+
+      
+  .path-text {
+    font-family: 'Courier New', monospace;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 8px 12px;
+    margin-right: 20px;
+    margin-top: 0px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    color: #bbb;
+    font-size: 0.8em;
+    word-break: break-all;
+  }
+  
+  .example-path {
+    color: #EFB16A;
+    font-weight: bold;
+  }
+
+  // CK3 Folder Selection Section
+  .ck3-folder-section {
+    margin-bottom: 10px;
+    margin-top: -10px;
+    
+    label {
+      font-size: 0.9em;
+      color: #EFB16A;
+      margin-bottom: 8px;
+    }
+    
+    .ck3-path-display {
+      font-family: 'Courier New', monospace;
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-right: 20px;
+      border: 1px solid #555;
+      color: #bbb;
+      font-size: 0.85em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      word-break: break-all;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.4);
+        border-color: #EFB16A;
+      }
+      
+      .example-path-text {
+        color: #888;
+        
+        .example-highlight {
+          color: #EFB16A;
+          font-weight: bold;
+        }
+      }
+      
+      .selected-path {
+        color: #ddd;
+      }
+      
+      &.selected {
+        border-color: #EFB16A;
+        box-shadow: 0 0 8px rgba(239, 177, 106, 0.6);
+        background-color: rgba(0, 0, 0, 0.3);
+        
+        &:hover {
+          box-shadow: 0 0 10px rgba(239, 177, 106, 0.8);
+        }
+      }
+    }
+  }
 }
 
 .config-panel-placeholder p {
@@ -2040,3 +2138,86 @@ hr {
           border: 1px dashed #555;
         }
       }
+
+// Universal Tooltip Component
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+  top: 2px;
+  
+  .tooltip-icon {
+    margin-left: 4px;
+    width: 18px;
+    height: 18px;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    
+    &:hover {
+      filter: brightness(1.3);
+      transform: scale(1.1);
+    }
+  }
+  
+  .tooltip-bubble {
+    position: fixed;
+    background-color: rgba(0, 0, 0, 0.95);
+    color: #ddd;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #EFB16A;
+    font-size: 0.85em;
+    max-width: 250px;
+    white-space: normal;
+    z-index: 10000;
+    pointer-events: none;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-style: solid;
+    }
+    
+    &.tooltip-top {
+      &::before {
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 6px 6px 0 6px;
+        border-color: #EFB16A transparent transparent transparent;
+      }
+    }
+    
+    &.tooltip-bottom {
+      &::before {
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 0 6px 6px 6px;
+        border-color: transparent transparent #EFB16A transparent;
+      }
+    }
+    
+    &.tooltip-left {
+      &::before {
+        right: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-width: 6px 0 6px 6px;
+        border-color: transparent transparent transparent #EFB16A;
+      }
+    }
+    
+    &.tooltip-right {
+      &::before {
+        left: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-width: 6px 6px 6px 0;
+        border-color: transparent #EFB16A transparent transparent;
+      }
+    }
+  }
+}

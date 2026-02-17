@@ -245,7 +245,11 @@
     "selectFolder": "选择文件夹",
     "showSettingsOnStartup": "启动时显示设置",
     "viewLettersStatus": "查看信件状态",
-    "votcModLocation": "VOTC 模组位置"
+    "votcModLocation": "VOTC 模组位置",
+    "ck3UserFolderHelp": "单击下面的字段以选择/更改 CK3 文件夹的路径。\n通常它位于“文档”文件夹中。 \nOneDrive定位可能会失败！",
+    "ck3UserFolderExample": "用户名",
+    "selectedCK3FolderTitle": "选定的 CK3 文档路径",
+    "selectCK3UserFolderTitle": "选择 CK3 文档文件夹"
   },
   "summaries": {
     "aboutSummaryGeneration": "关于摘要生成",
