@@ -246,8 +246,10 @@
     "showSettingsOnStartup": "Afficher les paramètres au démarrage",
     "viewLettersStatus": "Voir le statut des lettres",
     "votcModLocation": "Emplacement du mod VOTC",
-    "ck3UserFolderHelp": "Il s'agit généralement de :",
-    "ck3UserFolderExample": "NOM_UTILISATEUR"
+    "ck3UserFolderHelp": "Cliquez sur le champ ci-dessous pour sélectionner/modifier le chemin vers le dossier CK3. \nIl se trouve généralement dans le dossier \"Documents\". \nLa localisation OneDrive est susceptible d’échouer !",
+    "ck3UserFolderExample": "NOM_UTILISATEUR",
+    "selectedCK3FolderTitle": "Chemin des documents CK3 sélectionnés",
+    "selectCK3UserFolderTitle": "Sélectionnez le dossier de documents CK3"
   },
   "summaries": {
     "aboutSummaryGeneration": "À propos de la génération de résumés",

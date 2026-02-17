@@ -246,8 +246,10 @@
     "showSettingsOnStartup": "Показывать настройки при запуске",
     "viewLettersStatus": "Просмотреть статус писем",
     "votcModLocation": "Расположение мода VOTC",
-    "ck3UserFolderHelp": "Обычно это:",
-    "ck3UserFolderExample": "ИМЯ_ПОЛЬЗОВАТЕЛЯ"
+    "ck3UserFolderHelp": "Нажмите на поле ниже, чтобы выбрать/изменить путь к папке CK3. \nОбычно он находится в папке «Документы». \nПуть к OneDrive, скорее всего, выдаст ошибку!",
+    "ck3UserFolderExample": "ИМЯ_ПОЛЬЗОВАТЕЛЯ",
+    "selectedCK3FolderTitle": "Выбранный путь к документам CK3",
+    "selectCK3UserFolderTitle": "Выберите папку документов CK3."
   },
   "summaries": {
     "aboutSummaryGeneration": "О генерации саммари",

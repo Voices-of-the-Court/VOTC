@@ -246,8 +246,10 @@
     "showSettingsOnStartup": "Einstellungen beim Start anzeigen",
     "viewLettersStatus": "Briefstatus anzeigen",
     "votcModLocation": "VOTC-Mod-Speicherort",
-    "ck3UserFolderHelp": "Normalerweise ist es:",
-    "ck3UserFolderExample": "BENUTZERNAME"
+    "ck3UserFolderHelp": "Klicken Sie auf das Feld unten, um den Pfad zum CK3-Ordner auszuwählen/zu ändern. \nNormalerweise befindet es sich im Ordner „Dokumente“. \nDer OneDrive-Standort wird wahrscheinlich fehlschlagen!",
+    "ck3UserFolderExample": "BENUTZERNAME",
+    "selectedCK3FolderTitle": "Ausgewählter CK3-Dokumentpfad",
+    "selectCK3UserFolderTitle": "Wählen Sie den Ordner „CK3-Dokumente“ aus"
   },
   "summaries": {
     "aboutSummaryGeneration": "Über Zusammenfassungsgenerierung",

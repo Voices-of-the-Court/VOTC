@@ -248,8 +248,10 @@
     "showSettingsOnStartup": "Show Settings on Startup",
     "viewLettersStatus": "View Letters Status",
     "votcModLocation": "VOTC Mod Location",
-    "ck3UserFolderHelp": "Usually it is:",
-    "ck3UserFolderExample": "YOUR_USERNAME"
+    "ck3UserFolderHelp": "Click on field below to select/change path to CK3 folder. Usually it is in \"Documents\" folder. OneDrive location is likely to fail!",
+    "ck3UserFolderExample": "YOUR_USERNAME",
+    "selectedCK3FolderTitle": "Selected CK3 Documents Path",
+    "selectCK3UserFolderTitle": "Select CK3 Documents Folder"
   },
   "summaries": {
     "aboutSummaryGeneration": "About Summary Generation",

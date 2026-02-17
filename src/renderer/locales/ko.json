@@ -246,8 +246,10 @@
     "showSettingsOnStartup": "시작 시 설정 표시",
     "viewLettersStatus": "편지 상태 보기",
     "votcModLocation": "VOTC 모드 위치",
-    "ck3UserFolderHelp": "일반적으로 다음과 같습니다.",
-    "ck3UserFolderExample": "사용자명"
+    "ck3UserFolderHelp": "CK3 폴더 경로를 선택/변경하려면 아래 필드를 클릭하세요. \n일반적으로 \"문서\" 폴더에 있습니다. \nOneDrive 위치가 실패할 가능성이 높습니다!",
+    "ck3UserFolderExample": "사용자명",
+    "selectedCK3FolderTitle": "선택한 CK3 문서 경로",
+    "selectCK3UserFolderTitle": "CK3 문서 폴더 선택"
   },
   "summaries": {
     "aboutSummaryGeneration": "요약 생성 정보",

@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LLMProviderConfig } from '../../../main/llmProviders/types';
-import { useConfigStore } from '../store/useConfigStore';
+import { useConfigStore, useAppSettings } from '../store/useConfigStore';
 import { DEFAULT_PARAMETERS } from '../../../main/llmProviders/types';
 
 import ModelSelector from './ModelSelector';
 import ContextLengthField from './ContextLengthField';
 import FormGroupInput from './FormGroupInput';
+import Tooltip from './Tooltip';
 import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent, DeepseekConfigFieldsComponent } from './ConfigFields';
 
 const Player2OpenAppButton: React.FC = () => {
@@ -125,6 +126,7 @@ interface ProviderConfigPanelProps {
 
 const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
   const { t } = useTranslation();
+  const appSettings = useAppSettings();
   const {
     config,
     testResult,
@@ -133,8 +135,12 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
     onTestConnection,
     onMakePreset,
   } = props;
+  const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
 
   const updateEditingConfig = useConfigStore((state) => state.updateEditingConfig);
+  const handleSelectCK3Folder = async () => {
+    await selectCK3Folder();
+  };
 
   if (!config.providerType) {
     return (
@@ -152,8 +158,26 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
     e.preventDefault();
   };
 
+  const hasSelectedPath = appSettings?.ck3UserFolderPath && appSettings.ck3UserFolderPath.trim() !== '';
+
   return (
     <div className="provider-config-panel">
+      <div className="form-group ck3-folder-section">
+        <label>
+          {hasSelectedPath ? t('settings.selectedCK3FolderTitle') : t('settings.selectCK3UserFolderTitle')}
+          <Tooltip text={t('settings.ck3UserFolderHelp')} position="bottom" />
+        </label>
+        <div className={`ck3-path-display ${hasSelectedPath ? 'selected' : ''}`} onClick={handleSelectCK3Folder}>
+          {hasSelectedPath ? (
+            <span className="selected-path">{appSettings.ck3UserFolderPath}</span>
+          ) : (
+            <span className="example-path-text">
+              C:\Users\<span className="example-highlight">{t('settings.ck3UserFolderExample')}</span>\Documents\Paradox Interactive\Crusader Kings III
+            </span>
+          )}
+        </div>
+      </div>
+
       <h3>
         {isPreset ? `${t('config.preset')}: ${displayName}` : `${displayName} ${t('config.configuration')}`}
         {isPreset && <small className="preset-type-indicator"> ({t('config.type')}: {config.providerType})</small>}

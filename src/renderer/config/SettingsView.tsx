@@ -11,7 +11,6 @@ const SettingsView: React.FC = () => {
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
   const updateMessageFontSize = useConfigStore((state) => state.updateMessageFontSize);
   const updateShowSettingsOnStartup = useConfigStore((state) => state.updateShowSettingsOnStartup);
-  const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
   // const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
   
   const [showLettersModal, setShowLettersModal] = React.useState(false);
@@ -40,9 +39,6 @@ const SettingsView: React.FC = () => {
     await updateShowSettingsOnStartup(e.target.checked);
   };
 
-  const handleSelectCK3Folder = async () => {
-    await selectCK3Folder();
-  };
 
   // const handleSelectModLocationPath = async () => {
   //   await selectModLocationPath();
@@ -125,30 +121,6 @@ const SettingsView: React.FC = () => {
             {t('settings.viewLettersStatus')}
           </button>
         </div>
-      </div>
-      
-      <hr />
-      
-      <div className="form-group">
-        <h4>{t('settings.ck3UserFolder')}</h4>
-        <p style={{marginTop: "-5px", marginBottom: "5px"}}>
-          {t('settings.ck3UserFolderHelp')}
-        </p>
-        <p className="path-text">
-          C:\Users\
-          <span className="example-path">{t('settings.ck3UserFolderExample')}</span>
-          \Documents\Paradox Interactive\Crusader Kings III
-        </p>
-        <label htmlFor="ck3UserFolderPath">{t('settings.currentPath')}:</label>
-        <input
-          type="text"
-          id="ck3UserFolderPath"
-          value={appSettings.ck3UserFolderPath || ''}
-          readOnly
-        />
-        <button type="button" onClick={handleSelectCK3Folder}>
-          {t('settings.selectFolder')}
-        </button>
       </div>
       
       {/* <div className="form-group">
