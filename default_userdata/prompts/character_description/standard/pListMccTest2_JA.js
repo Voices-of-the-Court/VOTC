@@ -201,7 +201,7 @@ function mainPosition(char) {
 }
 
 function houseAndStatus(char) {
-  let line = char.sheHe === "she" ? "女性" : "男性";
+  let line = char.sheHe === "彼女" ? "女性" : "男性";
   line += char.house ? `、${char.house}家` : "、平民";
   return line;
 }
@@ -384,7 +384,7 @@ function familyLine(char) {
   if (char.siblings && char.siblings.length > 0) {
     const siblingsList = char.siblings
       .map((s) => {
-        const status = [s.sheHe === "he" ? "兄弟" : "姉妹", s.maritalStatus || "未婚"]
+        const status = [s.sheHe === "彼" ? "兄弟" : "姉妹", s.maritalStatus || "未婚"]
           .filter(Boolean)
           .join("、");
         const death = s.deathDate ? `、${s.deathDate}に死亡${s.deathReason ? ` (${s.deathReason})` : ""}` : "";
@@ -397,7 +397,7 @@ function familyLine(char) {
   if (char.children && char.children.length > 0) {
     const childrenList = char.children
       .map((c) => {
-        const status = [c.sheHe === "he" ? "息子" : "娘", c.maritalStatus || "未婚"]
+        const status = [c.sheHe === "彼" ? "息子" : "娘", c.maritalStatus || "未婚"]
           .filter(Boolean)
           .join("、");
         const death = c.deathDate ? `、${c.deathDate}に死亡${c.deathReason ? ` (${c.deathReason})` : ""}` : "";

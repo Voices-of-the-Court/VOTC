@@ -201,7 +201,7 @@ function mainPosition(char) {
 }
 
 function houseAndStatus(char) {
-  let line = char.sheHe === "she" ? "Frau" : "Mann";
+  let line = char.sheHe === "sie" ? "Frau" : "Mann";
   line += char.house ? `, Haus ${char.house}` : ", niederer Stand";
   return line;
 }
@@ -312,7 +312,7 @@ function familyLine(char) {
   if (char.siblings && char.siblings.length > 0) {
     const siblingsList = char.siblings
       .map((s) => {
-        const status = [s.sheHe === "he" ? "Bruder" : "Schwester", s.maritalStatus || "ledig"]
+        const status = [s.sheHe === "er" ? "Bruder" : "Schwester", s.maritalStatus || "ledig"]
           .filter(Boolean)
           .join(", ");
         const death = s.deathDate ? `, gestorben ${s.deathDate}${s.deathReason ? ` (${s.deathReason})` : ""}` : "";
@@ -325,7 +325,7 @@ function familyLine(char) {
   if (char.children && char.children.length > 0) {
     const childrenList = char.children
       .map((c) => {
-        const status = [c.sheHe === "he" ? "Sohn" : "Tochter", c.maritalStatus || "ledig"]
+        const status = [c.sheHe === "er" ? "Sohn" : "Tochter", c.maritalStatus || "ledig"]
           .filter(Boolean)
           .join(", ");
         const death = c.deathDate ? `, gestorben ${c.deathDate}${c.deathReason ? ` (${c.deathReason})` : ""}` : "";

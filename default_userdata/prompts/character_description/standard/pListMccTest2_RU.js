@@ -201,7 +201,7 @@ function mainPosition(char) {
 }
 
 function houseAndStatus(char) {
-  let line = char.sheHe === "she" ? "женщина" : "мужчина";
+  let line = char.sheHe === "она" ? "женщина" : "мужчина";
   line += char.house ? `, из дома ${char.house}` : ", незнатного происхождения";
   return line;
 }
@@ -384,7 +384,7 @@ function familyLine(char) {
   if (char.siblings && char.siblings.length > 0) {
     const siblingsList = char.siblings
       .map((s) => {
-        const status = [s.sheHe === "he" ? "брат" : "сестра", s.maritalStatus || "не в браке"]
+        const status = [s.sheHe === "он" ? "брат" : "сестра", s.maritalStatus || "не в браке"]
           .filter(Boolean)
           .join(", ");
         const death = s.deathDate ? `, умер ${s.deathDate}${s.deathReason ? ` (${s.deathReason})` : ""}` : "";
@@ -397,7 +397,7 @@ function familyLine(char) {
   if (char.children && char.children.length > 0) {
     const childrenList = char.children
       .map((c) => {
-        const status = [c.sheHe === "he" ? "сын" : "дочь", c.maritalStatus || "не в браке"]
+        const status = [c.sheHe === "он" ? "сын" : "дочь", c.maritalStatus || "не в браке"]
           .filter(Boolean)
           .join(", ");
         const death = c.deathDate ? `, умер ${c.deathDate}${c.deathReason ? ` (${c.deathReason})` : ""}` : "";

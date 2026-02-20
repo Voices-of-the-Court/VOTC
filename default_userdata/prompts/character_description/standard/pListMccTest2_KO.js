@@ -201,7 +201,7 @@ function mainPosition(char) {
 }
 
 function houseAndStatus(char) {
-  let line = char.sheHe === "she" ? "여성" : "남성";
+  let line = char.sheHe === "그녀" ? "여성" : "남성";
   line += char.house ? `, ${char.house} 가문` : ", 평민";
   return line;
 }
@@ -384,7 +384,7 @@ function familyLine(char) {
   if (char.siblings && char.siblings.length > 0) {
     const siblingsList = char.siblings
       .map((s) => {
-        const status = [s.sheHe === "he" ? "형제" : "자매", s.maritalStatus || "미혼"]
+        const status = [s.sheHe === "그" ? "형제" : "자매", s.maritalStatus || "미혼"]
           .filter(Boolean)
           .join(", ");
         const death = s.deathDate ? `, 사망 ${s.deathDate}${s.deathReason ? ` (${s.deathReason})` : ""}` : "";
@@ -397,7 +397,7 @@ function familyLine(char) {
   if (char.children && char.children.length > 0) {
     const childrenList = char.children
       .map((c) => {
-        const status = [c.sheHe === "he" ? "아들" : "딸", c.maritalStatus || "미혼"]
+        const status = [c.sheHe === "그" ? "아들" : "딸", c.maritalStatus || "미혼"]
           .filter(Boolean)
           .join(", ");
         const death = c.deathDate ? `, 사망 ${c.deathDate}${c.deathReason ? ` (${c.deathReason})` : ""}` : "";
