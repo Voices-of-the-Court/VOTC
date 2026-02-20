@@ -207,8 +207,8 @@ function houseAndStatus(char) {
 }
 
 function marriage(char) {
-  if (char.consort) return `${char.consort}와(과) 결혼`;
-  return "미혼";
+  if (char.consort) return `${char.fullName}은(는) ${char.consort}와(과) 결혼`;
+  return `${char.fullName}은(는) 미혼`;
 }
 
 function describeProwess(char) {

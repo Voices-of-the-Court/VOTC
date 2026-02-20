@@ -207,8 +207,8 @@ function houseAndStatus(char) {
 }
 
 function marriage(char) {
-  if (char.consort) return `marié(e) à ${char.consort}`;
-  return "célibataire";
+  if (char.consort) return `${char.fullName} est marié(e) à ${char.consort}`;
+  return `${char.fullName} est célibataire`;
 }
 
 function describeProwess(char) {

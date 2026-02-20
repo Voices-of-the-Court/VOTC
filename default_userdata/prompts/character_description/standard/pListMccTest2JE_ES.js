@@ -207,8 +207,8 @@ function houseAndStatus(char) {
 }
 
 function marriage(char) {
-  if (char.consort) return `casado con ${char.consort}`;
-  return "soltero";
+  if (char.consort) return `${char.fullName} está casado con ${char.consort}`;
+  return `${char.fullName} está soltero`;
 }
 
 function describeProwess(char) {

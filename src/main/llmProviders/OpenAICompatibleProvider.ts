@@ -33,8 +33,8 @@ export class OpenAICompatibleProvider extends BaseProvider {
   async listModels(config: LLMProviderConfig): Promise<ILLMModel[]> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      "X-Title": "reVOTC",
-      'User-Agent': 'reVOTC/1.0.0', // Custom User-Agent to avoid Cloudflare blocking
+      "X-Title": "Voices of the Court 2.0",
+      'User-Agent': 'VOTC/2.0.0', // Custom User-Agent to avoid Cloudflare blocking
       ...(this.getAPIKey(config) && { 'Authorization': `Bearer ${this.getAPIKey(config)}` }),
     };
 
@@ -97,8 +97,8 @@ export class OpenAICompatibleProvider extends BaseProvider {
   ): ILLMOutput {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Title': 'reVOTC',
-      'User-Agent': 'reVOTC/1.0.0', // Custom User-Agent to avoid Cloudflare blocking
+      'X-Title': 'Voices of the Court 2.0',
+      'User-Agent': 'VOTC/2.0.0', // Custom User-Agent to avoid Cloudflare blocking
       ...(config.apiKey && { 'Authorization': `Bearer ${config.apiKey}` }),
     };
 

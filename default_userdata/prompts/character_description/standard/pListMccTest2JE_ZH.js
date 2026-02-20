@@ -207,8 +207,8 @@ function houseAndStatus(char) {
 }
 
 function marriage(char) {
-  if (char.consort) return `已婚，配偶${char.consort}`;
-  return "未婚";
+  if (char.consort) return `${char.fullName}已婚，配偶${char.consort}`;
+  return `${char.fullName}未婚`;
 }
 
 function describeProwess(char) {

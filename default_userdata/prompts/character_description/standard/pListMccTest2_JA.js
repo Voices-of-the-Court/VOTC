@@ -207,8 +207,8 @@ function houseAndStatus(char) {
 }
 
 function marriage(char) {
-  if (char.consort) return `${char.consort}と結婚`;
-  return "未婚";
+  if (char.consort) return `${char.fullName}は${char.consort}と結婚`;
+  return `${char.fullName}は未婚`;
 }
 
 function describeProwess(char) {

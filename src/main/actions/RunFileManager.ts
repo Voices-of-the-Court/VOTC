@@ -27,7 +27,9 @@ export class RunFileManager{
         }
         
         try {
-            fs.writeFileSync(this.path, text, 'utf-8');
+            fs.writeFileSync(this.path, 
+`${text}
+root = {trigger_event = mcc_event_v2.9003}`, 'utf-8');
             console.log(`RunFileManager: wrote to run file: ${text}`);
         } catch (error) {
             console.error(`RunFileManager: Failed to write to file ${this.path}:`, error);

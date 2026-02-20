@@ -110,7 +110,7 @@ module.exports = (gameData, currentCharacterId) => {
   const personalityDesc = personalityDescription(char);
   if (personalityDesc && isCurrent) items.push(personalityDesc);
   
-  items.push(`marital status: ${marriage(char)}`);
+  items.push(`marital status: ${char.fullName} is ${marriage(char)}`);
   items.push(describeProwess(char));
   items.push(goldStatus(char));
   items.push(`age: ${char.age}`);

@@ -207,8 +207,8 @@ function houseAndStatus(char) {
 }
 
 function marriage(char) {
-  if (char.consort) return `verheiratet mit ${char.consort}`;
-  return "ledig";
+  if (char.consort) return `${char.fullName} ist verheiratet mit ${char.consort}`;
+  return `${char.fullName} ist ledig`;
 }
 
 function describeProwess(char) {

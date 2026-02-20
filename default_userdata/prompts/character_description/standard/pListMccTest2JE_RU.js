@@ -207,8 +207,8 @@ function houseAndStatus(char) {
 }
 
 function marriage(char) {
-  if (char.consort) return `в браке с ${char.consort}`;
-  return "не в браке";
+  if (char.consort) return `${char.fullName} в браке с ${char.consort}`;
+  return `${char.fullName} не в браке`;
 }
 
 function describeProwess(char) {

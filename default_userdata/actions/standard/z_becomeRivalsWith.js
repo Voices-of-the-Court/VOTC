@@ -83,7 +83,7 @@ module.exports = {
     runGameEffect(`
 global_var:votc_action_source = {
     set_relation_rival = {
-        reason = ${reason}
+        reason = "${reason.replaceAll('"', '')}"
         target = global_var:votc_action_target
     }
 }`);

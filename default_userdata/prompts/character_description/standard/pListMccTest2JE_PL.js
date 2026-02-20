@@ -207,8 +207,8 @@ function houseAndStatus(char) {
 }
 
 function marriage(char) {
-  if (char.consort) return `w związku z ${char.consort}`;
-  return "kawaler";
+  if (char.consort) return `${char.fullName} jest w związku z ${char.consort}`;
+  return `${char.fullName} jest kawaler`;
 }
 
 function describeProwess(char) {
