@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { pathToFileURL } from "url";
 import { EventEmitter } from "events";
 import { app } from "electron";
 
