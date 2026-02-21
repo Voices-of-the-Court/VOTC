@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import type { CommandState } from './ActionCommandInput';
 
 interface ChatButtonsProps {
   onLeave: () => void;
@@ -7,9 +8,11 @@ interface ChatButtonsProps {
   onCancel?: () => void;
   onPause?: () => void;
   onResume?: () => void;
+  onExecuteAction?: () => void;
   isStreaming?: boolean;
   isPaused?: boolean;
   queueLength?: number;
+  commandState?: CommandState;
 }
 
 const ChatButtons: React.FC<ChatButtonsProps> = ({
@@ -18,13 +21,24 @@ const ChatButtons: React.FC<ChatButtonsProps> = ({
   onCancel,
   onPause,
   onResume,
+  onExecuteAction,
   isStreaming = false,
   isPaused = false,
-  queueLength = 0
+  queueLength = 0,
+  commandState
 }) => {
   const { t } = useTranslation();
   const canPause = onPause && !isPaused && isStreaming && queueLength > 1;
   const canResume = onResume && isPaused && !isStreaming;
+
+  // Build tooltip for execute button
+  const getExecuteTooltip = () => {
+    if (!commandState?.isActive) return null;
+    if (commandState.readyToExecute) {
+      return `Execute: ${commandState.actionTitle}`;
+    }
+    return `Missing: ${commandState.missingFields.join(', ')}`;
+  };
 
   return (
     <div className="buttons-container">
@@ -68,6 +82,16 @@ const ChatButtons: React.FC<ChatButtonsProps> = ({
       >
         ⚙️
       </button>
+      {commandState?.isActive && onExecuteAction && (
+        <button
+          onClick={onExecuteAction}
+          className={`execute-button ${commandState.readyToExecute ? 'ready' : 'incomplete'}`}
+          disabled={!commandState.readyToExecute}
+          title={getExecuteTooltip() || ''}
+        >
+          ▶️
+        </button>
+      )}
     </div>
   );
 };

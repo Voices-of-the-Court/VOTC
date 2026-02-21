@@ -11,6 +11,7 @@ import { importLegacySummaries } from './utils/importLegacySummaries';
 import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR, VOTC_SUMMARIES_DIR } from './utils/paths';
 import { SummariesManager } from './utils/SummariesManager';
 import { actionRegistry } from './actions/ActionRegistry';
+import { ActionEngine } from './actions/ActionEngine';
 import { promptConfigManager } from './conversation/PromptConfigManager';
 import { TemplateEngine } from './conversation/TemplateEngine';
 import { appUpdater } from './AutoUpdater';
@@ -545,6 +546,124 @@ const setupIpcHandlers = () => {
     } catch (error: any) {
       console.error('Failed to open action file:', error);
       return { success: false, error: error.message || 'Unknown error' };
+    }
+  });
+
+  // Get action details with resolved args for a specific source character
+  ipcMain.handle('actions:getDetails', async (_, { actionId, sourceCharacterId }: { actionId: string; sourceCharacterId: number }) => {
+    try {
+      const userLang = settingsRepository.getLanguage();
+      const loaded = actionRegistry.getById(actionId);
+      
+      if (!loaded || !loaded.validation.valid) {
+        return { error: 'Action not found or invalid', valid: false };
+      }
+      
+      const conv = conversationManager.getCurrentConversation();
+      if (!conv) {
+        return { error: 'No active conversation', valid: false };
+      }
+      
+      const sourceCharacter = conv.gameData.characters.get(sourceCharacterId);
+      if (!sourceCharacter) {
+        return { error: 'Source character not found', valid: false };
+      }
+      
+      // Run check to get valid targets
+      const checkResult = await loaded.definition.check({
+        gameData: conv.gameData,
+        sourceCharacter,
+      });
+      
+      if (!checkResult?.canExecute) {
+        return { error: checkResult?.reason || 'Action cannot be executed', valid: false, canExecute: false };
+      }
+      
+      // Resolve dynamic args
+      let args;
+      if (typeof loaded.definition.args === 'function') {
+        args = loaded.definition.args({ gameData: conv.gameData, sourceCharacter });
+      } else {
+        args = loaded.definition.args;
+      }
+      
+      // Resolve i18n strings in argument descriptions
+      const resolvedArgs = args.map(arg => ({
+        ...arg,
+        description: resolveI18nString(arg.description, userLang),
+        displayName: arg.displayName ? resolveI18nString(arg.displayName, userLang) : undefined,
+      }));
+      
+      return {
+        valid: true,
+        canExecute: true,
+        id: loaded.id,
+        title: loaded.definition.title ? resolveI18nString(loaded.definition.title, userLang) : loaded.id,
+        args: resolvedArgs,
+        requiresTarget: !!(checkResult.validTargetCharacterIds && checkResult.validTargetCharacterIds.length > 0),
+        validTargetCharacterIds: checkResult.validTargetCharacterIds || [],
+        isDestructive: actionRegistry.getEffectiveDestructive(actionId),
+      };
+    } catch (error: any) {
+      console.error('Failed to get action details:', error);
+      return { error: error.message || 'Unknown error', valid: false };
+    }
+  });
+
+  // Execute an action manually (from slash command)
+  ipcMain.handle('actions:execute', async (_, { actionId, sourceCharacterId, targetCharacterId, args }: { 
+    actionId: string; 
+    sourceCharacterId: number; 
+    targetCharacterId?: number | null;
+    args: Record<string, any>;
+  }) => {
+    try {
+      const conv = conversationManager.getCurrentConversation();
+      if (!conv) {
+        return { success: false, error: 'No active conversation' };
+      }
+      
+      const sourceCharacter = conv.gameData.characters.get(sourceCharacterId);
+      if (!sourceCharacter) {
+        return { success: false, error: 'Source character not found' };
+      }
+      
+      const invocation = {
+        actionId,
+        targetCharacterId: targetCharacterId ?? null,
+        args,
+      };
+      
+      const result = await ActionEngine.runInvocation(conv, sourceCharacter, invocation);
+      
+      // Add action feedback entry to conversation
+      if (result.feedback) {
+        conversationManager.addManualActionFeedback({
+          actionId: result.actionId,
+          success: result.success,
+          message: result.feedback.message,
+          sentiment: result.feedback.sentiment
+        });
+      } else if (result.success) {
+        conversationManager.addManualActionFeedback({
+          actionId: result.actionId,
+          success: true,
+          message: `Action ${result.actionId} executed successfully`,
+          sentiment: 'neutral'
+        });
+      } else {
+        conversationManager.addManualActionFeedback({
+          actionId: result.actionId,
+          success: false,
+          message: result.error || `Action ${result.actionId} failed`,
+          sentiment: 'negative'
+        });
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error('Failed to execute action:', error);
+      return { success: false, error: error.message || 'Unknown error', actionId };
     }
   });
 
