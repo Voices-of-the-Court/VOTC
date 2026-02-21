@@ -22,7 +22,7 @@ export interface ErrorEntry extends BaseEntry {
 
 export interface ActionFeedbackEntry extends BaseEntry {
     type: 'action-feedback';
-    associatedMessageId: number;
+    associatedMessageId?: number; // Optional - not present for manual executions
     feedbacks: Array<{
         actionId: string;
         success: boolean;

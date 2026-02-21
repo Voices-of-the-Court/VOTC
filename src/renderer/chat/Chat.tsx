@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageList, ChatInput, ChatButtons } from './components';
+import { MessageList, ActionCommandInput, ChatButtons } from './components';
+import type { CommandState } from './components/ActionCommandInput';
 import { useWindowEvents, useAutoScroll, useConversationEntries } from './hooks';
 import { useDraggableResizable } from '../hooks/useDraggableResizable';
 
@@ -13,6 +14,17 @@ function Chat({ onToggleConfig }: ChatProps) {
   const [inputValue, setInputValue] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
   const [conversationState, setConversationState] = useState({ isPaused: false, queueLength: 0 });
+  const [commandState, setCommandState] = useState<CommandState>({
+    isActive: false,
+    actionId: null,
+    actionTitle: '',
+    sourceCharacterId: null,
+    targetCharacterId: null,
+    args: {},
+    actionDetails: null,
+    readyToExecute: false,
+    missingFields: [],
+  });
 
   const { entries, sendMessage } = useConversationEntries();
   const { handleChatBoxMouseEnter, handleChatBoxMouseLeave, handleLeave } = useWindowEvents();
@@ -65,18 +77,66 @@ function Chat({ onToggleConfig }: ChatProps) {
     }
   };
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     const message = inputValue;
     setInputValue('');
-    sendMessage(message)
-  };
+    // Only send if not a command (commands are handled by ActionCommandInput)
+    if (!message.startsWith('/')) {
+      sendMessage(message);
+    }
+  }, [inputValue, sendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Skip if it's a command - ActionCommandInput handles that
+    if (inputValue.startsWith('/')) {
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault();
       handleSend();
     }
   };
+
+  // Handle command state changes from ActionCommandInput
+  const handleCommandStateChange = useCallback((state: CommandState) => {
+    setCommandState(state);
+  }, []);
+
+  // Handle slash command execution
+  const handleExecuteAction = useCallback(async () => {
+    if (!commandState.actionId || !commandState.sourceCharacterId) return;
+    
+    try {
+      const result = await window.actionsAPI.execute({
+        actionId: commandState.actionId,
+        sourceCharacterId: commandState.sourceCharacterId,
+        targetCharacterId: commandState.targetCharacterId,
+        args: commandState.args,
+      });
+      
+      if (result.success) {
+        console.log(`Action ${commandState.actionId} executed successfully:`, result.feedback);
+      } else {
+        console.error(`Action ${commandState.actionId} failed:`, result.error);
+      }
+      
+      // Clear input after execution
+      setInputValue('');
+      setCommandState({
+        isActive: false,
+        actionId: null,
+        actionTitle: '',
+        sourceCharacterId: null,
+        targetCharacterId: null,
+        args: {},
+        actionDetails: null,
+        readyToExecute: false,
+        missingFields: [],
+      });
+    } catch (error) {
+      console.error('Failed to execute action:', error);
+    }
+  }, [commandState]);
 
   const handleCancelStream = async () => {
     try {
@@ -275,10 +335,11 @@ function Chat({ onToggleConfig }: ChatProps) {
           onScroll={handleScroll}
         />
           <div className="chat-controls-container">
-            <ChatInput
+            <ActionCommandInput
               value={inputValue}
               onChange={setInputValue}
               onKeyPress={handleKeyPress}
+              onCommandStateChange={handleCommandStateChange}
               placeholder={t('chat.writeMessage')}
               disabled={isStreaming}
             />
@@ -288,9 +349,11 @@ function Chat({ onToggleConfig }: ChatProps) {
               onCancel={handleCancelStream}
               onPause={handlePauseConversation}
               onResume={handleResumeConversation}
+              onExecuteAction={handleExecuteAction}
               isStreaming={isStreaming}
               isPaused={conversationState.isPaused}
               queueLength={conversationState.queueLength}
+              commandState={commandState}
             />
           </div>
         </div>

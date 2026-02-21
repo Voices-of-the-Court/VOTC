@@ -1,3 +1,5 @@
+// DEPRECATED - Replaced by ActionCommandInput
+
 import React from 'react';
 
 interface ChatInputProps {
