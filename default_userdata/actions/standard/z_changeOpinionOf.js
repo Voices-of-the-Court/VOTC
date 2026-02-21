@@ -80,9 +80,7 @@ module.exports = {
 
     let value = 0;
     const raw = args?.value;
-    if (typeof raw === "number" && Number.isFinite(raw)) {
-      value = Math.max(-10, Math.min(10, Math.floor(raw)));
-    } else {
+    if (typeof raw !== "number" && !Number.isFinite(raw)) {
       return {
         message: {
           en: `Failed: Invalid opinion value`,
