@@ -1,4 +1,63 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
+
+// All localized strings for rival relation
+const RIVAL_STRINGS = ["Rival", "Rival", "Rivale", "好敵手", "경쟁자", "Rywal", "Соперник", "仇敌", "Rival"];
+// Nemesis strings (already at higher level)
+const NEMESIS_STRINGS = ["Nemesis", "Ennemi juré", "Erzfeind", "宿敵", "천적", "Śmiertelny wróg", "Заклятый враг", "死敌", "Némesis"];
+// Friend strings (can transition from friend to rival)
+const FRIEND_STRINGS = ["Friend", "Ami", "Freund", "友人", "친구", "Przyjaciel", "Друг", "朋友", "Amigo"];
+// Best friend strings (can transition from best friend to rival)
+const BEST_FRIEND_STRINGS = ["Best Friend", "Meilleur ami", "Bester Freund", "親友", "단짝 친구", "Najlepszy przyjaciel", "Лучший друг", "至交", "Mejor amigo"];
+
+function hasRelation(character, targetId, relationStrings) {
+  const entry = character.relationsToCharacters?.find(r => r.id === targetId);
+  if (!entry) return false;
+  const lowerStrings = relationStrings.map(s => s.toLowerCase());
+  return entry.relations.some(rel => lowerStrings.includes(rel.toLowerCase()));
+}
+
+function removeRelationFromBoth(sourceChar, targetChar, sourceId, targetId, relationStrings) {
+  const lowerStrings = relationStrings.map(s => s.toLowerCase());
+  
+  const sourceEntry = sourceChar.relationsToCharacters?.find(r => r.id === targetId);
+  if (sourceEntry) {
+    sourceEntry.relations = sourceEntry.relations.filter(rel => !lowerStrings.includes(rel.toLowerCase()));
+  }
+  
+  const targetEntry = targetChar.relationsToCharacters?.find(r => r.id === sourceId);
+  if (targetEntry) {
+    targetEntry.relations = targetEntry.relations.filter(rel => !lowerStrings.includes(rel.toLowerCase()));
+  }
+}
+
+function addRelationToBoth(sourceChar, targetChar, sourceId, targetId, relationString) {
+  let sourceEntry = sourceChar.relationsToCharacters?.find(r => r.id === targetId);
+  if (!sourceEntry) {
+    sourceEntry = { id: targetId, relations: [] };
+    sourceChar.relationsToCharacters.push(sourceEntry);
+  }
+  if (!sourceEntry.relations.includes(relationString)) {
+    sourceEntry.relations.push(relationString);
+  }
+  
+  let targetEntry = targetChar.relationsToCharacters?.find(r => r.id === sourceId);
+  if (!targetEntry) {
+    targetEntry = { id: sourceId, relations: [] };
+    targetChar.relationsToCharacters.push(targetEntry);
+  }
+  if (!targetEntry.relations.includes(relationString)) {
+    targetEntry.relations.push(relationString);
+  }
+}
+
+function getLocalizedRival(lang) {
+  const map = {
+    en: "Rival", fr: "Rival", de: "Rivale", ja: "好敵手", ko: "경쟁자",
+    pl: "Rywal", ru: "Соперник", zh: "仇敌", es: "Rival"
+  };
+  return map[lang] || map.en;
+}
+
 module.exports = {
   signature: "becomeRivalsWith",
   title: {
@@ -39,12 +98,17 @@ module.exports = {
    * @param {Character} params.sourceCharacter
    */
   check: ({ gameData, sourceCharacter }) => {
-    // TODO: Add proper checks for existing relationships and opinion requirements
-    // For now, allow execution with any valid target
     const allIds = Array.from(gameData.characters.keys());
-    const validTargets = allIds.filter((id) => id !== sourceCharacter.id);
+    const validTargets = allIds.filter((id) => {
+      if (id === sourceCharacter.id) return false;
+      // Cannot become rival if already rival
+      if (hasRelation(sourceCharacter, id, RIVAL_STRINGS)) return false;
+      // Cannot become rival if already nemesis (higher level)
+      if (hasRelation(sourceCharacter, id, NEMESIS_STRINGS)) return false;
+      return true;
+    });
     return {
-      canExecute: true,
+      canExecute: validTargets.length > 0,
       validTargetCharacterIds: validTargets,
     };
   },
@@ -87,6 +151,15 @@ global_var:votc_action_source = {
         target = global_var:votc_action_target
     }
 }`);
+
+    // Update game data model
+    // Remove friendship relations (friend/best friend) if present
+    removeRelationFromBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, FRIEND_STRINGS);
+    removeRelationFromBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, BEST_FRIEND_STRINGS);
+    
+    // Add rival relation
+    const rivalString = getLocalizedRival(lang);
+    addRelationToBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, rivalString);
 
     return {
       message: {

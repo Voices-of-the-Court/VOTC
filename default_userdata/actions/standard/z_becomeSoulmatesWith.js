@@ -1,4 +1,62 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
+
+// All localized strings for soulmate relation
+const SOULMATE_STRINGS = ["Soulmate", "Âme sœur", "Seelengefährte", "運命の人", "천생연분", "Bratnia dusza", "Родственная душа", "灵魂伴侣", "Alma gemela"];
+// Lover strings (soulmate replaces lover)
+const LOVER_STRINGS = ["Lover", "Amant", "Affäre", "恋人", "연인", "Kochanek", "Любовник/любовница", "情人", "Amante"];
+// Hostile relations - cannot become soulmate if rival or nemesis
+const RIVAL_STRINGS = ["Rival", "Rival", "Rivale", "好敵手", "경쟁자", "Rywal", "Соперник", "仇敌", "Rival"];
+const NEMESIS_STRINGS = ["Nemesis", "Ennemi juré", "Erzfeind", "宿敵", "천적", "Śmiertelny wróg", "Заклятый враг", "死敌", "Némesis"];
+
+function hasRelation(character, targetId, relationStrings) {
+  const entry = character.relationsToCharacters?.find(r => r.id === targetId);
+  if (!entry) return false;
+  const lowerStrings = relationStrings.map(s => s.toLowerCase());
+  return entry.relations.some(rel => lowerStrings.includes(rel.toLowerCase()));
+}
+
+function removeRelationFromBoth(sourceChar, targetChar, sourceId, targetId, relationStrings) {
+  const lowerStrings = relationStrings.map(s => s.toLowerCase());
+  
+  const sourceEntry = sourceChar.relationsToCharacters?.find(r => r.id === targetId);
+  if (sourceEntry) {
+    sourceEntry.relations = sourceEntry.relations.filter(rel => !lowerStrings.includes(rel.toLowerCase()));
+  }
+  
+  const targetEntry = targetChar.relationsToCharacters?.find(r => r.id === sourceId);
+  if (targetEntry) {
+    targetEntry.relations = targetEntry.relations.filter(rel => !lowerStrings.includes(rel.toLowerCase()));
+  }
+}
+
+function addRelationToBoth(sourceChar, targetChar, sourceId, targetId, relationString) {
+  let sourceEntry = sourceChar.relationsToCharacters?.find(r => r.id === targetId);
+  if (!sourceEntry) {
+    sourceEntry = { id: targetId, relations: [] };
+    sourceChar.relationsToCharacters.push(sourceEntry);
+  }
+  if (!sourceEntry.relations.includes(relationString)) {
+    sourceEntry.relations.push(relationString);
+  }
+  
+  let targetEntry = targetChar.relationsToCharacters?.find(r => r.id === sourceId);
+  if (!targetEntry) {
+    targetEntry = { id: sourceId, relations: [] };
+    targetChar.relationsToCharacters.push(targetEntry);
+  }
+  if (!targetEntry.relations.includes(relationString)) {
+    targetEntry.relations.push(relationString);
+  }
+}
+
+function getLocalizedSoulmate(lang) {
+  const map = {
+    en: "Soulmate", fr: "Âme sœur", de: "Seelengefährte", ja: "運命の人", ko: "천생연분",
+    pl: "Bratnia dusza", ru: "Родственная душа", zh: "灵魂伴侣", es: "Alma gemela"
+  };
+  return map[lang] || map.en;
+}
+
 module.exports = {
   signature: "becomeSoulmatesWith",
   title: {
@@ -39,12 +97,18 @@ module.exports = {
    * @param {Character} params.sourceCharacter
    */
   check: ({ gameData, sourceCharacter }) => {
-    // TODO: Add proper checks for existing relationships and opinion requirements
-    // For now, allow execution with any valid target
     const allIds = Array.from(gameData.characters.keys());
-    const validTargets = allIds.filter((id) => id !== sourceCharacter.id);
+    const validTargets = allIds.filter((id) => {
+      if (id === sourceCharacter.id) return false;
+      // Cannot become soulmate if already soulmate
+      if (hasRelation(sourceCharacter, id, SOULMATE_STRINGS)) return false;
+      // Cannot become soulmate if rival or nemesis (hostile relations)
+      if (hasRelation(sourceCharacter, id, RIVAL_STRINGS)) return false;
+      if (hasRelation(sourceCharacter, id, NEMESIS_STRINGS)) return false;
+      return true;
+    });
     return {
-      canExecute: true,
+      canExecute: validTargets.length > 0,
       validTargetCharacterIds: validTargets,
     };
   },
@@ -87,6 +151,14 @@ global_var:votc_action_source = {
         target = global_var:votc_action_target
     }
 }`);
+
+    // Update game data model
+    // Remove lover relation if present (soulmate replaces lover)
+    removeRelationFromBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, LOVER_STRINGS);
+    
+    // Add soulmate relation
+    const soulmateString = getLocalizedSoulmate(lang);
+    addRelationToBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, soulmateString);
 
     return {
       message: {
