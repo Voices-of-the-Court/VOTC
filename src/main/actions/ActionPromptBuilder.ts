@@ -46,6 +46,37 @@ ${historyLines}
 `;
     messages.push({ role: "system", content: historyBlock });
 
+    // 1.2) Recent actions history (last 10 actions)
+    const actionHistoryLines: string[] = [];
+    const allMessages = (conv as any).messages as any[];
+    if (allMessages) {
+      for (let i = allMessages.length - 1; i >= 0 && actionHistoryLines.length < 10; i--) {
+        const entry = allMessages[i];
+        if (entry.type === 'action-feedback' && entry.feedbacks) {
+          for (const fb of entry.feedbacks) {
+            if (actionHistoryLines.length >= 10) break;
+            const status = fb.success ? '✓' : '✗';
+            actionHistoryLines.unshift(`${status} ${fb.actionId}: ${fb.message}`);
+          }
+        } else if (entry.type === 'action-approval' && entry.action) {
+          const action = entry.action;
+          const sourceName = action.sourceCharacterName || `#${action.sourceCharacterId}`;
+          const targetInfo = action.targetCharacterName 
+            ? ` → ${action.targetCharacterName}` 
+            : (action.targetCharacterId ? ` → #${action.targetCharacterId}` : '');
+          const status = entry.status === 'approved' ? '✓' : '⏳';
+          actionHistoryLines.unshift(`${status} ${sourceName}${targetInfo}: ${action.actionId}`);
+        }
+      }
+    }
+    if (actionHistoryLines.length > 0) {
+      const actionHistoryBlock =
+`Recent actions (last ${actionHistoryLines.length}):
+${actionHistoryLines.join("\n")}
+`;
+      messages.push({ role: "system", content: actionHistoryBlock });
+    }
+
     // 2) Context: Character roster with indices and ids (order is CK3 order)
     const characterRosterLines: string[] = [];
     const idsInOrder = Array.from(conv.gameData.characters.keys());
