@@ -215,25 +215,25 @@ const ActionCommandInput: React.FC<ActionCommandInputProps> = ({
   const [currentField, setCurrentField] = useState<'action' | 'source' | 'target' | null>(null);
   const [openEnumArg, setOpenEnumArg] = useState<string | null>(null);
 
+
+  const loadData = async () => {
+    try {
+      const [actionsData, convData] = await Promise.all([
+        window.actionsAPI.getAll(),
+        window.conversationAPI.getActiveConversationData()
+      ]);
+      
+      setActions(actionsData.filter(a => !a.disabled && a.validation.valid));
+      
+      if (convData?.characters) {
+        setCharacters(convData.characters);
+      }
+    } catch (error) {
+      console.error('Failed to load action command data:', error);
+    }
+  };
   // Load actions and characters on mount
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [actionsData, convData] = await Promise.all([
-          window.actionsAPI.getAll(),
-          window.conversationAPI.getActiveConversationData()
-        ]);
-        
-        setActions(actionsData.filter(a => !a.disabled && a.validation.valid));
-        
-        if (convData?.characters) {
-          setCharacters(convData.characters);
-        }
-      } catch (error) {
-        console.error('Failed to load action command data:', error);
-      }
-    };
-    
     loadData();
   }, []);
 
@@ -265,6 +265,8 @@ const ActionCommandInput: React.FC<ActionCommandInputProps> = ({
       });
       return;
     }
+
+    loadData();
 
     const missingFields: string[] = [];
     
