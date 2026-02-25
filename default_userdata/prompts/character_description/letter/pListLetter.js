@@ -33,7 +33,7 @@ function buildCharacterItems(char, gameData, isPlayer) {
     items.push(`${char.heldCourtAndCouncilPositions} of ${char.liege || "unknown liege"}`);
   }
   items.push(houseAndStatus(char));
-  if (char.primaryTitle !== "None of") items.push(`primary title: ${char.primaryTitle}`);
+  if (char.primaryTitle !== "None of" || char.primaryTitle !== "None" || char.primaryTitle !== "None von" || char.primaryTitle !== "None de") items.push(`Haupttitel: ${char.primaryTitle}`);
   if (char.titleRankConcept !== "concept_none") items.push(`title rank: ${char.titleRankConcept}`);
   if (char.capitalLocation) items.push(`capital: ${char.capitalLocation}`);
   if (char.location) items.push(`current location: ${char.location}`);
