@@ -85,13 +85,16 @@ const DefaultParameterFieldsComponent: React.FC<CommonFieldProps & { t: any }> =
 interface ActionButtonsComponentProps {
   onTestConnection: () => void;
   onMakePreset: () => void;
+  providerType?: string;
   t: any;
 }
 
-const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset, t }) => (
+const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset, providerType, t }) => (
   <div className="form-actions">
     <button type="button" onClick={onTestConnection}>{t('connection.testConnection')}</button>
-    <button type="button" onClick={onMakePreset}>{t('connection.makePreset')}</button>
+    {providerType !== 'player2' && (
+      <button type="button" onClick={onMakePreset}>{t('connection.makePreset')}</button>
+    )}
   </div>
 );
 
@@ -205,7 +208,7 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
         
         <DefaultParameterFieldsComponent config={config} onInputChange={onInputChange} t={t} />
         
-        <ActionButtonsComponent onTestConnection={onTestConnection} onMakePreset={onMakePreset} t={t} />
+        <ActionButtonsComponent onTestConnection={onTestConnection} onMakePreset={onMakePreset} providerType={config.providerType} t={t} />
         
         <TestResultDisplayComponent testResult={testResult} />
       </form>
