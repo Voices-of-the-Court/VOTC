@@ -8,6 +8,34 @@ const COURT_POSITIONS = [
   "akolouthos"
 ];
 
+// CK3 official Simplified Chinese court position names
+const COURT_POSITION_ZH = {
+  "physician": "私人医生",
+  "keeper_of_swans": "天鹅饲养员",
+  "travel_leader": "旅队主管",
+  "master_of_horse": "御马官",
+  "court_jester": "宫廷小丑",
+  "master_of_hunt": "狩猎总管",
+  "high_almoner": "施赈吏总长",
+  "cupbearer": "斟酒人",
+  "seneschal": "总管",
+  "antiquarian": "古物研究官",
+  "tutor": "教师",
+  "royal_architect": "御用建筑师",
+  "court_poet": "宫廷诗人",
+  "bodyguard": "贴身侍卫",
+  "court_champion": "勇士",
+  "musician": "宫廷乐师",
+  "food_taster": "尝膳官",
+  "lady_in_waiting": "女侍臣",
+  "garuda": "迦楼罗",
+  "chief_eunuch": "太监",
+  "court_gardener": "宫廷园丁",
+  "chief_qadi": "首席教法官",
+  "wet_nurse": "乳母",
+  "akolouthos": "都长"
+};
+
 module.exports = {
   signature: "isAssignedToCourtPositionBy",
   title: {
@@ -19,7 +47,7 @@ module.exports = {
     ja: "ソースがターゲットの宮廷の役職に任命",
     ko: "출처가 대상의 궁정 직책에 임명됨",
     pl: "Źródło przypisane do stanowiska dworskiego celu",
-    zh: "源角色被任命到目标的宫廷职位"
+    zh: "被任命至目标的宫廷职位"
   },
 
   /**
@@ -107,7 +135,7 @@ module.exports = {
           ja: `失敗: ${targetCharacter.shortName}は領主ではなく、宮廷の役職を持つことができません`,
           ko: `실패: ${targetCharacter.shortName}은(는) 영주가 아니며 궁정 직책을 가질 수 없습니다`,
           pl: `Niepowodzenie: ${targetCharacter.shortName} nie jest władcą lądowym i nie może mieć stanowisk dworskich`,
-          zh: `失败: ${targetCharacter.shortName}不是领主，不能拥有宫廷职位`
+          zh: `失败: ${targetCharacter.shortName}没有封地，无法设立宫廷职位`
         },
         sentiment: 'negative'
       };
@@ -165,6 +193,7 @@ module.exports = {
 
     const courtPositionType = positionMap[position];
     const positionDisplay = position.replace(/_/g, ' ');
+    const positionZh = COURT_POSITION_ZH[position] || positionDisplay;
 
     if (!isPlayerSource) {
       if (position === "wet_nurse") {
@@ -222,7 +251,7 @@ global_var:votc_action_target = {
           ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}の宮廷に${positionDisplay}として任命されました`,
           ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}의 궁정에 ${positionDisplay}(으)로 임명되었습니다`,
           pl: `${sourceCharacter.shortName} został przypisany jako ${positionDisplay} do dworu ${targetCharacter.shortName}`,
-          zh: `${sourceCharacter.shortName}被任命为${positionDisplay}加入${targetCharacter.shortName}的宫廷`
+          zh: `${sourceCharacter.shortName}被任命为${targetCharacter.shortName}的${positionZh}`
         },
         sentiment: 'positive'
       };
@@ -282,7 +311,7 @@ global_var:votc_action_target = {
           ja: `${gameData.playerName}は${targetCharacter.shortName}の宮廷に${positionDisplay}として任命されました`,
           ko: `${gameData.playerName}은(는) ${targetCharacter.shortName}의 궁정에 ${positionDisplay}(으)로 임명되었습니다`,
           pl: `${gameData.playerName} został przypisany jako ${positionDisplay} do dworu ${targetCharacter.shortName}`,
-          zh: `${gameData.playerName}被任命为${positionDisplay}加入${targetCharacter.shortName}的宫廷`
+          zh: `${gameData.playerName}被任命为${targetCharacter.shortName}的${positionZh}`
         },
         sentiment: 'positive'
       };

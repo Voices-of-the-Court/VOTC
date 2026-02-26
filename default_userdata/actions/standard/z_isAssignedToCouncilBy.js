@@ -2,6 +2,15 @@
 
 const COUNCIL_POSITIONS = ["chancellor", "steward", "marshal", "spymaster", "court_chaplain"];
 
+// CK3 official Simplified Chinese council position names
+const COUNCIL_POSITION_ZH = {
+  "chancellor": "掌玺大臣（宰相）",
+  "steward": "财政总管（户部尚书）",
+  "marshal": "军事统帅（兵部尚书）",
+  "spymaster": "间谍首脑（御史大夫）",
+  "court_chaplain": "宫廷祭司（礼部尚书）"
+};
+
 module.exports = {
   signature: "isAssignedToCouncilBy",
   title: {
@@ -13,7 +22,7 @@ module.exports = {
     ja: "ソースがターゲットの評議会に任命",
     ko: "출처가 대상의 평의회에 임명됨",
     pl: "Źródło przypisane do rady celu",
-    zh: "源角色被任命到目标的议会"
+    zh: "被任命至目标的内阁"
   },
 
   /**
@@ -101,7 +110,7 @@ module.exports = {
           ja: `失敗: ${targetCharacter.shortName}は領主ではなく、評議会を持つことができません`,
           ko: `실패: ${targetCharacter.shortName}은(는) 영주가 아니며 평의회를 가질 수 없습니다`,
           pl: `Niepowodzenie: ${targetCharacter.shortName} nie jest władcą lądowym i nie może mieć rady`,
-          zh: `失败: ${targetCharacter.shortName}不是领主，不能拥有议会`
+          zh: `失败: ${targetCharacter.shortName}没有封地，无法拥有内阁`
         },
         sentiment: 'negative'
       };
@@ -122,7 +131,7 @@ module.exports = {
           ja: `失敗: 無効な評議会の位置 "${position}"`,
           ko: `실패: 잘못된 평의회 위치 "${position}"`,
           pl: `Niepowodzenie: Nieprawidłowa pozycja rady "${position}"`,
-          zh: `失败: 无效的议会职位 "${position}"`
+          zh: `失败: 无效的内阁职位 "${position}"`
         },
         sentiment: 'negative'
       };
@@ -139,6 +148,7 @@ module.exports = {
     };
 
     const councillorType = positionMap[position];
+    const positionZh = COUNCIL_POSITION_ZH[position] || position;
 
     if (!isPlayerSource) {
       runGameEffect(`
@@ -160,7 +170,7 @@ global_var:votc_action_target = {
           ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}の評議会に${position}として任命されました`,
           ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}의 평의회에 ${position}(으)로 임명되었습니다`,
           pl: `${sourceCharacter.shortName} został przypisany jako ${position} do rady ${targetCharacter.shortName}`,
-          zh: `${sourceCharacter.shortName}被任命为${position}加入${targetCharacter.shortName}的议会`
+          zh: `${sourceCharacter.shortName}被任命为${positionZh}，加入${targetCharacter.shortName}的内阁`
         },
         sentiment: 'positive'
       };
@@ -184,7 +194,7 @@ global_var:votc_action_target = {
           ja: `${gameData.playerName}は${targetCharacter.shortName}の評議会に${position}として任命されました`,
           ko: `${gameData.playerName}은(는) ${targetCharacter.shortName}의 평의회에 ${position}(으)로 임명되었습니다`,
           pl: `${gameData.playerName} został przypisany jako ${position} do rady ${targetCharacter.shortName}`,
-          zh: `${gameData.playerName}被任命为${position}加入${targetCharacter.shortName}的议会`
+          zh: `${gameData.playerName}被任命为${positionZh}，加入${targetCharacter.shortName}的内阁`
         },
         sentiment: 'positive'
       };
