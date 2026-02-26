@@ -69,20 +69,6 @@ module.exports = {
     }
 
     runGameEffect(`
-trigger = {
-    global_var:votc_action_source = {
-        exists = liege
-        liege = global_var:votc_action_target
-        OR = {
-            has_council_position = councillor_chancellor
-            has_council_position = councillor_marshal
-            has_council_position = councillor_steward
-            has_council_position = councillor_spymaster
-            has_council_position = councillor_court_chaplain
-        }
-        can_be_fired_from_council_trigger = { COURT_OWNER = global_var:votc_action_target }
-    }
-}
 global_var:votc_action_target = { 
     fire_councillor = global_var:votc_action_source 
 }`);
