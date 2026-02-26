@@ -116,7 +116,7 @@
     "testConnectionSuccess": "连接成功！",
     "openPlayer2App": "打开 Player2 应用",
     "player2AppHelp": "点击打开 Player2 应用。请确保已安装且正在运行。"
-     "actionsSchemaType": "操作架构类型",
+    "actionsSchemaType": "操作架构类型",
     "actionsSchemaTypeHelp": "控制操作响应的 JSON 架构复杂度。'自动'会检测 Gemini 模型并使用简化架构。'简化'可能是具有严格架构限制的模型（如 Gemini）所必需的。如果您的模型未显示操作，请尝试切换到'简化'。",
     "actionsSchemaAuto": "自动检测（推荐）",
     "actionsSchemaAdvanced": "高级（完整验证）",
