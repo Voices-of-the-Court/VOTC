@@ -147,7 +147,8 @@ private async _nonStreamChatCompletion(
         `[OpenRouterProvider] API error for model ${request.model}:`,
         error.status,
         error.name,
-        error.message
+        error.message,
+        (error as any).metadata?.raw
       );
       throw new Error(`OpenRouter API error via SDK: ${error.status} ${error.name} - ${error.message}`);
     }

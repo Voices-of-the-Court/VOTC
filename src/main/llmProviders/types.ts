@@ -163,6 +163,7 @@ export interface ProviderConfigBase {
   defaultModel?: string;
   defaultParameters?: Partial<Omit<ILLMCompletionRequest, 'messages' | 'model' | 'stream'>>; // Parameters like temperature, max_tokens. Stream is global.
   customContextLength?: number; // User-specified context length override
+  useMinimizedActionsSchema?: boolean; // Controls JSON schema complexity for actions: undefined = auto-detect, true = minimized, false = advanced
 }
 
 export type OpenRouterConfig = ProviderConfigBase & { providerType: 'openrouter'; };

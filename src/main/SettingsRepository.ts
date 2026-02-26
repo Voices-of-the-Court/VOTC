@@ -29,6 +29,7 @@ const baseProviderConfigSchema = {
     defaultModel: { type: 'string' as const },
     defaultParameters: { type: 'object' as const },
     customContextLength: { type: 'number' as const },
+    useMinimizedActionsSchema: { type: 'boolean' as const },
   },
   required: ['instanceId', 'providerType']
 };

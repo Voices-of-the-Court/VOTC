@@ -115,7 +115,12 @@
     "testConnectionFailed": "연결 실패",
     "testConnectionSuccess": "연결 성공!",
     "openPlayer2App": "Player2 앱 열기",
-    "player2AppHelp": "Player2 애플리케이션을 열려면 클릭하세요. 설치되어 있고 실행 중인지 확인하세요."
+    "player2AppHelp": "Player2 애플리케이션을 열려면 클릭하세요. 설치되어 있고 실행 중인지 확인하세요.",
+    "actionsSchemaType": "액션 스키마 유형",
+    "actionsSchemaTypeHelp": "액션 응답의 JSON 스키마 복잡도를 제어합니다. '자동'은 Gemini 모델을 감지하고 최소화된 스키마를 사용합니다. '최소화'는 엄격한 스키마 제한이 있는 모델(예: Gemini)에 필요할 수 있습니다. 모델에서 액션이 나타나지 않으면 '최소화'로 전환해 보세요.",
+    "actionsSchemaAuto": "자동 감지 (권장)",
+    "actionsSchemaAdvanced": "고급 (전체 검증)",
+    "actionsSchemaMinimized": "최소화 (제한된 모델용)"
   },
   "lettersModal": {
     "completed": "완료됨",
