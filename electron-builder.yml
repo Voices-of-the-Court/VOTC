@@ -39,7 +39,7 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
-  owner: xxomega2077xx
+  owner: Voices-of-the-Court
   repo: VOTC
   private: false
   releaseType: release
