@@ -173,6 +173,10 @@ const schema: Schema<AppSettings> = {
       finalPrompt: { type: 'string', default: '' },
       letterSummaryPrompt: { type: 'string', default: '' }
     }
+  },
+  allowPrerelease: {
+    type: 'boolean',
+    default: false
   }
 };
 
@@ -267,6 +271,9 @@ export class SettingsRepository {
             letterSummaryPrompt: ''
         });
     }
+    if (currentAppSettings.allowPrerelease === undefined) {
+        this.store.set('allowPrerelease', false);
+    }
   }
 
   private getDefaultPromptSettings(): PromptSettings {
@@ -313,6 +320,7 @@ export class SettingsRepository {
       generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),
       messageFontSize: this.getMessageFontSize(),
       showSettingsOnStartup: this.getShowSettingsOnStartup(),
+      allowPrerelease: this.getAllowPrerelease(),
       promptSettings: this.getPromptSettings(),
       letterPromptSettings: this.getLetterPromptSettings(),
       actionSettings: this.getActionSettings(),
@@ -412,6 +420,15 @@ export class SettingsRepository {
   saveLanguage(language: string): void {
     this.store.set('language', language);
     console.log('Language setting saved:', language);
+  }
+
+  getAllowPrerelease(): boolean {
+    return this.store.get('allowPrerelease', false);
+  }
+
+  saveAllowPrerelease(allow: boolean): void {
+    this.store.set('allowPrerelease', allow);
+    console.log('Allow prerelease setting saved:', allow);
   }
 
   // --- Prompt settings ---

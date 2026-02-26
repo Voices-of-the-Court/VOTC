@@ -376,6 +376,14 @@ const setupIpcHandlers = () => {
     settingsRepository.saveLanguage(language);
   });
 
+  ipcMain.handle('llm:getAllowPrerelease', () => {
+    return settingsRepository.getAllowPrerelease();
+  });
+
+  ipcMain.handle('llm:saveAllowPrerelease', (_, allow: boolean) => {
+    settingsRepository.saveAllowPrerelease(allow);
+  });
+
   ipcMain.handle('llm:getCurrentContextLength', async () => {
     try {
       return await llmManager.getCurrentContextLength();
@@ -665,22 +673,6 @@ const setupIpcHandlers = () => {
       console.error('Failed to execute action:', error);
       return { success: false, error: error.message || 'Unknown error', actionId };
     }
-  });
-
-  // Auto-updater IPC handlers
-  ipcMain.handle('updater:checkForUpdates', () => {
-    appUpdater.checkForUpdates();
-    return true;
-  });
-
-  ipcMain.handle('updater:downloadUpdate', () => {
-    appUpdater.downloadUpdate();
-    return true;
-  });
-
-  ipcMain.handle('updater:installUpdate', () => {
-    appUpdater.installUpdate();
-    return true;
   });
 
   ipcMain.handle('shell:openExternal', async (_, url: string) => {

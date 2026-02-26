@@ -254,7 +254,9 @@
     "ck3UserFolderHelp": "Klicken Sie auf das Feld unten, um den Pfad zum CK3-Ordner auszuwählen/zu ändern. \nNormalerweise befindet es sich im Ordner „Dokumente“. \nDer OneDrive-Standort wird wahrscheinlich fehlschlagen!",
     "ck3UserFolderExample": "BENUTZERNAME",
     "selectedCK3FolderTitle": "Ausgewählter CK3-Dokumentpfad",
-    "selectCK3UserFolderTitle": "Wählen Sie den Ordner „CK3-Dokumente“ aus"
+    "selectCK3UserFolderTitle": "Wählen Sie den Ordner „CK3-Dokumente“ aus",
+    "allowPrerelease": "Vorabversionen erhalten",
+    "allowPrereleaseHelp": "Wenn aktiviert, erhalten Sie Beta- und Vorabversionen. Diese können weniger stabil sein, enthalten jedoch die neuesten Funktionen."
   },
   "summaries": {
     "aboutSummaryGeneration": "Über Zusammenfassungsgenerierung",

@@ -254,7 +254,9 @@
     "ck3UserFolderHelp": "下のフィールドをクリックして、CK3 フォルダーへのパスを選択/変更します。\n通常は「Documents」フォルダ内にあります。 \nOneDrive の場所が失敗する可能性があります。",
     "ck3UserFolderExample": "ユーザー名",
     "selectedCK3FolderTitle": "選択した CK3 ドキュメントのパス",
-    "selectCK3UserFolderTitle": "CK3ドキュメントフォルダーを選択します"
+    "selectCK3UserFolderTitle": "CK3ドキュメントフォルダーを選択します",
+    "allowPrerelease": "プレリリースアップデートを受け取る",
+    "allowPrereleaseHelp": "有効にすると、ベータ版とプレリリース版を受け取ります。これらは安定性が低い可能性がありますが、最新の機能が含まれています。"
   },
   "summaries": {
     "aboutSummaryGeneration": "要約生成について",

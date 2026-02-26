@@ -11,6 +11,7 @@ const SettingsView: React.FC = () => {
   const updateGenerateFollowingMessages = useConfigStore((state) => state.updateGenerateFollowingMessages);
   const updateMessageFontSize = useConfigStore((state) => state.updateMessageFontSize);
   const updateShowSettingsOnStartup = useConfigStore((state) => state.updateShowSettingsOnStartup);
+  const updateAllowPrerelease = useConfigStore((state) => state.updateAllowPrerelease);
   // const selectModLocationPath = useConfigStore((state) => state.selectModLocationPath);
   
   const [showLettersModal, setShowLettersModal] = React.useState(false);
@@ -37,6 +38,10 @@ const SettingsView: React.FC = () => {
 
   const handleShowSettingsOnStartupToggle = async (e: ChangeEvent<HTMLInputElement>) => {
     await updateShowSettingsOnStartup(e.target.checked);
+  };
+
+  const handleAllowPrereleaseToggle = async (e: ChangeEvent<HTMLInputElement>) => {
+    await updateAllowPrerelease(e.target.checked);
   };
 
 
@@ -104,6 +109,20 @@ const SettingsView: React.FC = () => {
           checked={appSettings.showSettingsOnStartup ?? true}
           onChange={handleShowSettingsOnStartupToggle}
         />
+      </div>
+      
+      <div className="form-group">
+        <label htmlFor="allowPrerelease">{t('settings.allowPrerelease')}:</label>
+        <input
+          type="checkbox"
+          id="allowPrerelease"
+          name="allowPrerelease"
+          checked={appSettings.allowPrerelease ?? false}
+          onChange={handleAllowPrereleaseToggle}
+        />
+        <small style={{ display: 'block', marginTop: '4px', opacity: 0.7 }}>
+          {t('settings.allowPrereleaseHelp')}
+        </small>
       </div>
       
       <hr />

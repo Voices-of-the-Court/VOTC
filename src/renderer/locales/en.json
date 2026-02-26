@@ -256,7 +256,9 @@
     "ck3UserFolderHelp": "Click on field below to select/change path to CK3 folder. Usually it is in \"Documents\" folder. OneDrive location is likely to fail!",
     "ck3UserFolderExample": "YOUR_USERNAME",
     "selectedCK3FolderTitle": "Selected CK3 Documents Path",
-    "selectCK3UserFolderTitle": "Select CK3 Documents Folder"
+    "selectCK3UserFolderTitle": "Select CK3 Documents Folder",
+    "allowPrerelease": "Receive Pre-release Updates",
+    "allowPrereleaseHelp": "When enabled, you will receive beta and pre-release versions. These may be less stable but include the latest features."
   },
   "summaries": {
     "aboutSummaryGeneration": "About Summary Generation",

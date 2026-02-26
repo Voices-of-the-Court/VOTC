@@ -27,17 +27,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('toggle-minimize', callback);
     return () => ipcRenderer.removeListener('toggle-minimize', callback);
   },
-  // Auto-updater methods
-  updaterCheckForUpdates: (): Promise<boolean> => ipcRenderer.invoke('updater:checkForUpdates'),
-  updaterDownloadUpdate: (): Promise<boolean> => ipcRenderer.invoke('updater:downloadUpdate'),
-  updaterInstallUpdate: (): Promise<boolean> => ipcRenderer.invoke('updater:installUpdate'),
-  onUpdaterStatus: (callback: (event: any, status: string) => void) => {
-    ipcRenderer.on('updater-status', callback);
-    return () => ipcRenderer.removeListener('updater-status', callback);
-  },
-  removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => {
-    ipcRenderer.removeListener('updater-status', callback);
-  },
   openExternal: (url: string): Promise<{ success: boolean; error?: string }> => 
     ipcRenderer.invoke('shell:openExternal', url),
   collectAndOpenLogs: (): Promise<{ success: boolean; path?: string; error?: string }> =>
@@ -69,6 +58,8 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   saveShowSettingsOnStartupSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveShowSettingsOnStartupSetting', enabled),
   getLanguage: (): Promise<string> => ipcRenderer.invoke('llm:getLanguage'),
   saveLanguage: (language: string): Promise<void> => ipcRenderer.invoke('llm:saveLanguage', language),
+  getAllowPrerelease: (): Promise<boolean> => ipcRenderer.invoke('llm:getAllowPrerelease'),
+  saveAllowPrerelease: (allow: boolean): Promise<void> => ipcRenderer.invoke('llm:saveAllowPrerelease', allow),
   getCurrentContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getCurrentContextLength'),
   getMaxContextLength: (): Promise<number> => ipcRenderer.invoke('llm:getMaxContextLength'),
   setCustomContextLength: (contextLength: number): Promise<void> => ipcRenderer.invoke('llm:setCustomContextLength', contextLength),

@@ -72,6 +72,7 @@ interface ConfigStore {
   updateGenerateFollowingMessages: (enabled: boolean) => Promise<void>;
   updateMessageFontSize: (fontSize: number) => Promise<void>;
   updateShowSettingsOnStartup: (enabled: boolean) => Promise<void>;
+  updateAllowPrerelease: (enabled: boolean) => Promise<void>;
   updateCK3Folder: (path: string) => Promise<void>;
   selectCK3Folder: () => Promise<void>;
   updateModLocationPath: (path: string) => Promise<void>;
@@ -613,6 +614,15 @@ export const useConfigStore = create<ConfigStore>()(
         set((state) => ({
           appSettings: state.appSettings
             ? { ...state.appSettings, showSettingsOnStartup: enabled }
+            : null,
+        }));
+      },
+      
+      updateAllowPrerelease: async (enabled) => {
+        await window.llmConfigAPI.saveAllowPrerelease(enabled);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { ...state.appSettings, allowPrerelease: enabled }
             : null,
         }));
       },
