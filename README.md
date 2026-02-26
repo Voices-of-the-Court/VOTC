@@ -22,11 +22,12 @@ A modern reimplementation of the Voices of the Court mod for Crusader Kings III,
 ### LLM Provider Setup
 
 The application supports these LLM providers:
-
-- **OpenAI**: Requires API key from OpenAI
+- **OpenAI**: Requires API key from OpenAI (use via Custom OpenAI-Compatible provider)
 - **OpenRouter**: Requires API key from OpenRouter
+- **Player2**: Requires installation of local app
+- **Deepseek**: Requires API key from Deepseek
 - **Ollama**: Local LLM server (untested for long time, might now work, report)
-- **Custom OpenAI-Compatible**: Any OpenAI-compatible API endpoint
+- **Custom OpenAI-Compatible**: Any OpenAI-compatible API endpoint, requires base URL and API key
 
 Configure your provider in the Settings panel within the application.
 
