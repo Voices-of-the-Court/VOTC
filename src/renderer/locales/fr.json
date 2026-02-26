@@ -254,7 +254,9 @@
     "ck3UserFolderHelp": "Cliquez sur le champ ci-dessous pour sélectionner/modifier le chemin vers le dossier CK3. \nIl se trouve généralement dans le dossier \"Documents\". \nLa localisation OneDrive est susceptible d’échouer !",
     "ck3UserFolderExample": "NOM_UTILISATEUR",
     "selectedCK3FolderTitle": "Chemin des documents CK3 sélectionnés",
-    "selectCK3UserFolderTitle": "Sélectionnez le dossier de documents CK3"
+    "selectCK3UserFolderTitle": "Sélectionnez le dossier de documents CK3",
+    "allowPrerelease": "Recevoir les mises à jour préliminaires",
+    "allowPrereleaseHelp": "Lorsqu'activé, vous recevrez les versions bêta et préliminaires. Elles peuvent être moins stables mais incluent les dernières fonctionnalités."
   },
   "summaries": {
     "aboutSummaryGeneration": "À propos de la génération de résumés",

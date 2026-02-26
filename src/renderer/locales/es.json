@@ -254,7 +254,9 @@
     "ck3UserFolderHelp": "Haga clic en el campo a continuación para seleccionar/cambiar la ruta a la carpeta CK3. \nNormalmente está en la carpeta \"Documentos\". \n¡Es probable que la ubicación de OneDrive falle!",
     "ck3UserFolderExample": "NOMBRE_USUARIO",
     "selectedCK3FolderTitle": "Ruta de documentos CK3 seleccionados",
-    "selectCK3UserFolderTitle": "Seleccione la carpeta de documentos CK3"
+    "selectCK3UserFolderTitle": "Seleccione la carpeta de documentos CK3",
+    "allowPrerelease": "Recibir actualizaciones preliminares",
+    "allowPrereleaseHelp": "Cuando está habilitado, recibirá versiones beta y preliminares. Pueden ser menos estables pero incluyen las últimas funciones."
   },
   "summaries": {
     "aboutSummaryGeneration": "Acerca de la generación de resúmenes",

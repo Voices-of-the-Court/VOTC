@@ -55,12 +55,6 @@ declare global {
       onToggleSettings: (callback: () => void) => () => void;
       onHideChat: (callback: () => void) => () => void;
       onToggleMinimize: (callback: () => void) => () => void;
-      // Auto-updater methods
-      updaterCheckForUpdates: () => Promise<boolean>;
-      updaterDownloadUpdate: () => Promise<boolean>;
-      updaterInstallUpdate: () => Promise<boolean>;
-      onUpdaterStatus: (callback: (event: any, status: string) => void) => () => void;
-      removeUpdaterStatusListener: (callback: (event: any, status: string) => void) => void;
       openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
       collectAndOpenLogs: () => Promise<{ success: boolean; path?: string; error?: string }>;
       getAppVersion: () => Promise<string>;
@@ -83,6 +77,8 @@ declare global {
       saveShowSettingsOnStartupSetting: (enabled: boolean) => Promise<void>;
       getLanguage: () => Promise<string>;
       saveLanguage: (language: string) => Promise<void>;
+      getAllowPrerelease: () => Promise<boolean>;
+      saveAllowPrerelease: (allow: boolean) => Promise<void>;
       importLegacySummaries: () => Promise<{success: boolean, message: string, filesCopied?: number, errors?: string[]}>;
       // Provider override methods
       getActionsProviderId: () => Promise<string | null>;

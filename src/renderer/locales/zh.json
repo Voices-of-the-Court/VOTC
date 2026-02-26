@@ -254,7 +254,9 @@
     "ck3UserFolderHelp": "单击下面的字段以选择/更改 CK3 文件夹的路径。\n通常它位于“文档”文件夹中。 \nOneDrive定位可能会失败！",
     "ck3UserFolderExample": "用户名",
     "selectedCK3FolderTitle": "选定的 CK3 文档路径",
-    "selectCK3UserFolderTitle": "选择 CK3 文档文件夹"
+    "selectCK3UserFolderTitle": "选择 CK3 文档文件夹",
+    "allowPrerelease": "接收预发布更新",
+    "allowPrereleaseHelp": "启用后，您将收到测试版和预发布版本。这些版本可能不太稳定，但包含最新功能。"
   },
   "summaries": {
     "aboutSummaryGeneration": "关于摘要生成",
