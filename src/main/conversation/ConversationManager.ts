@@ -2,6 +2,7 @@ import { Conversation } from "./Conversation";
 import { ILLMStreamChunk } from "../llmProviders/types";
 import { EventEmitter } from "events";
 import { PromptBuilder } from "./PromptBuilder";
+import { createActionFeedback } from "./types";
 
 export class ConversationManager {
     private static instance: ConversationManager;
@@ -308,6 +309,34 @@ export class ConversationManager {
             characterName: character.fullName,
             ...result
         };
+    }
+
+    /**
+     * Add an action feedback entry for a manually executed action
+     */
+    addManualActionFeedback(feedback: {
+        actionId: string;
+        success: boolean;
+        message: string;
+        sentiment: 'positive' | 'negative' | 'neutral';
+    }): void {
+        if (!this.currentConversation || !this.currentConversation.isActive) {
+            console.warn('No active conversation to add action feedback');
+            return;
+        }
+
+        const feedbackEntry = createActionFeedback({
+            id: this.currentConversation['nextId']++,
+            feedbacks: [{
+                actionId: feedback.actionId,
+                success: feedback.success,
+                message: feedback.message,
+                sentiment: feedback.sentiment
+            }]
+        });
+
+        this.currentConversation['messages'].push(feedbackEntry);
+        this.currentConversation['emitUpdate']();
     }
 }
 

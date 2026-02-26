@@ -81,6 +81,10 @@ export class OpenRouterProvider extends BaseProvider {
       const openAIClient = new OpenAI({
         apiKey: this.getAPIKey(config),
         baseURL: 'https://openrouter.ai/api/v1',
+        defaultHeaders: {
+          'HTTP-Referer': 'https://github.com/Voices-of-the-Court/VOTC',
+          'X-Title': 'Voices of the Court 2.0',
+        },
       });
   
       const requestParams = {
@@ -143,7 +147,8 @@ private async _nonStreamChatCompletion(
         `[OpenRouterProvider] API error for model ${request.model}:`,
         error.status,
         error.name,
-        error.message
+        error.message,
+        (error as any).metadata?.raw
       );
       throw new Error(`OpenRouter API error via SDK: ${error.status} ${error.name} - ${error.message}`);
     }

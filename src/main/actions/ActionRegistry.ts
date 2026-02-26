@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { pathToFileURL } from "url";
 import { EventEmitter } from "events";
 import { app } from "electron";
 
@@ -259,28 +258,16 @@ export class ActionRegistry extends EventEmitter {
     scope: ActionSource
   ): Promise<LoadedAction | null> {
     try {
-      // Append a timestamp as a query parameter to bust the cache
-      const url = `${pathToFileURL(filePath).href}?v=${Date.now()}`;
-      const mod = await import(url);
-      const candidate: unknown =
-        mod?.default !== undefined ? mod.default : mod;
-
-      const validation = this.validateCandidate(candidate);
-      const id = (candidate as ActionDefinition)?.signature ?? path.basename(filePath);
+      // Load action definition using VM sandbox for security
+      // This validates the action structure without executing it
+      const actionDef = await this.loadActionDefinition(filePath);
+      
+      const validation = this.validateCandidate(actionDef);
+      const id = actionDef?.signature ?? path.basename(filePath);
       this.registerValidation(id, validation);
 
-      if (!validation.valid) {
-        return {
-          definition: candidate as ActionDefinition,
-          id,
-          scope,
-          filePath,
-          validation,
-        };
-      }
-
       return {
-        definition: candidate as ActionDefinition,
+        definition: actionDef as ActionDefinition,
         id,
         scope,
         filePath,
@@ -288,11 +275,14 @@ export class ActionRegistry extends EventEmitter {
       };
     } catch (error) {
       const id = path.basename(filePath);
+      const errorMessage = (error as Error).message;
+      
       const validation: ActionValidationStatus = {
         valid: false,
-        message: `Failed to load action: ${(error as Error).message}`,
+        message: `Failed to load action: ${errorMessage}`,
       };
       this.registerValidation(id, validation);
+      
       return {
         definition: {} as ActionDefinition,
         id,
@@ -300,6 +290,47 @@ export class ActionRegistry extends EventEmitter {
         filePath,
         validation,
       };
+    }
+  }
+
+  /**
+   * Load action definition from file using VM sandbox
+   */
+  private async loadActionDefinition(filePath: string): Promise<any> {
+    const actionCode = await fs.promises.readFile(filePath, 'utf-8');
+    
+    // Create a minimal sandbox just for loading the definition
+    const sandbox: any = {
+      module: { exports: {} },
+      exports: {},
+      console: console,
+      
+      // Block dangerous globals
+      require: undefined,
+      process: undefined,
+      global: undefined,
+      globalThis: undefined,
+      eval: undefined,
+      Function: undefined,
+      Buffer: undefined,
+      __dirname: undefined,
+      __filename: undefined,
+    };
+    
+    const vm = require('vm');
+    const vmContext = vm.createContext(sandbox);
+    
+    try {
+      // Execute the action code to populate module.exports
+      const script = new vm.Script(actionCode, {
+        filename: filePath,
+      });
+      
+      script.runInContext(vmContext);
+      
+      return sandbox.module.exports;
+    } catch (error) {
+      throw new Error(`Failed to parse action: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

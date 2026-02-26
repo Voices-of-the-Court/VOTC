@@ -201,14 +201,14 @@ function mainPosition(char) {
 }
 
 function houseAndStatus(char) {
-  let line = char.sheHe === "she" ? "femme" : "homme";
+  let line = char.sheHe === "elle" ? "femme" : "homme";
   line += char.house ? `, de la maison ${char.house}` : ", de basse naissance";
   return line;
 }
 
 function marriage(char) {
-  if (char.consort) return `marié(e) à ${char.consort}`;
-  return "célibataire";
+  if (char.consort) return `${char.fullName} est marié(e) à ${char.consort}`;
+  return `${char.fullName} est célibataire`;
 }
 
 function describeProwess(char) {
@@ -384,7 +384,7 @@ function familyLine(char) {
   if (char.siblings && char.siblings.length > 0) {
     const siblingsList = char.siblings
       .map((s) => {
-        const status = [s.sheHe === "he" ? "frère" : "sœur", s.maritalStatus || "célibataire"]
+        const status = [s.sheHe === "il" ? "frère" : "sœur", s.maritalStatus || "célibataire"]
           .filter(Boolean)
           .join(", ");
         const death = s.deathDate ? `, décédé ${s.deathDate}${s.deathReason ? ` (${s.deathReason})` : ""}` : "";
@@ -397,7 +397,7 @@ function familyLine(char) {
   if (char.children && char.children.length > 0) {
     const childrenList = char.children
       .map((c) => {
-        const status = [c.sheHe === "he" ? "fils" : "fille", c.maritalStatus || "célibataire"]
+        const status = [c.sheHe === "il" ? "fils" : "fille", c.maritalStatus || "célibataire"]
           .filter(Boolean)
           .join(", ");
         const death = c.deathDate ? `, décédé ${c.deathDate}${c.deathReason ? ` (${c.deathReason})` : ""}` : "";

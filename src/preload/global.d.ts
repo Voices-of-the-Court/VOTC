@@ -127,10 +127,43 @@ declare global {
         filePath: string;
         validation: { valid: boolean; message?: string };
         disabled: boolean;
+        isDestructive: boolean;
+        hasDestructiveOverride: boolean;
       }>>;
       setDisabled: (actionId: string, disabled: boolean) => Promise<{ success: boolean; error?: string }>;
+      setDestructiveOverride: (actionId: string, isDestructive: boolean | null) => Promise<{ success: boolean; error?: string }>;
       getSettings: () => Promise<{ disabledActions: string[]; validation: Record<string, { valid: boolean; message?: string }> }>;
       openFolder: () => Promise<void>;
+      openFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+      getDetails: (actionId: string, sourceCharacterId: number) => Promise<{
+        valid: boolean;
+        error?: string;
+        canExecute?: boolean;
+        id?: string;
+        title?: string;
+        args?: Array<{
+          name: string;
+          type: 'number' | 'string' | 'enum' | 'boolean';
+          description: string;
+          displayName?: string;
+          required?: boolean;
+          min?: number;
+          max?: number;
+          step?: number;
+          maxLength?: number;
+          minLength?: number;
+          options?: string[];
+        }>;
+        requiresTarget?: boolean;
+        validTargetCharacterIds?: number[];
+        isDestructive?: boolean;
+      }>;
+      execute: (params: { actionId: string; sourceCharacterId: number; targetCharacterId?: number | null; args: Record<string, any> }) => Promise<{
+        actionId: string;
+        success: boolean;
+        feedback?: { message: string; sentiment: 'positive' | 'negative' | 'neutral' };
+        error?: string;
+      }>;
     };
   }
 }

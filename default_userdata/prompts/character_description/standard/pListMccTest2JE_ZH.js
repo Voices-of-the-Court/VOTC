@@ -201,14 +201,14 @@ function mainPosition(char) {
 }
 
 function houseAndStatus(char) {
-  let line = char.sheHe === "she" ? "女性" : "男性";
+  let line = char.sheHe === "她" ? "女性" : "男性";
   line += char.house ? `，${char.house}家族` : "，平民";
   return line;
 }
 
 function marriage(char) {
-  if (char.consort) return `已婚，配偶${char.consort}`;
-  return "未婚";
+  if (char.consort) return `${char.fullName}已婚，配偶${char.consort}`;
+  return `${char.fullName}未婚`;
 }
 
 function describeProwess(char) {
@@ -312,7 +312,7 @@ function familyLine(char) {
   if (char.siblings && char.siblings.length > 0) {
     const siblingsList = char.siblings
       .map((s) => {
-        const status = [s.sheHe === "he" ? "兄弟" : "姐妹", s.maritalStatus || "未婚"]
+        const status = [s.sheHe === "他" ? "兄弟" : "姐妹", s.maritalStatus || "未婚"]
           .filter(Boolean)
           .join("、");
         const death = s.deathDate ? `，死于${s.deathDate}${s.deathReason ? `（${s.deathReason}）` : ""}` : "";
@@ -325,7 +325,7 @@ function familyLine(char) {
   if (char.children && char.children.length > 0) {
     const childrenList = char.children
       .map((c) => {
-        const status = [c.sheHe === "he" ? "儿子" : "女儿", c.maritalStatus || "未婚"]
+        const status = [c.sheHe === "他" ? "儿子" : "女儿", c.maritalStatus || "未婚"]
           .filter(Boolean)
           .join("、");
         const death = c.deathDate ? `，死于${c.deathDate}${c.deathReason ? `（${c.deathReason}）` : ""}` : "";

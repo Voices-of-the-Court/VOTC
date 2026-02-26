@@ -115,7 +115,12 @@
     "testConnectionFailed": "连接失败",
     "testConnectionSuccess": "连接成功！",
     "openPlayer2App": "打开 Player2 应用",
-    "player2AppHelp": "点击打开 Player2 应用程序。请确保已安装并正在运行。"
+    "player2AppHelp": "点击打开 Player2 应用程序。请确保已安装并正在运行。",
+    "actionsSchemaType": "动作架构类型",
+    "actionsSchemaTypeHelp": "控制动作响应的 JSON 架构复杂度。'自动'会检测 Gemini 模型并使用简化架构。'简化'可能是具有严格架构限制的模型（如 Gemini）所必需的。如果您的模型未显示动作，请尝试切换到'简化'。",
+    "actionsSchemaAuto": "自动检测（推荐）",
+    "actionsSchemaAdvanced": "高级（完整验证）",
+    "actionsSchemaMinimized": "简化（用于受限模型）"
   },
   "lettersModal": {
     "completed": "已完成",

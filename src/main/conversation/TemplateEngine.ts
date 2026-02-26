@@ -5,6 +5,7 @@ import { GameData } from '../gameData/GameData';
 import { Character } from '../gameData/Character';
 import { VOTC_PROMPTS_HELPERS_DIR } from '../utils/paths';
 import { app } from 'electron';
+import { PromptScriptSandbox } from './PromptScriptSandbox';
 
 type TemplateContext = {
   character: Character;
@@ -145,7 +146,7 @@ export class TemplateEngine {
     // Load helpers from user's VOTC_PROMPTS_HELPERS_DIR
     const userHelpersDir = VOTC_PROMPTS_HELPERS_DIR;
     
-    // Function to load all helpers from a directory
+    // Function to load all helpers from a directory using sandbox
     const loadHelpersFromDir = (helpersDir: string) => {
       if (!fs.existsSync(helpersDir)) return;
       
@@ -154,13 +155,8 @@ export class TemplateEngine {
       for (const file of helperFiles) {
         try {
           const helperPath = path.join(helpersDir, file);
-          // Clear require cache to pick up changes in development
-          delete require.cache[helperPath];
-          const helperModule = require(helperPath);
-          
-          if (typeof helperModule === 'function') {
-            helperModule(Handlebars);
-          }
+          // Execute helper script in sandbox for security
+          PromptScriptSandbox.executeHelper(helperPath, Handlebars);
         } catch (error) {
           console.error(`Failed to load helper ${file}:`, error);
         }

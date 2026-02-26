@@ -85,13 +85,16 @@ const DefaultParameterFieldsComponent: React.FC<CommonFieldProps & { t: any }> =
 interface ActionButtonsComponentProps {
   onTestConnection: () => void;
   onMakePreset: () => void;
+  providerType?: string;
   t: any;
 }
 
-const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset, t }) => (
+const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset, providerType, t }) => (
   <div className="form-actions">
     <button type="button" onClick={onTestConnection}>{t('connection.testConnection')}</button>
-    <button type="button" onClick={onMakePreset}>{t('connection.makePreset')}</button>
+    {providerType !== 'player2' && (
+      <button type="button" onClick={onMakePreset}>{t('connection.makePreset')}</button>
+    )}
   </div>
 );
 
@@ -203,9 +206,43 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
           onContextLengthChange={onContextLengthChange}
         />
         
+        {/* Actions Schema Type Toggle */}
+        <div className="form-group">
+          <label htmlFor="useMinimizedActionsSchema">
+            {t('connection.actionsSchemaType')}
+            <Tooltip
+              text={t('connection.actionsSchemaTypeHelp')}
+              position="top"
+            />
+          </label>
+          <select
+            id="useMinimizedActionsSchema"
+            name="useMinimizedActionsSchema"
+            value={
+              config.useMinimizedActionsSchema === undefined
+                ? 'auto'
+                : config.useMinimizedActionsSchema
+                  ? 'minimized'
+                  : 'advanced'
+            }
+            onChange={(e) => {
+              const value = e.target.value;
+              const newValue =
+                value === 'auto' ? undefined :
+                value === 'minimized' ? true : false;
+              updateEditingConfig({ useMinimizedActionsSchema: newValue });
+            }}
+            className="schema-type-select"
+          >
+            <option value="auto">{t('connection.actionsSchemaAuto')}</option>
+            <option value="advanced">{t('connection.actionsSchemaAdvanced')}</option>
+            <option value="minimized">{t('connection.actionsSchemaMinimized')}</option>
+          </select>
+        </div>
+        
         <DefaultParameterFieldsComponent config={config} onInputChange={onInputChange} t={t} />
         
-        <ActionButtonsComponent onTestConnection={onTestConnection} onMakePreset={onMakePreset} t={t} />
+        <ActionButtonsComponent onTestConnection={onTestConnection} onMakePreset={onMakePreset} providerType={config.providerType} t={t} />
         
         <TestResultDisplayComponent testResult={testResult} />
       </form>

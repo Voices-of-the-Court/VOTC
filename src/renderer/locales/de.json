@@ -115,7 +115,12 @@
     "testConnectionFailed": "Verbindung fehlgeschlagen",
     "testConnectionSuccess": "Verbindung erfolgreich!",
     "openPlayer2App": "Player2-App öffnen",
-    "player2AppHelp": "Klicken Sie hier, um die Player2-Anwendung zu öffnen. Stellen Sie sicher, dass sie installiert ist und läuft."
+    "player2AppHelp": "Klicken Sie hier, um die Player2-Anwendung zu öffnen. Stellen Sie sicher, dass sie installiert ist und läuft.",
+    "actionsSchemaType": "Aktions-Schema-Typ",
+    "actionsSchemaTypeHelp": "Steuert die JSON-Schema-Komplexität für Aktionsantworten. 'Auto' erkennt Gemini-Modelle und verwendet ein minimiertes Schema. 'Minimiert' kann für Modelle mit strengen Schema-Limits erforderlich sein (wie Gemini). Wenn Aktionen bei Ihrem Modell nicht erscheinen, versuchen Sie auf 'Minimiert' zu wechseln.",
+    "actionsSchemaAuto": "Auto-Erkennung (Empfohlen)",
+    "actionsSchemaAdvanced": "Erweitert (Vollständige Validierung)",
+    "actionsSchemaMinimized": "Minimiert (Für eingeschränkte Modelle)"
   },
   "lettersModal": {
     "completed": "Abgeschlossen",

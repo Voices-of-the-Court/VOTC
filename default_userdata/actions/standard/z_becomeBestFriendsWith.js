@@ -1,4 +1,59 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
+
+// All localized strings for best friend relation
+const BEST_FRIEND_STRINGS = ["Best Friend", "Meilleur ami", "Bester Freund", "親友", "단짝 친구", "Najlepszy przyjaciel", "Лучший друг", "至交", "Mejor amigo"];
+// Friend strings (can progress from friend to best friend)
+const FRIEND_STRINGS = ["Friend", "Ami", "Freund", "友人", "친구", "Przyjaciel", "Друг", "朋友", "Amigo"];
+
+function hasRelation(character, targetId, relationStrings) {
+  const entry = character.relationsToCharacters?.find(r => r.id === targetId);
+  if (!entry) return false;
+  const lowerStrings = relationStrings.map(s => s.toLowerCase());
+  return entry.relations.some(rel => lowerStrings.includes(rel.toLowerCase()));
+}
+
+function removeRelationFromBoth(sourceChar, targetChar, sourceId, targetId, relationStrings) {
+  const lowerStrings = relationStrings.map(s => s.toLowerCase());
+  
+  const sourceEntry = sourceChar.relationsToCharacters?.find(r => r.id === targetId);
+  if (sourceEntry) {
+    sourceEntry.relations = sourceEntry.relations.filter(rel => !lowerStrings.includes(rel.toLowerCase()));
+  }
+  
+  const targetEntry = targetChar.relationsToCharacters?.find(r => r.id === sourceId);
+  if (targetEntry) {
+    targetEntry.relations = targetEntry.relations.filter(rel => !lowerStrings.includes(rel.toLowerCase()));
+  }
+}
+
+function addRelationToBoth(sourceChar, targetChar, sourceId, targetId, relationString) {
+  let sourceEntry = sourceChar.relationsToCharacters?.find(r => r.id === targetId);
+  if (!sourceEntry) {
+    sourceEntry = { id: targetId, relations: [] };
+    sourceChar.relationsToCharacters.push(sourceEntry);
+  }
+  if (!sourceEntry.relations.includes(relationString)) {
+    sourceEntry.relations.push(relationString);
+  }
+  
+  let targetEntry = targetChar.relationsToCharacters?.find(r => r.id === sourceId);
+  if (!targetEntry) {
+    targetEntry = { id: sourceId, relations: [] };
+    targetChar.relationsToCharacters.push(targetEntry);
+  }
+  if (!targetEntry.relations.includes(relationString)) {
+    targetEntry.relations.push(relationString);
+  }
+}
+
+function getLocalizedBestFriend(lang) {
+  const map = {
+    en: "Best Friend", fr: "Meilleur ami", de: "Bester Freund", ja: "親友", ko: "단짝 친구",
+    pl: "Najlepszy przyjaciel", ru: "Лучший друг", zh: "至交", es: "Mejor amigo"
+  };
+  return map[lang] || map.en;
+}
+
 module.exports = {
   signature: "becomeBestFriendsWith",
   title: {
@@ -39,12 +94,17 @@ module.exports = {
    * @param {Character} params.sourceCharacter
    */
   check: ({ gameData, sourceCharacter }) => {
-    // TODO: Add proper checks for existing relationships and opinion requirements
-    // For now, allow execution with any valid target
     const allIds = Array.from(gameData.characters.keys());
-    const validTargets = allIds.filter((id) => id !== sourceCharacter.id);
+    const validTargets = allIds.filter((id) => {
+      if (id === sourceCharacter.id) return false;
+      // Cannot become best friend if already best friend
+      if (hasRelation(sourceCharacter, id, BEST_FRIEND_STRINGS)) return false;
+      // Must be friend first (progression requirement)
+      if (!hasRelation(sourceCharacter, id, FRIEND_STRINGS)) return false;
+      return true;
+    });
     return {
-      canExecute: true,
+      canExecute: validTargets.length > 0,
       validTargetCharacterIds: validTargets,
     };
   },
@@ -83,10 +143,18 @@ module.exports = {
     runGameEffect(`
 global_var:votc_action_source = {
     set_relation_best_friend = {
-        reason = ${reason}
+        reason = "${reason.replaceAll('"', '')}"
         target = global_var:votc_action_target
     }
 }`);
+
+    // Update game data model
+    // Remove friend relation (upgrade to best friend)
+    removeRelationFromBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, FRIEND_STRINGS);
+    
+    // Add best friend relation
+    const bestFriendString = getLocalizedBestFriend(lang);
+    addRelationToBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, bestFriendString);
 
     return {
       message: {

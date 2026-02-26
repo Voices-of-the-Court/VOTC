@@ -86,12 +86,12 @@ ordered_in_global_list = {
   ): void {
     const effect = this.composeFullEffect(gameData, sourceCharacterId, targetCharacterId, effectBody);
     console.log(`Writing effect to run file: ${effect}`);
-    runFileManager.append(effect);
+    runFileManager.write(effect);
     
     // Clear runfile after 500ms
-    setTimeout(() => {
-      runFileManager.clear();
-    }, 500);
+    // setTimeout(() => {
+    //   runFileManager.clear();
+    // }, 500);
   }
 
   /**

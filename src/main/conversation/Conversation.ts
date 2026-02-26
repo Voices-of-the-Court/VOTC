@@ -746,7 +746,10 @@ export class Conversation {
     
     // Create final comprehensive summary and save to characters
     async finalizeConversation(): Promise<void> {
-        runFileManager.write("trigger_event = mcc_event_v2.9002");
+        runFileManager.write(`
+            trigger_event = mcc_event_v2.9002
+            trigger_event = mcc_event_v2.9003
+            `);
         setTimeout(() => {
             runFileManager.clear();
             console.log('Run file cleared after conversation end event.');

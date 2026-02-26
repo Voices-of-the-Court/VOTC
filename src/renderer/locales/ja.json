@@ -115,7 +115,12 @@
     "testConnectionFailed": "接続失敗",
     "testConnectionSuccess": "接続成功！",
     "openPlayer2App": "Player2アプリを開く",
-    "player2AppHelp": "Player2アプリケーションを開くにはクリックしてください。インストールされ、実行されていることを確認してください。"
+    "player2AppHelp": "Player2アプリケーションを開くにはクリックしてください。インストールされ、実行されていることを確認してください。",
+    "actionsSchemaType": "アクションスキーマタイプ",
+    "actionsSchemaTypeHelp": "アクション応答のJSONスキーマの複雑さを制御します。「自動」はGeminiモデルを検出し、最小化されたスキーマを使用します。「最小化」は、厳格なスキーマ制限を持つモデル（Geminiなど）に必要な場合があります。モデルでアクションが表示されない場合は、「最小化」に切り替えてみてください。",
+    "actionsSchemaAuto": "自動検出（推奨）",
+    "actionsSchemaAdvanced": "詳細（完全な検証）",
+    "actionsSchemaMinimized": "最小化（制限されたモデル用）"
   },
   "lettersModal": {
     "completed": "完了",

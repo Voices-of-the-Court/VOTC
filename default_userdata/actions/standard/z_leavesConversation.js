@@ -38,7 +38,7 @@ module.exports = {
         const validTargets = allIds.filter((id) => id !== gameData.playerID);
         
         return {
-            canExecute: validTargets.length > 0,
+            canExecute: validTargets.length > 1,
             validTargetCharacterIds: validTargets
         };
     },
@@ -269,8 +269,7 @@ if ={
             }
         }
     }
-}
-root = {trigger_event = mcc_event_v2.9003}`);
+}`);
 
                 
             // Generate summary for leaving character

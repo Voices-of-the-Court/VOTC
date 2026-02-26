@@ -1,4 +1,60 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
+
+// All localized strings for blood brother relation
+const BLOOD_BROTHER_STRINGS = ["Blood Brother", "Frère de sang", "Blutsbruder", "兄弟分", "의형제", "Brat krwi", "Побратим", "结义兄弟", "Hermano de sangre"];
+// Hostile relations - blood brother replaces these
+const RIVAL_STRINGS = ["Rival", "Rival", "Rivale", "好敵手", "경쟁자", "Rywal", "Соперник", "仇敌", "Rival"];
+const NEMESIS_STRINGS = ["Nemesis", "Ennemi juré", "Erzfeind", "宿敵", "천적", "Śmiertelny wróg", "Заклятый враг", "死敌", "Némesis"];
+
+function hasRelation(character, targetId, relationStrings) {
+  const entry = character.relationsToCharacters?.find(r => r.id === targetId);
+  if (!entry) return false;
+  const lowerStrings = relationStrings.map(s => s.toLowerCase());
+  return entry.relations.some(rel => lowerStrings.includes(rel.toLowerCase()));
+}
+
+function removeRelationFromBoth(sourceChar, targetChar, sourceId, targetId, relationStrings) {
+  const lowerStrings = relationStrings.map(s => s.toLowerCase());
+  
+  const sourceEntry = sourceChar.relationsToCharacters?.find(r => r.id === targetId);
+  if (sourceEntry) {
+    sourceEntry.relations = sourceEntry.relations.filter(rel => !lowerStrings.includes(rel.toLowerCase()));
+  }
+  
+  const targetEntry = targetChar.relationsToCharacters?.find(r => r.id === sourceId);
+  if (targetEntry) {
+    targetEntry.relations = targetEntry.relations.filter(rel => !lowerStrings.includes(rel.toLowerCase()));
+  }
+}
+
+function addRelationToBoth(sourceChar, targetChar, sourceId, targetId, relationString) {
+  let sourceEntry = sourceChar.relationsToCharacters?.find(r => r.id === targetId);
+  if (!sourceEntry) {
+    sourceEntry = { id: targetId, relations: [] };
+    sourceChar.relationsToCharacters.push(sourceEntry);
+  }
+  if (!sourceEntry.relations.includes(relationString)) {
+    sourceEntry.relations.push(relationString);
+  }
+  
+  let targetEntry = targetChar.relationsToCharacters?.find(r => r.id === sourceId);
+  if (!targetEntry) {
+    targetEntry = { id: sourceId, relations: [] };
+    targetChar.relationsToCharacters.push(targetEntry);
+  }
+  if (!targetEntry.relations.includes(relationString)) {
+    targetEntry.relations.push(relationString);
+  }
+}
+
+function getLocalizedBloodBrother(lang) {
+  const map = {
+    en: "Blood Brother", fr: "Frère de sang", de: "Blutsbruder", ja: "兄弟分", ko: "의형제",
+    pl: "Brat krwi", ru: "Побратим", zh: "结义兄弟", es: "Hermano de sangre"
+  };
+  return map[lang] || map.en;
+}
+
 module.exports = {
   signature: "becomeBloodBrothersWith",
   title: {
@@ -39,12 +95,15 @@ module.exports = {
    * @param {Character} params.sourceCharacter
    */
   check: ({ gameData, sourceCharacter }) => {
-    // TODO: Add proper checks for existing relationships and opinion requirements
-    // For now, allow execution with any valid target
     const allIds = Array.from(gameData.characters.keys());
-    const validTargets = allIds.filter((id) => id !== sourceCharacter.id);
+    const validTargets = allIds.filter((id) => {
+      if (id === sourceCharacter.id) return false;
+      // Cannot become blood brother if already blood brother
+      if (hasRelation(sourceCharacter, id, BLOOD_BROTHER_STRINGS)) return false;
+      return true;
+    });
     return {
-      canExecute: true,
+      canExecute: validTargets.length > 0,
       validTargetCharacterIds: validTargets,
     };
   },
@@ -83,10 +142,19 @@ module.exports = {
     runGameEffect(`
 global_var:votc_action_source = {
     set_relation_blood_brother = {
-        reason = ${reason}
+        reason = "${reason.replaceAll('"', '')}"
         target = global_var:votc_action_target
     }
 }`);
+
+    // Update game data model
+    // Remove hostile relations (rival/nemesis) if present - blood brother replaces these
+    removeRelationFromBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, RIVAL_STRINGS);
+    removeRelationFromBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, NEMESIS_STRINGS);
+    
+    // Add blood brother relation
+    const bloodBrotherString = getLocalizedBloodBrother(lang);
+    addRelationToBoth(sourceCharacter, targetCharacter, sourceCharacter.id, targetCharacter.id, bloodBrotherString);
 
     return {
       message: {

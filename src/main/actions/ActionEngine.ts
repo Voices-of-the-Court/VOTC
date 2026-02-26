@@ -11,6 +11,7 @@ import { healJsonResponseWithLogging } from "./responseHealing";
 import type { SchemaBuildInput } from "./jsonSchema";
 import { settingsRepository } from "../SettingsRepository";
 import { resolveI18nString } from "./i18nUtils";
+import { ActionSandbox } from "./ActionSandbox";
 
 export interface ActionEvaluationResult {
   autoApproved: ActionExecutionResult[];
@@ -123,10 +124,22 @@ export class ActionEngine {
       // 2) Build messages and schema for LLM structured output
       const messages = ActionPromptBuilder.buildActionMessages(conv, npc, available);
 
+      // Determine schema type based on config setting or auto-detection
+      const actionsConfig = settingsRepository.getActionsProviderConfig();
+      let useMinimizedSchema: boolean;
+      
+      if (actionsConfig?.useMinimizedActionsSchema !== undefined) {
+        // User has explicitly set preference
+        useMinimizedSchema = actionsConfig.useMinimizedActionsSchema;
+      } else {
+        // Auto-detect: use minimized for Gemini models
+        useMinimizedSchema = actionsConfig?.defaultModel?.toLowerCase().includes('gemini') ?? false;
+      }
+      console.log(`[DEBUG] ActionEngine: Using minimized schema: ${useMinimizedSchema}`);
       // Primary schema (JSON Schema for provider)
       const jsonSchema = buildStructuredResponseJsonSchema({
         availableActions: available
-      });
+      }, useMinimizedSchema);
 
       // Secondary validation (zod) to double-check the provider output at runtime
       const zodSchema = buildStructuredResponseSchema({
@@ -152,7 +165,7 @@ export class ActionEngine {
       const result = await output as any; // ILLMCompletionResponse
       
       const content = (result && typeof result === "object") ? result.content : null;
-
+      console.log('[DEBUG] ActionEngine: Received LLM response', content);
       if (!content || typeof content !== "string") {
         return { autoApproved: [], needsApproval: [] };
       }
@@ -295,8 +308,6 @@ export class ActionEngine {
       };
     }
 
-    const action = loaded.definition;
-
     const targetId = inv.targetCharacterId ?? null;
     const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
 
@@ -321,7 +332,8 @@ export class ActionEngine {
     const args: ActionArgumentValues = inv.args ?? {};
 
     try {
-      const result = await action.run({
+      // Execute action in sandboxed VM context for security
+      const result = await ActionSandbox.executeAction(loaded.filePath, {
         gameData: conv.gameData,
         sourceCharacter: npc,
         targetCharacter: target,
