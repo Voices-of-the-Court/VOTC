@@ -10,7 +10,7 @@ module.exports = {
     ja: "相互休戦",
     ko: "상호 휴전",
     pl: "Wzajemne rozejm",
-    zh: "相互休战"
+    zh: "相互停战"
   },
 
   /**
@@ -71,7 +71,7 @@ module.exports = {
           ja: "失敗: 休戦のターゲットキャラクターが指定されていません",
           ko: "실패: 휴전을 위한 대상 캐릭터가 지정되지 않았습니다",
           pl: "Niepowodzenie: Nie określono postaci docelowej dla rozejmu",
-          zh: "失败: 未指定休战的目标角色"
+          zh: "失败: 未指定停战的目标角色"
         },
         sentiment: 'negative'
       };
@@ -102,7 +102,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は${years}年間の休戦に同意しました`,
         ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) ${years}년간의 휴전에 동의했습니다`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} zgodzili się na ${years}-letni rozejm`,
-        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}同意了${years}年的休战`
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}达成了${years}年的停战协议`
       },
       sentiment: 'positive'
     };
