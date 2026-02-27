@@ -1,14 +1,18 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
 
-const COUNCIL_POSITIONS = ["chancellor", "steward", "marshal", "spymaster", "court_chaplain"];
+const COUNCIL_POSITIONS = ["chancellor", "steward", "marshal", "spymaster", "court_chaplain", "minister_works", "minister_justice", "minister_personnel", "minister_grand_marshal"];
 
-// CK3 official Simplified Chinese council position names
+// CK3 official Simplified Chinese council position names and TGP names
 const COUNCIL_POSITION_ZH = {
   "chancellor": "掌玺大臣（宰相）",
   "steward": "财政总管（户部尚书）",
   "marshal": "军事统帅（兵部尚书）",
   "spymaster": "间谍首脑（御史大夫）",
-  "court_chaplain": "宫廷祭司（礼部尚书）"
+  "court_chaplain": "宫廷祭司（礼部尚书）",
+  "minister_works": "工部尚书",
+  "minister_justice": "刑部尚书",
+  "minister_personnel": "吏部尚书",
+  "minister_grand_marshal": "枢密使"
 };
 
 module.exports = {
@@ -33,7 +37,7 @@ module.exports = {
     {
       name: "council_position",
       type: "enum",
-      description: `The council position to which ${sourceCharacter.shortName} is assigned. Options: chancellor, steward, marshal, spymaster, court_chaplain.`,
+      description: `The council position to which ${sourceCharacter.shortName} is assigned. Options: chancellor, steward, marshal, spymaster, court_chaplain, minister_works, minister_justice, minister_personnel, minister_grand_marshal.`,
       required: true,
       options: COUNCIL_POSITIONS
     },
@@ -51,7 +55,8 @@ module.exports = {
    */
   description: ({ gameData, sourceCharacter }) =>
     `Execute when ${sourceCharacter.shortName} is appointed to the target character's council. Target must be a landed ruler.
-    If isPlayerSource is true, ${gameData.playerName} will be assigned instead of ${sourceCharacter.shortName}.`,
+    If isPlayerSource is true, ${gameData.playerName} will be assigned instead of ${sourceCharacter.shortName}.
+    [Language mapping context for AI]: chancellor(掌玺大臣/宰相), steward(财政总管/户部尚书), marshal(军事统帅/兵部尚书), spymaster(间谍首脑/御史大夫), court_chaplain(宫廷祭司/礼部尚书), minister_works(工部尚书), minister_justice(刑部尚书), minister_personnel(吏部尚书), minister_grand_marshal(枢密使).`,
 
   /**
    * @param {object} params
@@ -144,19 +149,47 @@ module.exports = {
       "steward": "councillor_steward",
       "marshal": "councillor_marshal",
       "spymaster": "councillor_spymaster",
-      "court_chaplain": "councillor_court_chaplain"
+      "court_chaplain": "councillor_court_chaplain",
+      "minister_works": "minister_works",
+      "minister_justice": "minister_justice",
+      "minister_personnel": "minister_personnel",
+      "minister_grand_marshal": "minister_grand_marshal"
+    };
+
+    const positionTitleMap = {
+      "chancellor": "e_minister_chancellor",
+      "steward": "e_minister_of_revenue",
+      "marshal": "e_minister_of_war",
+      "spymaster": "e_minister_censor",
+      "court_chaplain": "e_minister_of_rites",
+      "minister_works": "e_minister_of_works",
+      "minister_justice": "e_minister_of_justice",
+      "minister_personnel": "e_minister_of_personnel",
+      "minister_grand_marshal": "e_minister_grand_marshal"
     };
 
     const councillorType = positionMap[position];
+    const councillorTitleRole = positionTitleMap[position];
     const positionZh = COUNCIL_POSITION_ZH[position] || position;
 
     if (!isPlayerSource) {
       runGameEffect(`
 global_var:votc_action_target = {
-    fire_councillor = cp:${councillorType}
-    assign_councillor_type = {
-        type = ${councillorType}
-        target = global_var:votc_action_source
+    save_scope_as = councillor_liege
+    if = {
+        limit = {
+            tgp_has_access_to_ministry_trigger = yes
+        }
+        global_var:votc_action_source = {
+            got_minister_position_effect = { MINISTER_TITLE = ${councillorTitleRole} MINISTER_POSITION = ${councillorType} }
+        }
+    }
+    else = {
+        fire_councillor = cp:${councillorType}
+        assign_councillor_type = {
+            type = ${councillorType}
+            target = global_var:votc_action_source
+        }
     }
 }`);
 
@@ -177,10 +210,21 @@ global_var:votc_action_target = {
     } else {
       runGameEffect(`
 global_var:votc_action_target = {
-    fire_councillor = cp:${councillorType}
-    assign_councillor_type = {
-        type = ${councillorType}
-        target = root
+    save_scope_as = councillor_liege
+    if = {
+        limit = {
+            tgp_has_access_to_ministry_trigger = yes
+        }
+        root = {
+            got_minister_position_effect = { MINISTER_TITLE = ${councillorTitleRole} MINISTER_POSITION = ${councillorType} }
+        }
+    }
+    else = {
+        fire_councillor = cp:${councillorType}
+        assign_councillor_type = {
+            type = ${councillorType}
+            target = root
+        }
     }
 }`);
 

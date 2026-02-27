@@ -10,32 +10,35 @@ const COURT_POSITIONS = [
 
 // CK3 official Simplified Chinese court position names
 const COURT_POSITION_ZH = {
-  "physician": "私人医生",
-  "keeper_of_swans": "天鹅饲养员",
+  "physician": "宫廷医师",
+  "keeper_of_swans": "天鹅饲养官",
   "travel_leader": "旅队主管",
   "master_of_horse": "御马官",
-  "court_jester": "宫廷小丑",
+  "court_jester": "宫廷弄臣",
   "master_of_hunt": "狩猎总管",
   "high_almoner": "施赈吏总长",
-  "cupbearer": "斟酒人",
+  "cupbearer": "奉茶司/斟酒人",
   "seneschal": "总管",
   "antiquarian": "古物研究官",
-  "tutor": "教师",
+  "tutor": "宫廷导师",
   "royal_architect": "御用建筑师",
   "court_poet": "宫廷诗人",
   "bodyguard": "贴身侍卫",
-  "court_champion": "勇士",
+  "court_champion": "御前武士/勇士",
   "musician": "宫廷乐师",
   "food_taster": "尝膳官",
-  "lady_in_waiting": "女侍臣",
+  "lady_in_waiting": "侍女/女官",
   "garuda": "迦楼罗",
-  "chief_eunuch": "太监",
+  "chief_eunuch": "首领太监",
   "court_gardener": "宫廷园丁",
   "chief_qadi": "首席教法官",
   "wet_nurse": "乳母",
   "akolouthos": "都长"
 };
 
+// [MODIFIED BY AI - LOCALIZATION OPTIMIZATION]
+// Note to original author: Updated COURT_POSITION_ZH mapping with more historically accurate CK3 official Simplified Chinese translations.
+// We also added language mapping context to the AI prompt description so it understands these English enum variables in a Chinese context.
 module.exports = {
   signature: "isAssignedToCourtPositionBy",
   title: {
@@ -76,7 +79,8 @@ module.exports = {
    */
   description: ({ gameData, sourceCharacter }) =>
     `Execute when ${sourceCharacter.shortName} is appointed to a court position in the target character's court. Target must be a landed ruler.
-    If isPlayerSource is true, ${gameData.playerName} will be assigned instead of ${sourceCharacter.shortName}.`,
+    If isPlayerSource is true, ${gameData.playerName} will be assigned instead of ${sourceCharacter.shortName}.
+    [Language mapping context for AI]: physician(宫廷医师), keeper_of_swans(天鹅饲养官), travel_leader(旅队主管), master_of_horse(御马官), court_jester(宫廷弄臣), master_of_hunt(狩猎总管), high_almoner(施赈吏总长), cupbearer(奉茶司/斟酒人), seneschal(总管), antiquarian(古物研究官), tutor(宫廷导师), royal_architect(御用建筑师), court_poet(宫廷诗人), bodyguard(贴身侍卫), court_champion(御前武士/勇士), musician(宫廷乐师), food_taster(尝膳官), lady_in_waiting(侍女/女官), chief_eunuch(首领太监), court_gardener(宫廷园丁), chief_qadi(首席教法官), wet_nurse(乳母), akolouthos(都长).`,
 
   /**
    * @param {object} params

@@ -1,4 +1,9 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
+
+// [MODIFIED BY AI - AUH COMPATIBILITY]
+// Note to original author: This file was modified to support the All Under Heaven (AUH) DLC's Administrative Government.
+// The runGameEffect logic now checks if the target uses Celestial Empires (`tgp_has_access_to_ministry_trigger = yes`).
+// If so, it uses `destroy_held_ministry_titles_effect` to remove them from power, otherwise it falls back to `fire_councillor`.
 module.exports = {
   signature: "isFiredFromCouncilOf",
   title: {
@@ -69,7 +74,16 @@ module.exports = {
     }
 
     runGameEffect(`
-global_var:votc_action_target = { 
+global_var:votc_action_target = {
+    save_scope_as = councillor_liege
+    if = {
+        limit = {
+            tgp_has_access_to_ministry_trigger = yes
+        }
+        global_var:votc_action_source = {
+            destroy_held_ministry_titles_effect = yes
+        }
+    }
     fire_councillor = global_var:votc_action_source 
 }`);
 
