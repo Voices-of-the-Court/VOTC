@@ -10,7 +10,7 @@ module.exports = {
         ja: "キャラクターを脱がす",
         ko: "캐릭터 옷 벗기기",
         pl: "Rozbierz postać",
-        zh: "脱掉角色衣服"
+        zh: "宽衣解带"
     },
 
     /**
@@ -71,7 +71,7 @@ global_var:votc_action_target = {
                 ja: `${targetCharacter.shortName}は裸です`,
                 ko: `${targetCharacter.shortName}은(는) 벌거벗었습니다`,
                 pl: `${targetCharacter.shortName} jest rozebrany`,
-                zh: `${targetCharacter.shortName}没穿衣服`
+                zh: `${targetCharacter.shortName}衣衫尽褪`
             },
             sentiment: 'neutral'
         };

@@ -33,7 +33,7 @@ const TRAIT_NAMES = {
     ko: "무참한 부상",
     pl: "Postać brutalnie okaleczona",
     ru: "Жестокие увечья",
-    zh: "严重撕裂"
+    zh: "遍体鳞伤"
   },
   one_eyed: {
     en: "One-Eyed",
@@ -44,7 +44,7 @@ const TRAIT_NAMES = {
     ko: "애꾸눈",
     pl: "Postać jednooka",
     ru: "Один глаз",
-    zh: "独眼"
+    zh: "独眼龙"
   },
   blind: {
     en: "Blind",
@@ -66,7 +66,7 @@ const TRAIT_NAMES = {
     ko: "외다리",
     pl: "Postać jednonoga",
     ru: "Одна нога",
-    zh: "独腿"
+    zh: "断腿"
   },
   disfigured: {
     en: "Disfigured",
@@ -88,7 +88,7 @@ const TRAIT_NAMES = {
     ko: "불구자",
     pl: "Postać okaleczona",
     ru: "Серьезное увечье",
-    zh: "残废"
+    zh: "残疾"
   },
   eunuch: {
     en: "Eunuch",
@@ -110,7 +110,7 @@ const TRAIT_NAMES = {
     ko: "수염 없는 환관",
     pl: "Bezbrody eunuch",
     ru: "Безбородый евнух",
-    zh: "无须阉人"
+    zh: "稚阉"
   },
   lunatic_1: {
     en: "Lunatic",
@@ -132,7 +132,7 @@ const TRAIT_NAMES = {
     ko: "빙의됨",
     pl: "Postać opętana",
     ru: "Одержимость",
-    zh: "附身"
+    zh: "鬼上身"
   }
 };
 
@@ -160,7 +160,7 @@ module.exports = {
     ja: "ターゲットが負傷",
     ko: "대상이 부상함",
     pl: "Cel jest ranny",
-    zh: "目标受伤"
+    zh: "角色受伤"
   },
 
   /**

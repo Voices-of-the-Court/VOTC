@@ -10,7 +10,7 @@ module.exports = {
     ja: "ソースがターゲットによって投獄",
     ko: "출처가 대상에 의해 투옥됨",
     pl: "Źródło uwięzione przez cel",
-    zh: "源角色被目标囚禁"
+    zh: "玩家被目标囚禁"
   },
 
   /**

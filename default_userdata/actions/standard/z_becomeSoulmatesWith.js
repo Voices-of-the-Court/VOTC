@@ -170,7 +170,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}はソウルメイトになりました`,
         ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 소울메이트가 되었습니다`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} stali się bratnimi duszami`,
-        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了灵魂伴侣`
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}结为了灵魂伴侣`
       },
       sentiment: 'positive'
     };

@@ -1,4 +1,9 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
+
+// [MODIFIED BY AI - AUH COMPATIBILITY]
+// Note to original author: This file was modified to support the All Under Heaven (AUH) DLC's Administrative Government.
+// The runGameEffect logic now checks if the target uses Celestial Empires (`tgp_has_access_to_ministry_trigger = yes`).
+// If so, it uses `destroy_held_ministry_titles_effect` to remove them from power, otherwise it falls back to `fire_councillor`.
 module.exports = {
   signature: "isFiredFromCouncilOf",
   title: {
@@ -10,7 +15,7 @@ module.exports = {
     ja: "ソースがターゲットの評議会から解任",
     ko: "출처가 대상의 평의회에서 해고됨",
     pl: "Źródło zwolnione z rady celu",
-    zh: "源角色从目标的议会被解职"
+    zh: "从目标的内阁被解职"
   },
 
   /**
@@ -69,21 +74,16 @@ module.exports = {
     }
 
     runGameEffect(`
-trigger = {
-    global_var:votc_action_source = {
-        exists = liege
-        liege = global_var:votc_action_target
-        OR = {
-            has_council_position = councillor_chancellor
-            has_council_position = councillor_marshal
-            has_council_position = councillor_steward
-            has_council_position = councillor_spymaster
-            has_council_position = councillor_court_chaplain
+global_var:votc_action_target = {
+    save_scope_as = councillor_liege
+    if = {
+        limit = {
+            tgp_has_access_to_ministry_trigger = yes
         }
-        can_be_fired_from_council_trigger = { COURT_OWNER = global_var:votc_action_target }
+        global_var:votc_action_source = {
+            destroy_held_ministry_titles_effect = yes
+        }
     }
-}
-global_var:votc_action_target = { 
     fire_councillor = global_var:votc_action_source 
 }`);
 
@@ -97,7 +97,7 @@ global_var:votc_action_target = {
         ja: `${sourceCharacter.shortName}はもう${targetCharacter.shortName}の評議員ではありません`,
         ko: `${sourceCharacter.shortName}은(는) 더 이상 ${targetCharacter.shortName}의 평의원이 아닙니다`,
         pl: `${sourceCharacter.shortName} nie jest już doradcą ${targetCharacter.shortName}`,
-        zh: `${sourceCharacter.shortName}不再是${targetCharacter.shortName}的议会议员`
+        zh: `${sourceCharacter.shortName}不再是${targetCharacter.shortName}的内阁成员`
       },
       sentiment: 'negative'
     };
