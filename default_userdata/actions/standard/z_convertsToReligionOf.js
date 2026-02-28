@@ -10,7 +10,7 @@ module.exports = {
     ja: "ソースがターゲットの宗教に改宗",
     ko: "출처가 대상의 종교로 개종",
     pl: "Źródło przechodzi na religię celu",
-    zh: "源角色皈依目标的宗教"
+    zh: "皈依目标的信仰"
   },
 
   /**

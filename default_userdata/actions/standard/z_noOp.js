@@ -12,7 +12,7 @@ module.exports = {
     ja: "実行されたアクションなし",
     ko: "실행된 작업 없음",
     pl: "Brak wykonanych akcji",
-    zh: "无执行操作回退"
+    zh: "无操作"
   },
 
   // Dynamic args receive sourceCharacter (kept empty for this action, but enables richer prompts)

@@ -12,7 +12,7 @@ module.exports = {
         ja: "ソースがターゲットによって継続",
         ko: "출처 캐릭터가 대상에 살해지는",
         pl: "Źródło postaci jest wassalizowany przez cel",
-        zh: "源角色被目标継続"
+        zh: "臣服于目标"
     },
     isDestructive: true,
 
@@ -83,7 +83,7 @@ module.exports = {
             ja: `失敗: ${sourceCharacter.shortName} は所領無し`,
             ko: `실패: ${sourceCharacter.shortName} 비지주`,
             pl: `Niepowodzenie: ${sourceCharacter.shortName} bez ziemi`,
-            zh: `失败: ${sourceCharacter.shortName} 无领地`
+            zh: `失败: ${sourceCharacter.shortName}没有封地`
             
         },
         sentiment: "negative"
@@ -100,7 +100,7 @@ module.exports = {
                 ja: `失敗: ${sourceCharacter.shortName}は独立していません`,
                 ko: `실패: ${sourceCharacter.shortName}은 독립 영주가 아닌이다`,
                 pl: `Niepowodzenie: ${sourceCharacter.shortName} nie jest niezależnym rębłem`,
-                zh: `失败: ${sourceCharacter.shortName} 不是独立统治者`
+                zh: `失败: ${sourceCharacter.shortName}不是独立统治者`
             },
             sentiment: "negative"
         }
@@ -134,7 +134,7 @@ module.exports = {
         ja: `${sourceCharacter.shortName}が${targetCharacter.shortName}によって継続`,
         ko: `${sourceCharacter.shortName}가 ${targetCharacter.shortName}에 살해지는`,
         pl: `${sourceCharacter.shortName} jest wassalizowany przez ${targetCharacter.shortName}.`,
-        zh: `${sourceCharacter.shortName} 被 ${targetCharacter.shortName} 継続`
+        zh: `${sourceCharacter.shortName}向${targetCharacter.shortName}宣誓效忠，成为其封臣`
         
       },
       sentiment: "positive"

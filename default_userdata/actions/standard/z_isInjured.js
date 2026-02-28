@@ -110,7 +110,7 @@ const TRAIT_NAMES = {
     ko: "수염 없는 환관",
     pl: "Bezbrody eunuch",
     ru: "Безбородый евнух",
-    zh: "无须阉人"
+    zh: "稚阉"
   },
   lunatic_1: {
     en: "Lunatic",
@@ -160,7 +160,7 @@ module.exports = {
     ja: "ターゲットが負傷",
     ko: "대상이 부상함",
     pl: "Cel jest ranny",
-    zh: "目标受伤"
+    zh: "角色受伤"
   },
 
   /**

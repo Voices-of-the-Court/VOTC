@@ -10,7 +10,7 @@ module.exports = {
     ja: "ソースがターゲットに金を支払う",
     ko: "출처가 대상에게 골드 지급",
     pl: "Źródło płaci złoto do celu",
-    zh: "源角色向目标支付金币"
+    zh: "向目标支付金币"
   },
 
   /**

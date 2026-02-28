@@ -65,7 +65,7 @@ module.exports = {
     ja: "親友になる",
     ko: "최고의 친구가 되다",
     pl: "Zostać najlepszymi przyjaciółmi",
-    zh: "成为挚友"
+    zh: "成为至交"
   },
 
   /**
@@ -185,7 +185,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は親友になりました`,
         ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 최고의 친구가 되었습니다`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} stali się najlepszymi przyjaciółmi`,
-        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了挚友`
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了至交`
       },
       sentiment: 'positive'
     };

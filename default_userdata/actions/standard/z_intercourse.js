@@ -10,7 +10,7 @@ module.exports = {
     ja: "性行為が完了",
     ko: "성관계가 완료됨",
     pl: "Stosunek seksualny zakończony",
-    zh: "性行为结束"
+    zh: "鱼水之欢"
   },
 
   /**
@@ -81,7 +81,7 @@ module.exports = {
           ja: "失敗: パートナーが指定されていません",
           ko: "실패: 파트너가 지정되지 않았습니다",
           pl: "Niepowodzenie: Nie określono partnera",
-          zh: "失败: 未指定伴侣"
+          zh: "失败: 未指定对象"
         },
         sentiment: 'negative'
       };
@@ -132,7 +132,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}と性行為をしました`,
         ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}과(와) 성관계를 가졌습니다`,
         pl: `${sourceCharacter.shortName} odbył stosunek seksualny z ${targetCharacter.shortName}`,
-        zh: `${sourceCharacter.shortName}与${targetCharacter.shortName}发生了性行为`
+        zh: `${sourceCharacter.shortName}与${targetCharacter.shortName}共度了春宵`
       },
       sentiment: 'neutral'
     };

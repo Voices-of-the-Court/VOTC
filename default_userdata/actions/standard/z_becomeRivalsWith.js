@@ -69,7 +69,7 @@ module.exports = {
     ja: "ライバルになる",
     ko: "라이벌이 되다",
     pl: "Zostać rywalami",
-    zh: "成为对手"
+    zh: "成为仇敌"
   },
 
   /**
@@ -190,7 +190,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}はライバルになりました`,
         ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 라이벌이 되었습니다`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} stali się rywalami`,
-        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了对手`
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了宿敌`
       },
       sentiment: 'negative'
     };
