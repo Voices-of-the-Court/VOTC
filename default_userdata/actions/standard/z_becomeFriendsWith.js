@@ -123,8 +123,9 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
    * @param {string} params.lang - Language code for i18n
+   * @param {boolean} params.dryRun - If true, only preview without executing
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang, dryRun }) => {
     if (!targetCharacter) {
       return {
         message: {
@@ -139,6 +140,24 @@ module.exports = {
           zh: "失败: 未指定目标角色"
         },
         sentiment: 'negative'
+      };
+    }
+
+    // Dry run - return preview without executing
+    if (dryRun) {
+      return {
+        message: {
+          en: `${sourceCharacter.shortName} and ${targetCharacter.shortName} will become friends`,
+          ru: `${sourceCharacter.shortName} и ${targetCharacter.shortName} станут друзьями`,
+          fr: `${sourceCharacter.shortName} et ${targetCharacter.shortName} deviendront amis`,
+          de: `${sourceCharacter.shortName} und ${targetCharacter.shortName} werden Freunde`,
+          es: `${sourceCharacter.shortName} y ${targetCharacter.shortName} se convertirán en amigos`,
+          ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は友達になります`,
+          ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 친구가 됩니다`,
+          pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} staną się przyjaciółmi`,
+          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为朋友`
+        },
+        sentiment: 'positive'
       };
     }
 

@@ -1007,21 +1007,24 @@ export class Conversation {
         this.pendingActionApprovals.delete(approvalEntryId);
         this.emitUpdate();
 
-        // Execute the approved action in the background (don't await)
-        ActionEngine.runInvocation(this, pending.npc, pending.action.invocation).then(result => {
-            // Update with final feedback if different from preview
+        // Execute the approved action (await to avoid race conditions)
+        try {
+            const result = await ActionEngine.runInvocation(this, pending.npc, pending.action.invocation);
+
+            // Update feedback after execution
             if (result.feedback?.message && result.feedback.message !== approvalEntry.resultFeedback) {
                 approvalEntry.resultFeedback = result.feedback.message;
                 approvalEntry.resultSentiment = result.feedback.sentiment || 'neutral';
                 this.emitUpdate();
             }
-        }).catch(err => {
+        }
+        catch (err) {
             console.error('[Conversation] Background action execution failed:', err);
             // Update with error feedback
             approvalEntry.resultFeedback = `Failed: ${err instanceof Error ? err.message : String(err)}`;
             approvalEntry.resultSentiment = 'negative';
             this.emitUpdate();
-        });
+        }
 
         // Resume conversation if it was paused
         const approvalSettings = settingsRepository.getActionApprovalSettings();

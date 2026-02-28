@@ -67,8 +67,9 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|null>} params.args
    * @param {string} params.lang - Language code for i18n
+   * @param {boolean} params.dryRun - If true, only preview without executing
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang, dryRun }) => {
     if (!targetCharacter) {
       return {
         message: {
@@ -83,6 +84,24 @@ module.exports = {
           zh: "失败: 未指定伴侣"
         },
         sentiment: 'negative'
+      };
+    }
+
+    // Dry run - return preview without executing
+    if (dryRun) {
+      return {
+        message: {
+          en: `${sourceCharacter.shortName} will have intercourse with ${targetCharacter.shortName}`,
+          ru: `${sourceCharacter.shortName} займется сексом с ${targetCharacter.shortName}`,
+          fr: `${sourceCharacter.shortName} aura des rapports sexuels avec ${targetCharacter.shortName}`,
+          de: `${sourceCharacter.shortName} wird Geschlechtsverkehr mit ${targetCharacter.shortName} haben`,
+          es: `${sourceCharacter.shortName} tendrá relaciones sexuales con ${targetCharacter.shortName}`,
+          ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}と性行為をします`,
+          ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}과(와) 성관계를 가질 것입니다`,
+          pl: `${sourceCharacter.shortName} odbędzie stosunek seksualny z ${targetCharacter.shortName}`,
+          zh: `${sourceCharacter.shortName}将与${targetCharacter.shortName}发生性行为`
+        },
+        sentiment: 'neutral'
       };
     }
 

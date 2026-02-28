@@ -121,8 +121,9 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
    * @param {string} params.lang - Language code for i18n
+   * @param {boolean} params.dryRun - If true, only preview without executing
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang, dryRun }) => {
     if (!targetCharacter) {
       return {
         message: {
@@ -135,6 +136,24 @@ module.exports = {
           ko: "실패: 대상 캐릭터가 지정되지 않았습니다",
           pl: "Niepowodzenie: Nie określono postaci docelowej",
           zh: "失败: 未指定目标角色"
+        },
+        sentiment: 'negative'
+      };
+    }
+
+    // Dry run - return preview without executing
+    if (dryRun) {
+      return {
+        message: {
+          en: `${sourceCharacter.shortName} and ${targetCharacter.shortName} will become rivals`,
+          ru: `${sourceCharacter.shortName} и ${targetCharacter.shortName} станут соперниками`,
+          fr: `${sourceCharacter.shortName} et ${targetCharacter.shortName} deviendront rivaux`,
+          de: `${sourceCharacter.shortName} und ${targetCharacter.shortName} werden Rivalen`,
+          es: `${sourceCharacter.shortName} y ${targetCharacter.shortName} se convertirán en rivales`,
+          ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}はライバルになります`,
+          ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 라이벌이 됩니다`,
+          pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} staną się rywalami`,
+          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为对手`
         },
         sentiment: 'negative'
       };
