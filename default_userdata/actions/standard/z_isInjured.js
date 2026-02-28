@@ -242,7 +242,7 @@ module.exports = {
             ja: `${targetCharacter.shortName}は片目を失います`,
             ko: `${targetCharacter.shortName}은(는) 눈 하나를 잃게 됩니다`,
             pl: `${targetCharacter.shortName} straci oko`,
-            zh: `${targetCharacter.shortName}将失去一只眼睛`
+            zh: `${targetCharacter.shortName}的眼睛将被摘除`
           };
           break;
         case "blind":
@@ -268,7 +268,7 @@ module.exports = {
             ja: `${targetCharacter.shortName}は脚を失います`,
             ko: `${targetCharacter.shortName}은(는) 다리를 잃게 됩니다`,
             pl: `${targetCharacter.shortName} straci nogę`,
-            zh: `${targetCharacter.shortName}将失去一条腿`
+            zh: `${targetCharacter.shortName}的腿将被切断`
           };
           break;
         case "cut_balls":
@@ -294,7 +294,7 @@ module.exports = {
             ja: `${targetCharacter.shortName}は醜くなります`,
             ko: `${targetCharacter.shortName}은(는) 흉측하게 됩니다`,
             pl: `${targetCharacter.shortName} zostanie oszpecony`,
-            zh: `${targetCharacter.shortName}将被毁容`
+            zh: `${targetCharacter.shortName}将会被严重毁容`
           };
           break;
         default:
@@ -307,7 +307,7 @@ module.exports = {
             ja: `${targetCharacter.shortName}は負傷します`,
             ko: `${targetCharacter.shortName}은(는) 부상당하게 됩니다`,
             pl: `${targetCharacter.shortName} zostanie ranny`,
-            zh: `${targetCharacter.shortName}将受伤`
+            zh: `${targetCharacter.shortName}将会受伤`
           };
           break;
       }
