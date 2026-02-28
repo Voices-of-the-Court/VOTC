@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LLMProviderConfig } from '../../../main/llmProviders/types';
 import { useConfigStore, useAppSettings } from '../store/useConfigStore';
@@ -32,6 +32,50 @@ const Player2OpenAppButton: React.FC = () => {
       <small className="form-help-text">
         {t('connection.player2AppHelp', 'Click to open the Player2 application. Make sure it is installed and running.')}
       </small>
+    </div>
+  );
+};
+
+const Player2HealthStatusBar: React.FC<{
+  status: {
+    status: 'idle' | 'checking' | 'healthy' | 'error';
+    clientVersion?: string;
+    error?: string;
+    code?: number;
+  } | null;
+  onCheck: () => void;
+}> = ({ status, onCheck }) => {
+  const { t } = useTranslation();
+
+  if (!status) return null;
+
+  const statusLabel = (() => {
+    if (status.status === 'healthy') return t('connection.player2HealthOnline', 'online');
+    if (status.status === 'error') return t('connection.player2HealthErrorShort', 'error');
+    if (status.status === 'checking') return t('connection.player2HealthCheckingShort', 'checking');
+    return t('connection.player2HealthIdleShort', 'idle');
+  })();
+
+  const statusDetail = (() => {
+    if (status.status === 'healthy') {
+      return status.clientVersion ? `v${status.clientVersion}` : undefined;
+    }
+    if (status.status === 'error') {
+      return status.error || undefined;
+    }
+    return undefined;
+  })();
+
+  return (
+    <div className={`player2-health-bar ${status.status}`}>
+      <div className="player2-health-left">
+        <span className="player2-health-dot" aria-hidden="true" />
+        <span className="player2-health-text">{statusLabel}</span>
+        {statusDetail && <span className="player2-health-detail">{statusDetail}</span>}
+      </div>
+      <button type="button" className="player2-health-refresh" onClick={onCheck}>
+        {t('connection.player2HealthRefresh', 'Refresh')}
+      </button>
     </div>
   );
 };
@@ -139,6 +183,8 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
     onMakePreset,
   } = props;
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
+  const player2Health = useConfigStore((state) => state.player2Health);
+  const checkPlayer2Health = useConfigStore((state) => state.checkPlayer2Health);
 
   const updateEditingConfig = useConfigStore((state) => state.updateEditingConfig);
   const handleSelectCK3Folder = async () => {
@@ -160,6 +206,12 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
   };
+
+  useEffect(() => {
+    if (config.providerType === 'player2') {
+      checkPlayer2Health();
+    }
+  }, [config.providerType, checkPlayer2Health]);
 
   const hasSelectedPath = appSettings?.ck3UserFolderPath && appSettings.ck3UserFolderPath.trim() !== '';
 
@@ -192,7 +244,10 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
         {SpecificProviderFields && <SpecificProviderFields config={config} onInputChange={onInputChange} />}
         
         {config.providerType === 'player2' ? (
-          <Player2OpenAppButton />
+          <>
+            <Player2OpenAppButton />
+            <Player2HealthStatusBar status={player2Health} onCheck={checkPlayer2Health} />
+          </>
         ) : (
           <ModelSelector
             config={config}

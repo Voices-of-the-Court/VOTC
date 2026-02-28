@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   setActiveProvider: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setActiveProvider', instanceId),
   listModels: (): Promise<ILLMModel[] | { error: string }> => ipcRenderer.invoke('llm:listModels'),
   testConnection: (): Promise<{success: boolean, error?: string, message?: string}> => ipcRenderer.invoke('llm:testConnection'),
+  checkPlayer2Health: (): Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}> => ipcRenderer.invoke('llm:checkPlayer2Health'),
   setCK3Folder: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setCK3Folder', path),
   setModLocationPath: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setModLocationPath', path),
   selectFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:selectFolder'),

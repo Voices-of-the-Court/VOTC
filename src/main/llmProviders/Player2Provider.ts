@@ -11,6 +11,9 @@ import OpenAI from 'openai'; // Import OpenAI SDK
 export class Player2Provider extends BaseProvider {
   providerId = 'player2';
   name = 'Player2';
+  private readonly player2BaseUrl = 'http://127.0.0.1:4315/v1';
+  private readonly player2GameKey = '019b93eb-33ae-7e7e-ae21-0a1903c63ebb';
+  private readonly player2HealthUrl = this.player2BaseUrl + '/health';
 
   /**
    * Override validateConfig to skip API key requirement for Player2
@@ -53,7 +56,10 @@ export class Player2Provider extends BaseProvider {
     ): ILLMOutput {
       const openAIClient = new OpenAI({
         apiKey: "sk-dummy-key",
-        baseURL: 'http://127.0.0.1:4315/v1',
+        baseURL: this.player2BaseUrl,
+        defaultHeaders: {
+          'player2-game-key': this.player2GameKey,
+        },
       });
   
       const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
@@ -259,6 +265,60 @@ private async _nonStreamChatCompletion(
       console.error('Player2 testConnection error:', e);
       return { success: false, error: e.message || 'Unknown error during Player2 test connection.' };
     }
+  }
+
+  async checkHealth(): Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}> {
+    try {
+      const baseHeaders = {
+        Accept: 'application/json',
+        'player2-game-key': this.player2GameKey,
+      };
+
+      const response = await fetch(this.player2HealthUrl, {
+        method: 'GET',
+      });
+
+      return await this.handleHealthErrorResponse(response);
+    } catch (error: any) {
+      console.error('[Player2Provider] Health check error:', error);
+      return { success: false, error: error.message || 'Unable to reach Player2 health endpoint.' };
+    }
+  }
+
+  private async handleHealthErrorResponse(
+    response: Response
+  ): Promise<{success: boolean, error?: string, message?: string, code?: number}> {
+    if (response.status === 200) {
+      return { success: true };
+    }
+
+    if (response.status === 401) {
+      return { success: false, code: 401, error: 'Authentication required in Player2 App.' };
+    }
+
+    if (response.status === 402) {
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
+      return { success: false, code: 402, error: data.message || 'Insufficient credits.' };
+    }
+
+    if (response.status === 429) {
+      return { success: false, code: 429, error: 'Too many requests. Please try again.' };
+    }
+
+    if (response.status >= 500) {
+      return { success: false, code: response.status, error: 'Player2 server error.' };
+    }
+
+    if (response.status === 404) {
+      return {
+        success: false,
+        code: 404,
+        error: 'Health endpoint not found. Check Player2 app version or base URL.',
+      };
+    }
+
+    const fallback = await response.text().catch(() => 'Unknown error');
+    return { success: false, code: response.status, error: fallback || 'Unknown error.' };
   }
 }
 

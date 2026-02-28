@@ -67,6 +67,7 @@ declare global {
       setActiveProvider: (instanceId: string | null) => Promise<void>;
       listModels: () => Promise<ILLMModel[] | { error: string }>;
       testConnection: () => Promise<{success: boolean, error?: string, message?: string}>;
+      checkPlayer2Health: () => Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}>;
       setCK3Folder: (path: string | null) => Promise<void>;
       setModLocationPath: (path: string | null) => Promise<void>;
       selectFolder: () => Promise<string | null>;

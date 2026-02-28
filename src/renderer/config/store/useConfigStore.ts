@@ -28,6 +28,13 @@ interface ConfigStore {
   
   // UI state
   testResult: { success: boolean; message?: string; error?: string } | null;
+  player2Health: {
+    status: 'idle' | 'checking' | 'healthy' | 'error';
+    clientVersion?: string;
+    error?: string;
+    code?: number;
+    message?: string;
+  } | null;
   
   // Auto-save
   autoSaveTimer: NodeJS.Timeout | null;
@@ -58,6 +65,7 @@ interface ConfigStore {
   
   testConnection: () => Promise<void>;
   setTestResult: (result: ConfigStore['testResult']) => void;
+  checkPlayer2Health: () => Promise<void>;
   
   createPreset: (name: string) => Promise<void>;
   deletePreset: (id: string) => Promise<void>;
@@ -135,6 +143,7 @@ export const useConfigStore = create<ConfigStore>()(
       actionsProviderInstanceId: null,
       summaryProviderInstanceId: null,
       testResult: null,
+      player2Health: null,
       autoSaveTimer: null,
       promptSettings: null,
       letterPromptSettings: null,
@@ -244,13 +253,14 @@ export const useConfigStore = create<ConfigStore>()(
           ...DEFAULT_PROVIDER_CONFIGS[type],
         };
         
-        set({
+        set((state) => ({
           selectedProviderType: type,
           selectedPresetId: null,
           editingConfig: config,
           initialConfig: config,
           testResult: null,
-        });
+          player2Health: type === 'player2' ? (state.player2Health ?? { status: 'checking' }) : null,
+        }));
         
         // Set active provider
         await window.llmConfigAPI.setActiveProvider(type);
@@ -278,13 +288,14 @@ export const useConfigStore = create<ConfigStore>()(
         const preset = appSettings.llmSettings.presets.find(p => p.instanceId === id);
         if (!preset) return;
         
-        set({
+        set((state) => ({
           selectedProviderType: null,
           selectedPresetId: id,
           editingConfig: preset,
           initialConfig: preset,
           testResult: null,
-        });
+          player2Health: preset.providerType === 'player2' ? (state.player2Health ?? { status: 'checking' }) : null,
+        }));
         
         // Set active provider
         await window.llmConfigAPI.setActiveProvider(id);
@@ -403,6 +414,16 @@ export const useConfigStore = create<ConfigStore>()(
         set({ testResult: null });
         const result = await window.llmConfigAPI.testConnection();
         set({ testResult: result });
+      },
+
+      checkPlayer2Health: async () => {
+        set({ player2Health: { status: 'checking' } });
+        const result = await window.llmConfigAPI.checkPlayer2Health();
+        if (result.success) {
+          set({ player2Health: { status: 'healthy', clientVersion: result.client_version } });
+        } else {
+          set({ player2Health: { status: 'error', error: result.error || result.message, code: result.code } });
+        }
       },
 
       setTestResult: (result) => {

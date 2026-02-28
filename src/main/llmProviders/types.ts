@@ -103,6 +103,8 @@ export interface ILLMProvider {
   listModels?(config: LLMProviderConfig): Promise<ILLMModel[]>;
 
   testConnection?(config: LLMProviderConfig): Promise<{success: boolean, error?: string, message?: string}>;
+
+  checkHealth?(): Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}>;
 }
 
 // --- Provider Configurations ---

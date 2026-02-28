@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
+import { providerRegistry } from './llmProviders/ProviderRegistry';
 import { conversationManager } from './conversation/ConversationManager';
 import { LLMProviderConfig, PromptPreset, PromptSettings } from './llmProviders/types';
 import { ClipboardListener } from './ClipboardListener';
@@ -318,6 +319,24 @@ const setupIpcHandlers = () => {
   ipcMain.handle('llm:testConnection', async () => {
      return await llmManager.testProviderConnection();
      // Errors are caught within testProviderConnection and returned in the result object
+  });
+
+  ipcMain.handle('llm:checkPlayer2Health', async () => {
+    const config = settingsRepository.getActiveProviderConfig();
+    if (!config || config.providerType !== 'player2') {
+      return { success: false, error: 'Player2 is not the active provider.' };
+    }
+
+    try {
+      const provider = providerRegistry.createProvider(config) as any;
+      if (provider?.checkHealth) {
+        return await provider.checkHealth();
+      }
+      return { success: false, error: 'Provider does not support health check.' };
+    } catch (error: any) {
+      console.error(`Error checking Player2 health (${config.customName || config.providerType}):`, error);
+      return { success: false, error: error.message || 'Unknown error during Player2 health check.' };
+    }
   });
 
   ipcMain.handle('llm:setCK3Folder', async (_, path: string | null) => {
