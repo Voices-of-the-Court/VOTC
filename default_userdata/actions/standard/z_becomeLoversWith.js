@@ -135,7 +135,7 @@ module.exports = {
           ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は恋人になります`,
           ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 연인이 됩니다`,
           pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} staną się kochankami`,
-          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为恋人`
+          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为情人`
         },
         sentiment: 'positive'
       };

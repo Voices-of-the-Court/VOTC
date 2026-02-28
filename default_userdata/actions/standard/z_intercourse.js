@@ -99,7 +99,7 @@ module.exports = {
           ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}と性行為をします`,
           ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}과(와) 성관계를 가질 것입니다`,
           pl: `${sourceCharacter.shortName} odbędzie stosunek seksualny z ${targetCharacter.shortName}`,
-          zh: `${sourceCharacter.shortName}将与${targetCharacter.shortName}发生性行为`
+          zh: `${sourceCharacter.shortName}将与${targetCharacter.shortName}共度春宵`
         },
         sentiment: 'neutral'
       };

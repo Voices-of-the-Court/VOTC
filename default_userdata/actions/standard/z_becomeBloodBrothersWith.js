@@ -148,7 +148,7 @@ module.exports = {
           ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は血の盟友になります`,
           ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 결의 형제가 됩니다`,
           pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} staną się braćmi krwi`,
-          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为结拜兄弟`
+          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为结义兄弟`
         },
         sentiment: 'positive'
       };

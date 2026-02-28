@@ -153,7 +153,7 @@ module.exports = {
           ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}はライバルになります`,
           ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 라이벌이 됩니다`,
           pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} staną się rywalami`,
-          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为对手`
+          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为仇敌`
         },
         sentiment: 'negative'
       };

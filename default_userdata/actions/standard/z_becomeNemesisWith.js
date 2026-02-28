@@ -149,7 +149,7 @@ module.exports = {
           ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は宿敵になります`,
           ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 숙적이 됩니다`,
           pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} staną się wrogami`,
-          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为宿敌`
+          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为死敌`
         },
         sentiment: 'negative'
       };
