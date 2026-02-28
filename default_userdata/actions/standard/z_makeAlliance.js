@@ -13,7 +13,7 @@ module.exports = {
         ja: "文字は、相互の軍事同盟に合意しました",
         ko: "캐릭터들은 상호 군사 동맹에 동의했습니다.",
         pl: "Postaci zgadzają sie na wojenne alianje",
-        zh: "角色达成同盟",
+        zh: "缔结军事同盟",
     },
     isDestructive: true,
 
@@ -86,7 +86,7 @@ global_var:votc_action_target = {
         ja: `${sourceCharacter.shortName} と ${targetCharacter.shortName} は、相互の軍事同盟に合意しました`,
         ko: `${sourceCharacter.shortName} 와 ${targetCharacter.shortName}는 상호 군사 동맹에 동의했습니다.`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} zgadzają sie na wojenne alianje`,
-        zh: `${sourceCharacter.shortName} 和 ${targetCharacter.shortName} 同意同盟`,
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}达成了军事同盟`,
         
       },
       sentiment: "positive"

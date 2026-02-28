@@ -10,7 +10,7 @@ module.exports = {
     ja: "ソースがターゲットの宮廷に騎士として加入",
     ko: "출처가 대상의 궁정에 기사로 채용됨",
     pl: "Źródło dołącza do dworu celu jako rycerz",
-    zh: "源角色以骑士身份加入目标的宫廷"
+    zh: "以骑士身份加入目标的宫廷"
   },
 
   /**

@@ -66,7 +66,7 @@ module.exports = {
     ja: "血の盟友になる",
     ko: "결의 형제가 되다",
     pl: "Zostać braćmi krwi",
-    zh: "成为结拜兄弟"
+    zh: "成为结义兄弟"
   },
 
   /**
@@ -166,7 +166,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は血の盟友になりました`,
         ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 결의 형제가 되었습니다`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} stali się braćmi krwi`,
-        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了结拜兄弟`
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了结义兄弟`
       },
       sentiment: 'positive'
     };

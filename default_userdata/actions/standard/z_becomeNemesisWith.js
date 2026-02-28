@@ -65,7 +65,7 @@ module.exports = {
     ja: "宿敵になる",
     ko: "숙적이 되다",
     pl: "Zostać wrogami",
-    zh: "成为宿敌"
+    zh: "成为死敌"
   },
 
   /**
@@ -166,7 +166,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は宿敵になりました`,
         ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 숙적이 되었습니다`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} stali się wrogami`,
-        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了宿敌`
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了死敌`
       },
       sentiment: 'negative'
     };
