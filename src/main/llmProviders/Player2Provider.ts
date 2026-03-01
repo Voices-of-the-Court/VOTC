@@ -276,6 +276,7 @@ private async _nonStreamChatCompletion(
 
       const response = await fetch(this.player2HealthUrl, {
         method: 'GET',
+        headers: baseHeaders,
       });
 
       return await this.handleHealthErrorResponse(response);
