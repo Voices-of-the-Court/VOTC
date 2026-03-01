@@ -10,7 +10,7 @@ module.exports = {
     ja: "ターゲットの感情を設定",
     ko: "대상 감정 설정",
     pl: "Ustaw emocję celu",
-    zh: "设置目标情绪"
+    zh: "设置角色表情"
   },
 
   /**

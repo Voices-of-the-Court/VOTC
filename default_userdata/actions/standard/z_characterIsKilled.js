@@ -10,7 +10,7 @@ module.exports = {
     ja: "ソースキャラクターが殺される",
     ko: "출처 캐릭터가 살해됨",
     pl: "Postać źródłowa jest zabita",
-    zh: "源角色被杀"
+    zh: "角色被杀害"
   },
   isDestructive: true,
 
@@ -71,7 +71,7 @@ module.exports = {
           ja: "失敗: 殺害者が指定されていません",
           ko: "실패: 살인자가 지정되지 않았습니다",
           pl: "Niepowodzenie: Nie określono zabójcy",
-          zh: "失败: 未指定杀手"
+          zh: "失败: 未指定凶手"
         },
         sentiment: 'negative'
       };
@@ -98,7 +98,7 @@ root = {
           ja: `${gameData.playerName}は${targetCharacter.shortName}に殺されました`,
           ko: `${gameData.playerName}은(는) ${targetCharacter.shortName}에 의해 살해되었습니다`,
           pl: `${gameData.playerName} został zabity przez ${targetCharacter.shortName}`,
-          zh: `${gameData.playerName}被${targetCharacter.shortName}杀害`
+          zh: `${gameData.playerName}被${targetCharacter.shortName}杀害了`
         },
         sentiment: 'negative'
       };
@@ -121,7 +121,7 @@ global_var:votc_action_source = {
           ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}に殺されました`,
           ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}에 의해 살해되었습니다`,
           pl: `${sourceCharacter.shortName} został zabity przez ${targetCharacter.shortName}`,
-          zh: `${sourceCharacter.shortName}被${targetCharacter.shortName}杀害`
+          zh: `${sourceCharacter.shortName}被${targetCharacter.shortName}杀害了`
         },
         sentiment: 'negative'
       };

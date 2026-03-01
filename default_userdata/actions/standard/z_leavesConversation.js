@@ -83,7 +83,7 @@ module.exports = {
                     ja: "失敗: アクティブな会話がありません",
                     ko: "실패: 활성 대화가 없습니다",
                     pl: "Niepowodzenie: Brak aktywnej rozmowy",
-                    zh: "失败: 没有活动的对话"
+                    zh: "失败: 当前无活跃对话"
                 },
                 sentiment: 'negative'
             };
@@ -101,7 +101,7 @@ module.exports = {
                     ja: `${targetCharacter.shortName}は会話を離れます`,
                     ko: `${targetCharacter.shortName}은(는) 대화를 떠날 것입니다`,
                     pl: `${targetCharacter.shortName} opuści rozmowę`,
-                    zh: `${targetCharacter.shortName}将离开对话`
+                    zh: `${targetCharacter.shortName}即将离开对话`
                 },
                 sentiment: 'neutral'
             };
@@ -303,7 +303,7 @@ if ={
                     ja: `${targetCharacter.shortName}は会話を離れました`,
                     ko: `${targetCharacter.shortName}은(는) 대화를 떠났습니다`,
                     pl: `${targetCharacter.shortName} opuścił rozmowę`,
-                    zh: `${targetCharacter.shortName}已经离开了对话`
+                    zh: `${targetCharacter.shortName}已离开对话`
                 },
                 sentiment: 'neutral'
             };

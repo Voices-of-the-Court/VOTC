@@ -1,6 +1,19 @@
 /** @import { GameData, Character } from '../../gamedata_typedefs.js' */
 
-const COUNCIL_POSITIONS = ["chancellor", "steward", "marshal", "spymaster", "court_chaplain"];
+const COUNCIL_POSITIONS = ["chancellor", "steward", "marshal", "spymaster", "court_chaplain", "minister_works", "minister_justice", "minister_personnel", "minister_grand_marshal"];
+
+// CK3 official Simplified Chinese council position names and TGP names
+const COUNCIL_POSITION_ZH = {
+  "chancellor": "掌玺大臣（宰相）",
+  "steward": "财政总管（户部尚书）",
+  "marshal": "军事统帅（兵部尚书）",
+  "spymaster": "间谍首脑（御史大夫）",
+  "court_chaplain": "宫廷祭司（礼部尚书）",
+  "minister_works": "工部尚书",
+  "minister_justice": "刑部尚书",
+  "minister_personnel": "吏部尚书",
+  "minister_grand_marshal": "枢密使"
+};
 
 module.exports = {
   signature: "isAssignedToCouncilBy",
@@ -13,7 +26,7 @@ module.exports = {
     ja: "ソースがターゲットの評議会に任命",
     ko: "출처가 대상의 평의회에 임명됨",
     pl: "Źródło przypisane do rady celu",
-    zh: "源角色被任命到目标的议会"
+    zh: "被任命至目标的内阁"
   },
 
   /**
@@ -24,7 +37,7 @@ module.exports = {
     {
       name: "council_position",
       type: "enum",
-      description: `The council position to which ${sourceCharacter.shortName} is assigned. Options: chancellor, steward, marshal, spymaster, court_chaplain.`,
+      description: `The council position to which ${sourceCharacter.shortName} is assigned. Options: chancellor, steward, marshal, spymaster, court_chaplain, minister_works, minister_justice, minister_personnel, minister_grand_marshal.`,
       required: true,
       options: COUNCIL_POSITIONS
     },
@@ -42,7 +55,8 @@ module.exports = {
    */
   description: ({ gameData, sourceCharacter }) =>
     `Execute when ${sourceCharacter.shortName} is appointed to the target character's council. Target must be a landed ruler.
-    If isPlayerSource is true, ${gameData.playerName} will be assigned instead of ${sourceCharacter.shortName}.`,
+    If isPlayerSource is true, ${gameData.playerName} will be assigned instead of ${sourceCharacter.shortName}.
+    [Language mapping context for AI]: chancellor(掌玺大臣/宰相), steward(财政总管/户部尚书), marshal(军事统帅/兵部尚书), spymaster(间谍首脑/御史大夫), court_chaplain(宫廷祭司/礼部尚书), minister_works(工部尚书), minister_justice(刑部尚书), minister_personnel(吏部尚书), minister_grand_marshal(枢密使).`,
 
   /**
    * @param {object} params
@@ -101,7 +115,7 @@ module.exports = {
           ja: `失敗: ${targetCharacter.shortName}は領主ではなく、評議会を持つことができません`,
           ko: `실패: ${targetCharacter.shortName}은(는) 영주가 아니며 평의회를 가질 수 없습니다`,
           pl: `Niepowodzenie: ${targetCharacter.shortName} nie jest władcą lądowym i nie może mieć rady`,
-          zh: `失败: ${targetCharacter.shortName}不是领主，不能拥有议会`
+          zh: `失败: ${targetCharacter.shortName}没有封地，无法拥有内阁`
         },
         sentiment: 'negative'
       };
@@ -122,7 +136,7 @@ module.exports = {
           ja: `失敗: 無効な評議会の位置 "${position}"`,
           ko: `실패: 잘못된 평의회 위치 "${position}"`,
           pl: `Niepowodzenie: Nieprawidłowa pozycja rady "${position}"`,
-          zh: `失败: 无效的议会职位 "${position}"`
+          zh: `失败: 无效的内阁职位 "${position}"`
         },
         sentiment: 'negative'
       };
@@ -135,18 +149,47 @@ module.exports = {
       "steward": "councillor_steward",
       "marshal": "councillor_marshal",
       "spymaster": "councillor_spymaster",
-      "court_chaplain": "councillor_court_chaplain"
+      "court_chaplain": "councillor_court_chaplain",
+      "minister_works": "minister_works",
+      "minister_justice": "minister_justice",
+      "minister_personnel": "minister_personnel",
+      "minister_grand_marshal": "minister_grand_marshal"
+    };
+
+    const positionTitleMap = {
+      "chancellor": "e_minister_chancellor",
+      "steward": "e_minister_of_revenue",
+      "marshal": "e_minister_of_war",
+      "spymaster": "e_minister_censor",
+      "court_chaplain": "e_minister_of_rites",
+      "minister_works": "e_minister_of_works",
+      "minister_justice": "e_minister_of_justice",
+      "minister_personnel": "e_minister_of_personnel",
+      "minister_grand_marshal": "e_minister_grand_marshal"
     };
 
     const councillorType = positionMap[position];
+    const councillorTitleRole = positionTitleMap[position];
+    const positionZh = COUNCIL_POSITION_ZH[position] || position;
 
     if (!isPlayerSource) {
       runGameEffect(`
 global_var:votc_action_target = {
-    fire_councillor = cp:${councillorType}
-    assign_councillor_type = {
-        type = ${councillorType}
-        target = global_var:votc_action_source
+    save_scope_as = councillor_liege
+    if = {
+        limit = {
+            tgp_has_access_to_ministry_trigger = yes
+        }
+        global_var:votc_action_source = {
+            got_minister_position_effect = { MINISTER_TITLE = ${councillorTitleRole} MINISTER_POSITION = ${councillorType} }
+        }
+    }
+    else = {
+        fire_councillor = cp:${councillorType}
+        assign_councillor_type = {
+            type = ${councillorType}
+            target = global_var:votc_action_source
+        }
     }
 }`);
 
@@ -160,17 +203,28 @@ global_var:votc_action_target = {
           ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}の評議会に${position}として任命されました`,
           ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}의 평의회에 ${position}(으)로 임명되었습니다`,
           pl: `${sourceCharacter.shortName} został przypisany jako ${position} do rady ${targetCharacter.shortName}`,
-          zh: `${sourceCharacter.shortName}被任命为${position}加入${targetCharacter.shortName}的议会`
+          zh: `${sourceCharacter.shortName}被任命为${positionZh}，加入${targetCharacter.shortName}的内阁`
         },
         sentiment: 'positive'
       };
     } else {
       runGameEffect(`
 global_var:votc_action_target = {
-    fire_councillor = cp:${councillorType}
-    assign_councillor_type = {
-        type = ${councillorType}
-        target = root
+    save_scope_as = councillor_liege
+    if = {
+        limit = {
+            tgp_has_access_to_ministry_trigger = yes
+        }
+        root = {
+            got_minister_position_effect = { MINISTER_TITLE = ${councillorTitleRole} MINISTER_POSITION = ${councillorType} }
+        }
+    }
+    else = {
+        fire_councillor = cp:${councillorType}
+        assign_councillor_type = {
+            type = ${councillorType}
+            target = root
+        }
     }
 }`);
 
@@ -184,7 +238,7 @@ global_var:votc_action_target = {
           ja: `${gameData.playerName}は${targetCharacter.shortName}の評議会に${position}として任命されました`,
           ko: `${gameData.playerName}은(는) ${targetCharacter.shortName}의 평의회에 ${position}(으)로 임명되었습니다`,
           pl: `${gameData.playerName} został przypisany jako ${position} do rady ${targetCharacter.shortName}`,
-          zh: `${gameData.playerName}被任命为${position}加入${targetCharacter.shortName}的议会`
+          zh: `${gameData.playerName}被任命为${positionZh}，加入${targetCharacter.shortName}的内阁`
         },
         sentiment: 'positive'
       };

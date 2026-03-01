@@ -121,8 +121,9 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
    * @param {string} params.lang - Language code for i18n
+   * @param {boolean} params.dryRun - If true, only preview without executing
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang, dryRun }) => {
     if (!targetCharacter) {
       return {
         message: {
@@ -137,6 +138,24 @@ module.exports = {
           zh: "失败: 未指定目标角色"
         },
         sentiment: 'negative'
+      };
+    }
+
+    // Dry run - return preview without executing
+    if (dryRun) {
+      return {
+        message: {
+          en: `${sourceCharacter.shortName} and ${targetCharacter.shortName} will become soulmates`,
+          ru: `${sourceCharacter.shortName} и ${targetCharacter.shortName} станут душами-сородичами`,
+          fr: `${sourceCharacter.shortName} et ${targetCharacter.shortName} deviendront âmes sœurs`,
+          de: `${sourceCharacter.shortName} und ${targetCharacter.shortName} werden Seelenverwandte`,
+          es: `${sourceCharacter.shortName} y ${targetCharacter.shortName} se convertirán en almas gemelas`,
+          ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}はソウルメイトになります`,
+          ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 소울메이트가 됩니다`,
+          pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} staną się bratnimi duszami`,
+          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为灵魂伴侣`
+        },
+        sentiment: 'positive'
       };
     }
 
@@ -170,7 +189,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}はソウルメイトになりました`,
         ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 소울메이트가 되었습니다`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} stali się bratnimi duszami`,
-        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了灵魂伴侣`
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}结为了灵魂伴侣`
       },
       sentiment: 'positive'
     };

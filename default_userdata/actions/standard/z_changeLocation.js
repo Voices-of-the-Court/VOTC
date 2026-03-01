@@ -86,7 +86,7 @@ module.exports = {
     ja: "シーンの場所を変更",
     ko: "장면 장소 변경",
     pl: "Zmień lokalizację sceny",
-    zh: "更改场景位置"
+    zh: "切换场景"
   },
 
   /**
@@ -145,7 +145,7 @@ module.exports = {
           ja: `失敗: 場所が指定されていません。引数: ${JSON.stringify(args)}`,
           ko: `실패: 장소가 지정되지 않았습니다. 인수: ${JSON.stringify(args)}`,
           pl: `Niepowodzenie: Nie określono lokalizacji. Argumenty: ${JSON.stringify(args)}`,
-          zh: `失败: 未指定位置。参数: ${JSON.stringify(args)}`
+          zh: `失败: 未指定场景`
         },
         sentiment: 'negative',
       };
@@ -162,7 +162,7 @@ module.exports = {
           ja: `失敗: 無効な場所 "${location}"`,
           ko: `실패: 잘못된 장소 "${location}"`,
           pl: `Niepowodzenie: Nieprawidłowa lokalizacja "${location}"`,
-          zh: `失败: 无效的位置 "${location}"`
+          zh: `失败: 无效的场景 "${location}"`
         },
         sentiment: 'negative',
       };
@@ -180,7 +180,7 @@ module.exports = {
         ja: `シーンが ${location.replace(/_/g, ' ')} に変更されました`,
         ko: `장면이 ${location.replace(/_/g, ' ')}(으)로 변경되었습니다`,
         pl: `Scena zmieniona na ${location.replace(/_/g, ' ')}`,
-        zh: `场景已更改为 ${location.replace(/_/g, ' ')}`
+        zh: `场景已切换至${location.replace(/_/g, ' ')}`
       },
       sentiment: 'neutral',
     };

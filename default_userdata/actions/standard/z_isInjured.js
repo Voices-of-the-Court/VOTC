@@ -110,7 +110,7 @@ const TRAIT_NAMES = {
     ko: "수염 없는 환관",
     pl: "Bezbrody eunuch",
     ru: "Безбородый евнух",
-    zh: "无须阉人"
+    zh: "稚阉"
   },
   lunatic_1: {
     en: "Lunatic",
@@ -160,7 +160,7 @@ module.exports = {
     ja: "ターゲットが負傷",
     ko: "대상이 부상함",
     pl: "Cel jest ranny",
-    zh: "目标受伤"
+    zh: "角色受伤"
   },
 
   /**
@@ -206,8 +206,9 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
    * @param {string} params.lang - Language code for i18n
+   * @param {boolean} params.dryRun - If true, return preview without state modifications
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang = "en" }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, dryRun, lang = "en" }) => {
     if (!targetCharacter) {
       return {
         message: {
@@ -226,6 +227,95 @@ module.exports = {
     }
 
     const injuryType = typeof args?.injuryType === "string" ? args.injuryType.toLowerCase().trim() : "wounded";
+
+    // If this is a dry run (preview), just return the preview message without state modifications
+    if (dryRun) {
+      let previewMessage = "";
+      switch (injuryType) {
+        case "remove_eye":
+          previewMessage = {
+            en: `${targetCharacter.shortName} will lose an eye`,
+            ru: `${targetCharacter.shortName} потеряет глаз`,
+            fr: `${targetCharacter.shortName} perdra un œil`,
+            de: `${targetCharacter.shortName} wird ein Auge verlieren`,
+            es: `${targetCharacter.shortName} perderá un ojo`,
+            ja: `${targetCharacter.shortName}は片目を失います`,
+            ko: `${targetCharacter.shortName}은(는) 눈 하나를 잃게 됩니다`,
+            pl: `${targetCharacter.shortName} straci oko`,
+            zh: `${targetCharacter.shortName}的眼睛将被摘除`
+          };
+          break;
+        case "blind":
+          previewMessage = {
+            en: `${targetCharacter.shortName} will be blinded`,
+            ru: `${targetCharacter.shortName} будет ослеплен`,
+            fr: `${targetCharacter.shortName} sera aveuglé`,
+            de: `${targetCharacter.shortName} wird geblendet`,
+            es: `${targetCharacter.shortName} quedará ciego`,
+            ja: `${targetCharacter.shortName}は盲目になります`,
+            ko: `${targetCharacter.shortName}은(는) 실명하게 됩니다`,
+            pl: `${targetCharacter.shortName} straci wzrok`,
+            zh: `${targetCharacter.shortName}将失明`
+          };
+          break;
+        case "cut_leg":
+          previewMessage = {
+            en: `${targetCharacter.shortName} will lose a leg`,
+            ru: `${targetCharacter.shortName} потеряет ногу`,
+            fr: `${targetCharacter.shortName} perdra une jambe`,
+            de: `${targetCharacter.shortName} wird ein Bein verlieren`,
+            es: `${targetCharacter.shortName} perderá una pierna`,
+            ja: `${targetCharacter.shortName}は脚を失います`,
+            ko: `${targetCharacter.shortName}은(는) 다리를 잃게 됩니다`,
+            pl: `${targetCharacter.shortName} straci nogę`,
+            zh: `${targetCharacter.shortName}的腿将被切断`
+          };
+          break;
+        case "cut_balls":
+          previewMessage = {
+            en: `${targetCharacter.shortName} will be castrated`,
+            ru: `${targetCharacter.shortName} будет кастрирован`,
+            fr: `${targetCharacter.shortName} sera castré`,
+            de: `${targetCharacter.shortName} wird kastriert`,
+            es: `${targetCharacter.shortName} será castrado`,
+            ja: `${targetCharacter.shortName}は去勢されます`,
+            ko: `${targetCharacter.shortName}은(는) 거세당하게 됩니다`,
+            pl: `${targetCharacter.shortName} zostanie wykastrowany`,
+            zh: `${targetCharacter.shortName}将被阉割`
+          };
+          break;
+        case "disfigured":
+          previewMessage = {
+            en: `${targetCharacter.shortName} will be disfigured`,
+            ru: `${targetCharacter.shortName} будет изуродован`,
+            fr: `${targetCharacter.shortName} sera défiguré`,
+            de: `${targetCharacter.shortName} wird entstellt`,
+            es: `${targetCharacter.shortName} será desfigurado`,
+            ja: `${targetCharacter.shortName}は醜くなります`,
+            ko: `${targetCharacter.shortName}은(는) 흉측하게 됩니다`,
+            pl: `${targetCharacter.shortName} zostanie oszpecony`,
+            zh: `${targetCharacter.shortName}将会被严重毁容`
+          };
+          break;
+        default:
+          previewMessage = {
+            en: `${targetCharacter.shortName} will be injured`,
+            ru: `${targetCharacter.shortName} будет ранен`,
+            fr: `${targetCharacter.shortName} sera blessé`,
+            de: `${targetCharacter.shortName} wird verletzt`,
+            es: `${targetCharacter.shortName} resultará herido`,
+            ja: `${targetCharacter.shortName}は負傷します`,
+            ko: `${targetCharacter.shortName}은(는) 부상당하게 됩니다`,
+            pl: `${targetCharacter.shortName} zostanie ranny`,
+            zh: `${targetCharacter.shortName}将会受伤`
+          };
+          break;
+      }
+      return {
+        message: previewMessage,
+        sentiment: 'negative'
+      };
+    }
     const genderWords = GENDER_WORDS[lang] || GENDER_WORDS.en;
     const isMale = targetCharacter.sheHe === genderWords.he;
 

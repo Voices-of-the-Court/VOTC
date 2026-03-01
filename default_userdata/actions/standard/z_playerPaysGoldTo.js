@@ -78,8 +78,9 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
    * @param {string} params.lang - Language code for i18n
+   * @param {boolean} params.dryRun - If true, only preview without executing
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang = "en" }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang = "en", dryRun }) => {
     if (!targetCharacter) {
       return {
         message: {
@@ -151,6 +152,24 @@ module.exports = {
           zh: `失败: ${gameData.playerName}只有${player.gold}金币，无法支付${amount}`
         },
         sentiment: 'negative'
+      };
+    }
+
+    // Dry run - return preview without executing
+    if (dryRun) {
+      return {
+        message: {
+          en: `${gameData.playerName} will pay ${amount} gold to ${targetCharacter.shortName}`,
+          ru: `${gameData.playerName} заплатит ${amount} золота ${targetCharacter.shortName}`,
+          fr: `${gameData.playerName} paiera ${amount} or à ${targetCharacter.shortName}`,
+          de: `${gameData.playerName} wird ${amount} Gold an ${targetCharacter.shortName} zahlen`,
+          es: `${gameData.playerName} pagará ${amount} oro a ${targetCharacter.shortName}`,
+          ja: `${gameData.playerName}は${targetCharacter.shortName}に${amount}金を支払います`,
+          ko: `${gameData.playerName}은(는) ${targetCharacter.shortName}에게 ${amount}골드를 지불할 것입니다`,
+          pl: `${gameData.playerName} zapłaci ${amount} złota ${targetCharacter.shortName}`,
+          zh: `${gameData.playerName}将向${targetCharacter.shortName}支付${amount}金币`
+        },
+        sentiment: 'neutral'
       };
     }
 

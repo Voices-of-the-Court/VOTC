@@ -10,7 +10,7 @@ module.exports = {
     ja: "ソースがターゲットに金を支払う",
     ko: "출처가 대상에게 골드 지급",
     pl: "Źródło płaci złoto do celu",
-    zh: "源角色向目标支付金币"
+    zh: "向目标支付金币"
   },
 
   /**
@@ -66,8 +66,9 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
    * @param {string} params.lang - Language code for i18n
+   * @param {boolean} params.dryRun - If true, only preview without executing
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang = "en" }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang = "en", dryRun }) => {
     if (!targetCharacter) {
       return {
         message: {
@@ -121,6 +122,24 @@ module.exports = {
           zh: `失败: ${sourceCharacter.shortName}只有${sourceCharacter.gold}金币，无法支付${amount}`
         },
         sentiment: 'negative'
+      };
+    }
+
+    // Dry run - return preview without executing
+    if (dryRun) {
+      return {
+        message: {
+          en: `${sourceCharacter.shortName} will pay ${amount} gold to ${targetCharacter.shortName}`,
+          ru: `${sourceCharacter.shortName} заплатит ${amount} золота ${targetCharacter.shortName}`,
+          fr: `${sourceCharacter.shortName} paiera ${amount} or à ${targetCharacter.shortName}`,
+          de: `${sourceCharacter.shortName} wird ${amount} Gold an ${targetCharacter.shortName} zahlen`,
+          es: `${sourceCharacter.shortName} pagará ${amount} oro a ${targetCharacter.shortName}`,
+          ja: `${sourceCharacter.shortName}は${targetCharacter.shortName}に${amount}金を支払います`,
+          ko: `${sourceCharacter.shortName}은(는) ${targetCharacter.shortName}에게 ${amount}골드를 지불할 것입니다`,
+          pl: `${sourceCharacter.shortName} zapłaci ${amount} złota ${targetCharacter.shortName}`,
+          zh: `${sourceCharacter.shortName}将向${targetCharacter.shortName}支付${amount}金币`
+        },
+        sentiment: 'neutral'
       };
     }
 

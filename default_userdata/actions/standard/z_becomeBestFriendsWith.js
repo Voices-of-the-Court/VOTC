@@ -65,7 +65,7 @@ module.exports = {
     ja: "親友になる",
     ko: "최고의 친구가 되다",
     pl: "Zostać najlepszymi przyjaciółmi",
-    zh: "成为挚友"
+    zh: "成为至交"
   },
 
   /**
@@ -117,8 +117,9 @@ module.exports = {
    * @param {Function} params.runGameEffect
    * @param {Record<string, number|string|boolean|null>} params.args
    * @param {string} params.lang - Language code for i18n
+   * @param {boolean} params.dryRun - If true, only preview without executing
    */
-  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang }) => {
+  run: ({ gameData, sourceCharacter, targetCharacter, runGameEffect, args, lang, dryRun }) => {
     if (!targetCharacter) {
       return {
         message: {
@@ -133,6 +134,24 @@ module.exports = {
           zh: "失败: 未指定目标角色"
         },
         sentiment: 'negative'
+      };
+    }
+
+    // Dry run - return preview without executing
+    if (dryRun) {
+      return {
+        message: {
+          en: `${sourceCharacter.shortName} and ${targetCharacter.shortName} will become best friends`,
+          ru: `${sourceCharacter.shortName} и ${targetCharacter.shortName} станут лучшими друзьями`,
+          fr: `${sourceCharacter.shortName} et ${targetCharacter.shortName} deviendront meilleurs amis`,
+          de: `${sourceCharacter.shortName} und ${targetCharacter.shortName} werden beste Freunde`,
+          es: `${sourceCharacter.shortName} y ${targetCharacter.shortName} se convertirán en mejores amigos`,
+          ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は親友になります`,
+          ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 최고의 친구가 됩니다`,
+          pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} staną się najlepszymi przyjaciółmi`,
+          zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}将成为挚友`
+        },
+        sentiment: 'positive'
       };
     }
 
@@ -166,7 +185,7 @@ global_var:votc_action_source = {
         ja: `${sourceCharacter.shortName}と${targetCharacter.shortName}は親友になりました`,
         ko: `${sourceCharacter.shortName}과(와) ${targetCharacter.shortName}은(는) 최고의 친구가 되었습니다`,
         pl: `${sourceCharacter.shortName} i ${targetCharacter.shortName} stali się najlepszymi przyjaciółmi`,
-        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了挚友`
+        zh: `${sourceCharacter.shortName}和${targetCharacter.shortName}成为了至交`
       },
       sentiment: 'positive'
     };

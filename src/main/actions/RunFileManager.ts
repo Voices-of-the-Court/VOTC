@@ -27,10 +27,22 @@ export class RunFileManager{
         }
         
         try {
+            const currentText = fs.readFileSync(this.path, 'utf-8');
+            console.log(`RunFileManager: Current text in run file: ${currentText}`);
+            
+            if (currentText.trim() === '') {
+                console.log(`RunFileManager: Run file is empty - writing to it: ${text}`);
             fs.writeFileSync(this.path, 
 `${text}
 root = {trigger_event = mcc_event_v2.9003}`, 'utf-8');
-            console.log(`RunFileManager: wrote to run file: ${text}`);
+            // console.log(`RunFileManager: wrote to run file: ${text}`);
+            } else {
+                console.log(`RunFileManager: Run file is not empty - prepending to it: ${text}`);
+                fs.writeFileSync(this.path, 
+`${text}
+${currentText}`, 'utf-8');
+            }
+            
         } catch (error) {
             console.error(`RunFileManager: Failed to write to file ${this.path}:`, error);
         }
