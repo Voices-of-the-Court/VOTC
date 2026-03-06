@@ -65,7 +65,7 @@ jobs:
       - name: Check if tag ${{ steps.version.outputs.version }} exists
         id: tag_check
         run: |
-          TAG="${{ steps.version.outputs.version }}"
+          TAG="v${{ steps.version.outputs.version }}"
           if git tag -l | grep -Fx "$TAG"; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "📌 Tag $TAG already exists – will update its release"
@@ -85,18 +85,19 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          TAG="v$VERSION"
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag "$VERSION"
-          git push origin "$VERSION"
-          echo "✅ Tag $VERSION created and pushed"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "✅ Tag $TAG created and pushed"
 
       - name: Create or update GitHub Release (using GitHub CLI)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          TAG="$VERSION"
+          TAG="v$VERSION"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "📦 Release $TAG exists – updating assets only"
             gh release upload "$TAG" dist/* --clobber
