@@ -363,6 +363,7 @@ export const useConfigStore = create<ConfigStore>()(
           defaultModel: editingConfig.defaultModel || '',
           defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
           customContextLength: editingConfig.customContextLength,
+          useMinimizedActionsSchema: editingConfig.useMinimizedActionsSchema,
         };
         
         try {
@@ -448,6 +449,7 @@ export const useConfigStore = create<ConfigStore>()(
           defaultModel: editingConfig.defaultModel || '',
           defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
           customContextLength: editingConfig.customContextLength,
+          useMinimizedActionsSchema: editingConfig.useMinimizedActionsSchema,
         };
         
         try {
