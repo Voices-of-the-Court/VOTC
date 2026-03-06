@@ -518,7 +518,16 @@ const ActionCommandInput: React.FC<ActionCommandInputProps> = ({
                 type={arg.type === 'number' ? 'number' : 'text'}
                 className="token-input"
                 value={argValue ?? ''}
-                onChange={(e) => setArgs(prev => ({ ...prev, [arg.name]: e.target.value }))}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  // For number type, parse as number; for text, keep as string
+                  if (arg.type === 'number') {
+                    const parsed = newValue === '' ? '' : parseFloat(newValue);
+                    setArgs(prev => ({ ...prev, [arg.name]: parsed }));
+                  } else {
+                    setArgs(prev => ({ ...prev, [arg.name]: newValue }));
+                  }
+                }}
                 onClick={(e) => e.stopPropagation()}
                 placeholder="..."
                 min={arg.min}
