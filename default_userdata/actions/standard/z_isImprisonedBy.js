@@ -23,13 +23,13 @@ module.exports = {
       name: "prisonType",
       type: "enum",
       description: `Type of prison ${sourceCharacter.shortName} is sent to. Possible values: house_arrest, dungeon.`,
-      required: true,
+      required: false,
       options: ["house_arrest", "dungeon"],
     },
     {
       name: "isPlayerSource",
-      type: "boolean",  // ← Add to args
-      description: `If true, ${gameData.playerName} is the one being imprisoned`,
+      type: "boolean",
+      description: `If true, ${gameData.playerName} is the one being imprisoned instead of ${sourceCharacter.shortName}.`,
       required: false,
     }
   ],
@@ -40,8 +40,8 @@ module.exports = {
    * @param {Character} params.sourceCharacter
    */
   description: ({ gameData, sourceCharacter }) =>
-    `Imprison ${sourceCharacter.shortName} by the chosen target (the jailor). Optionally specify prisonType: house_arrest, or dungeon.
-    If isPlayerSource is true, the ${gameData.playerName} will be imprisoned instead of ${sourceCharacter.shortName}.`,
+    `Execute when ${sourceCharacter.shortName} is imprisoned by the target (the jailor). Specify prisonType if needed (house_arrest or dungeon; defaults to dungeon).
+    If isPlayerSource is true, ${gameData.playerName} will be imprisoned instead.`,
 
   /**
    * @param {object} params
@@ -49,8 +49,6 @@ module.exports = {
    * @param {Character} params.sourceCharacter
    */
   check: ({ gameData, sourceCharacter }) => {
-    // Minimal logic per instructions: allow execution.
-    // Still provide valid targets so the model MUST choose a jailor.
     const allIds = Array.from(gameData.characters.keys());
     const validTargets = allIds.filter((id) => id !== sourceCharacter.id);
     return {

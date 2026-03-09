@@ -51,7 +51,6 @@ const VALID_LOCATIONS = [
   'wedding_ceremony',
   'involved_activity',
   'nursery',
-  'courtyard',
   'university',
   'catacombs',
   'condemned_village',

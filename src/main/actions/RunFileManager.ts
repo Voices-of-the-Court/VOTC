@@ -22,10 +22,20 @@ export class RunFileManager{
 
     write(text: string): void{
         if (!this.path) {
-            console.warn('RunFileManager: Cannot write - CK3 user folder is not configured');
-            return;
-        }
-        
+            if (!this.ck3UserPath) {
+                this.ck3UserPath = settingsRepository.getCK3UserFolderPath() || null;
+            }
+
+            if (!this.ck3UserPath) {
+                console.warn('RunFileManager: CK3 user folder path is not configured. Run file operations will be disabled.');
+                return;
+            }
+
+            this.createRunFolder(this.ck3UserPath);
+
+            this.path = path.join(this.ck3UserPath, 'run', 'votc.txt');
+            console.log(`RunFileManager: Successfully resolved votc.txt path: ${this.path}`);
+        }        
         try {
             const currentText = fs.readFileSync(this.path, 'utf-8');
             console.log(`RunFileManager: Current text in run file: ${currentText}`);

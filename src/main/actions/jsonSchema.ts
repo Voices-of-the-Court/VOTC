@@ -38,7 +38,7 @@ export function buildStructuredResponseJsonSchema(input: SchemaBuildInput, useMi
       args: buildArgsObjectSchema(action.args),
     };
 
-    const required: string[] = [];
+    const required: string[] = ["actionId", "args"];
 
     // targetCharacterId rules
     if (action.requiresTarget) {
