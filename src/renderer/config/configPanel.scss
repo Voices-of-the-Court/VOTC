@@ -656,7 +656,7 @@ hr {
       padding: 10px 12px;
       border-radius: 8px;
       margin-right: 20px;
-      border: 1px solid #555;
+      border: 1px solid #dc3545;
       color: #bbb;
       font-size: 0.85em;
       cursor: pointer;
@@ -682,8 +682,9 @@ hr {
       }
       
       &.selected {
-        border-color: #EFB16A;
+        border: 1px solid #EFB16A;
         box-shadow: 0 0 8px rgba(239, 177, 106, 0.6);
+
         background-color: rgba(0, 0, 0, 0.3);
         
         &:hover {
