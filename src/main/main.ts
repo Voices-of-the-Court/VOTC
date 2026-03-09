@@ -25,6 +25,7 @@ import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
 import './llmProviders/Player2Provider';
 import './llmProviders/DeepseekProvider';
+import './llmProviders/GeminiProvider';
 
 import { letterManager } from './letter/LetterManager';
 import archiver from 'archiver';

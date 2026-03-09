@@ -67,3 +67,15 @@ export const DeepseekConfigFieldsComponent: React.FC<CommonFieldProps> = ({ conf
         placeholder="sk-..."
     />
 );
+
+export const GeminiConfigFieldsComponent: React.FC<CommonFieldProps> = ({ config, onInputChange }) => (
+    <FormGroupInput
+        id="apiKey"
+        label="Google AI API Key:"
+        type="password"
+        name="apiKey"
+        value={config.apiKey || ''}
+        onChange={onInputChange}
+        placeholder="AIza..."
+    />
+);

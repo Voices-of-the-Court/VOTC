@@ -8,7 +8,7 @@ import ModelSelector from './ModelSelector';
 import ContextLengthField from './ContextLengthField';
 import FormGroupInput from './FormGroupInput';
 import Tooltip from './Tooltip';
-import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent, DeepseekConfigFieldsComponent } from './ConfigFields';
+import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent, DeepseekConfigFieldsComponent, GeminiConfigFieldsComponent } from './ConfigFields';
 
 const Player2OpenAppButton: React.FC = () => {
   const { t } = useTranslation();
@@ -160,6 +160,7 @@ const ProviderFieldComponents: Record<string, React.FC<CommonFieldProps>> = {
   'openai-compatible': OpenAICompatibleConfigFieldsComponent,
   ollama: OllamaConfigFieldsComponent,
   deepseek: DeepseekConfigFieldsComponent,
+  gemini: GeminiConfigFieldsComponent,
 };
 
 interface ProviderConfigPanelProps {

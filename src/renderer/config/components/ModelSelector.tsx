@@ -11,6 +11,7 @@ interface ModelSelectorProps {
 
 const getCacheKey = (config: Partial<LLMProviderConfig>): string => {
   if (config.providerType === 'openrouter') return 'openrouter';
+  if (config.providerType === 'gemini') return 'gemini';
   return config.instanceId || '';
 };
 
@@ -74,7 +75,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     <div className="form-group">
       <label htmlFor="defaultModel">Default Model ID:</label>
       
-      {config.providerType === 'ollama' || config.providerType === 'deepseek' ? (
+      {config.providerType === 'ollama' || config.providerType === 'deepseek' || config.providerType === 'gemini' ? (
         <select
           id="defaultModel"
           name="defaultModel"

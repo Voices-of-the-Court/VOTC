@@ -150,6 +150,12 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<ProviderType, Partial<LLMProviderC
     defaultModel: 'deepseek-chat',
     defaultParameters: { temperature: 0.7, max_tokens: 2048 },
   },
+  gemini: {
+    apiKey: '',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    defaultModel: 'gemini-2.5-flash',
+    defaultParameters: { temperature: 0.7, max_tokens: 4096 },
+  },
 };
 
 // Helper function to get default configuration for a provider type
@@ -173,10 +179,11 @@ export type OpenAICompatibleConfig = ProviderConfigBase & { providerType: 'opena
 export type OllamaConfig = ProviderConfigBase & { providerType: 'ollama'; baseUrl: string; }; // baseUrl is mandatory for Ollama
 export type Player2Config = ProviderConfigBase & { providerType: 'player2'; };
 export type DeepseekConfig = ProviderConfigBase & { providerType: 'deepseek'; };
+export type GeminiConfig = ProviderConfigBase & { providerType: 'gemini'; };
 
 // LLMProviderConfig can be a base provider config or a preset.
 // Presets will have a customName. Base configs can derive their name from providerType.
-export type LLMProviderConfig = (OpenRouterConfig | OpenAICompatibleConfig | OllamaConfig | Player2Config | DeepseekConfig) & {
+export type LLMProviderConfig = (OpenRouterConfig | OpenAICompatibleConfig | OllamaConfig | Player2Config | DeepseekConfig | GeminiConfig) & {
   customName?: string; // User-defined name, primarily for presets.
 };
 
