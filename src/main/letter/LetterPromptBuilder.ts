@@ -113,7 +113,9 @@ export class LetterPromptBuilder {
     if (!char.conversationSummaries || char.conversationSummaries.length === 0) {
       return null;
     }
-    const lines = char.conversationSummaries.map((s) => `${s.date}: ${s.content}`);
+    const summarySettings = settingsRepository.getSummaryPromptSettings();
+    const maxSummaries = summarySettings.maxPastSummaries ?? 5;
+    const lines = char.conversationSummaries.slice(0, maxSummaries).map((s) => `${s.date}: ${s.content}`);
     return `Past conversations between ${char.shortName} and ${gameData.playerName}:\n${lines.join("\n")}`;
   }
 

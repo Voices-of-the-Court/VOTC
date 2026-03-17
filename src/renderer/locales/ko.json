@@ -19,7 +19,9 @@
     "openFile": "파일 열기",
     "destructiveOverridden": "파괴적인 상태가 재정의되었습니다: {{state}}",
     "destructive": "파괴적인 조치 - 승인 필요",
-    "nonDestructive": "비파괴적인 행동"
+    "nonDestructive": "비파괴적인 행동",
+    "failedToOpenActionsFile": "액션 파일을 여는 데 실패했습니다: {{error}}",
+    "openActionsFile": "**번역:**  \n파일 열기"
   },
   "chat": {
     "args": "인수",
@@ -303,7 +305,11 @@
     "summariesView": "요약",
     "summaryGenerationSettings": "요약 생성 설정",
     "summaryProvider": "요약 제공자",
-    "useActiveProvider": "활성 제공자 사용"
+    "useActiveProvider": "활성 제공자 사용",
+    "contextSettings": "컨텍스트 설정",
+    "contextSettingsHelp": "프롬프트에 요약을 포함하는 방법 구성",
+    "maxPastSummaries": "최대 과거 요약",
+    "maxPastSummariesHelp": "프롬프트에 포함할 과거 대화 요약의 최대 개수입니다. 값이 높을수록 더 많은 맥락을 제공하지만 토큰을 더 많이 사용합니다."
   },
   "summariesManager": {
     "characterId": "캐릭터 ID",

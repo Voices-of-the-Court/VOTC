@@ -167,11 +167,12 @@ const schema: Schema<AppSettings> = {
   },
   summaryPromptSettings: {
     type: 'object',
-    default: { rollingPrompt: '', finalPrompt: '', letterSummaryPrompt: '' },
+    default: { rollingPrompt: '', finalPrompt: '', letterSummaryPrompt: '', maxPastSummaries: 5 },
     properties: {
       rollingPrompt: { type: 'string', default: '' },
       finalPrompt: { type: 'string', default: '' },
-      letterSummaryPrompt: { type: 'string', default: '' }
+      letterSummaryPrompt: { type: 'string', default: '' },
+      maxPastSummaries: { type: 'number', default: 5 }
     }
   },
   allowPrerelease: {
@@ -268,7 +269,8 @@ export class SettingsRepository {
         this.store.set('summaryPromptSettings', {
             rollingPrompt: '',
             finalPrompt: '',
-            letterSummaryPrompt: ''
+            letterSummaryPrompt: '',
+            maxPastSummaries: 5
         });
     }
     if (currentAppSettings.allowPrerelease === undefined) {
@@ -666,14 +668,16 @@ Please summarize the conversation into only a single paragraph.`;
     const stored = this.store.get('summaryPromptSettings', {
       rollingPrompt: '',
       finalPrompt: '',
-      letterSummaryPrompt: ''
+      letterSummaryPrompt: '',
+      maxPastSummaries: 5
     });
     
     // Return stored custom prompts if set, otherwise return defaults
     return {
       rollingPrompt: stored.rollingPrompt || this.getDefaultRollingSummaryPrompt(),
       finalPrompt: stored.finalPrompt || this.getDefaultFinalSummaryPrompt(),
-      letterSummaryPrompt: stored.letterSummaryPrompt || this.getDefaultLetterSummaryPrompt()
+      letterSummaryPrompt: stored.letterSummaryPrompt || this.getDefaultLetterSummaryPrompt(),
+      maxPastSummaries: stored.maxPastSummaries ?? 5
     };
   }
 

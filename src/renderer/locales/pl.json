@@ -19,7 +19,8 @@
     "openFile": "Otwórz plik",
     "destructiveOverridden": "Zastąpienie stanu destrukcyjnego: {{state}}",
     "destructive": "Działanie destrukcyjne - wymaga zgody",
-    "nonDestructive": "Nieniszczące działanie"
+    "nonDestructive": "Nieniszczące działanie",
+    "openActionsFile": "Otwórz plik"
   },
   "chat": {
     "args": "Argumenty",
@@ -303,7 +304,11 @@
     "summariesView": "Podsumowania",
     "summaryGenerationSettings": "Ustawienia generowania podsumowań",
     "summaryProvider": "Dostawca podsumowań",
-    "useActiveProvider": "Użyj aktywnego dostawcy"
+    "useActiveProvider": "Użyj aktywnego dostawcy",
+    "contextSettings": "Ustawienia kontekstu",
+    "contextSettingsHelp": "Skonfiguruj sposób uwzględniania podsumowań w monitach.",
+    "maxPastSummaries": "\"Maksimum Przeszłych Podumowień\"",
+    "maxPastSummariesHelp": "Maksymalna liczba podsumowań przeszłych rozmów uwzględniana w zapytaniach. Większe wartości zapewniają większy kontekst, ale zużywają więcej tokenów."
   },
   "summariesManager": {
     "characterId": "ID postaci",

@@ -132,10 +132,13 @@ export class PromptBuilder {
             return null;
         }
         
+        const summarySettings = settingsRepository.getSummaryPromptSettings();
+        const maxSummaries = summarySettings.maxPastSummaries ?? 5;
+        
         let context = `Here are the date and summary of previous conversations between ${char.shortName}, ${gameData.playerName}, and other characters:\n`;
         
-        // Include most recent 3-5 conversation summaries
-        const recentSummaries = char.conversationSummaries.slice(0, 5);
+        // Include most recent conversation summaries (limited by setting)
+        const recentSummaries = char.conversationSummaries.slice(0, maxSummaries);
         
         for (const summary of recentSummaries) {
             const timeAgo = this.getRelativeTime(summary.totalDays, gameData.totalDays);

@@ -19,7 +19,9 @@
     "destructive": "Деструктивный экшен - требует подтверждения",
     "nonDestructive": "Недеструктивный экшен",
     "destructiveOverridden": "Состояние деструктивности переопределено: {{state}}",
-    "openFile": "Открыть файл"
+    "openFile": "Открыть файл",
+    "failedToOpenActionsFile": "Не удалось открыть файл экшена: {{error}}",
+    "openActionsFile": "Открыть файл"
   },
   "chat": {
     "args": "Аргументы",
@@ -303,7 +305,11 @@
     "summariesView": "Саммари",
     "summaryGenerationSettings": "Настройки генерации саммари",
     "summaryProvider": "Провайдер саммари",
-    "useActiveProvider": "Использовать активного провайдера"
+    "useActiveProvider": "Использовать активного провайдера",
+    "contextSettings": "Настройки контекста",
+    "contextSettingsHelp": "Настройте способ включения кратких описаний в промпты.",
+    "maxPastSummaries": "Максимум прошедших саммари",
+    "maxPastSummariesHelp": "Максимальное количество саммари предыдущих диалогов для включения в промпты. Чем выше значение, тем больше контекста учитывается, но увеличивается расход токенов."
   },
   "summariesManager": {
     "characterId": "ID персонажа",

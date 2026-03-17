@@ -265,6 +265,7 @@ export interface SummaryPromptSettings {
   rollingPrompt: string; // Custom prompt for rolling summaries
   finalPrompt: string; // Custom prompt for final summaries
   letterSummaryPrompt: string; // Custom prompt for letter summaries
+  maxPastSummaries: number; // Maximum number of past summaries to include in prompts
 }
 
 export interface AppSettings {

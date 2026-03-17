@@ -19,7 +19,9 @@
     "openFile": "打开文件",
     "destructiveOverridden": "危险状态已覆盖：{{state}}",
     "destructive": "危险操作 - 需要批准",
-    "nonDestructive": "安全操作"
+    "nonDestructive": "安全操作",
+    "failedToOpenActionsFile": "无法打开操作文件：{{error}}",
+    "openActionsFile": "打开文件"
   },
   "chat": {
     "args": "参数",
@@ -303,7 +305,9 @@
     "summariesView": "摘要",
     "summaryGenerationSettings": "摘要生成设置",
     "summaryProvider": "摘要服务商",
-    "useActiveProvider": "使用当前服务商"
+    "useActiveProvider": "使用当前服务商",
+    "contextSettings": "语境设置",
+    "contextSettingsHelp": "配置如何将摘要包含在提示中。"
   },
   "summariesManager": {
     "characterId": "角色 ID",
