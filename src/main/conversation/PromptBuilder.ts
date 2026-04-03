@@ -86,7 +86,8 @@ export class PromptBuilder {
         history: Message[], 
         char: Character, 
         gameData: GameData,
-        currentSessionSummary?: string
+        currentSessionSummary?: string,
+        actionContext?: string
     ): any[] {
         const promptSettings = settingsRepository.getPromptSettings();
         const blocks = promptSettings.blocks || [];
@@ -109,6 +110,11 @@ export class PromptBuilder {
         for (const block of blocks) {
             if (!block.enabled) continue;
             this.applyBlock(block, llmMessages, workingHistory, context, promptSettings);
+        }
+
+        // Inject action context just before the suffix/end so the LLM knows what happened
+        if (actionContext) {
+            llmMessages.push({ role: 'system', content: actionContext });
         }
 
         if (promptSettings.suffix?.enabled && promptSettings.suffix.template) {

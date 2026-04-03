@@ -318,7 +318,9 @@ export class ConversationManager {
         actionId: string;
         success: boolean;
         message: string;
+        title?: string;
         sentiment: 'positive' | 'negative' | 'neutral';
+        messageType: 'badge' | 'narration';
     }): void {
         if (!this.currentConversation || !this.currentConversation.isActive) {
             console.warn('No active conversation to add action feedback');
@@ -331,7 +333,9 @@ export class ConversationManager {
                 actionId: feedback.actionId,
                 success: feedback.success,
                 message: feedback.message,
-                sentiment: feedback.sentiment
+                ...(feedback.title ? { title: feedback.title } : {}),
+                sentiment: feedback.sentiment,
+                messageType: feedback.messageType
             }]
         });
 

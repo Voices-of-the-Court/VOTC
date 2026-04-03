@@ -5,7 +5,6 @@ import { app } from "electron";
 
 import {
   ActionDefinition,
-  ActionArgumentDefinition,
   ActionInvocation,
 } from "./types";
 import { VOTC_ACTIONS_DIR, VOTC_DATA_DIR } from "../utils/paths";
@@ -16,7 +15,7 @@ import {
 
 const STANDARD_SUBDIR = "standard";
 const CUSTOM_SUBDIR = "custom";
-const DEFAULT_USERDATA_DIR = path.join(app.getAppPath(), 'default_userdata', 'actions');
+const DEFAULT_USERDATA_DIR = path.join(app.getAppPath(), 'default_userdata', 'actions_v2');
 
 export type ActionSource = "standard" | "custom";
 
@@ -351,24 +350,28 @@ export class ActionRegistry extends EventEmitter {
       };
     }
 
-    if (!(typeof action.description === "string" || typeof (action as any).description === "function")) {
+    // v2: validate function field (static object or dynamic function)
+    const fn = (action as any).function;
+    if (typeof fn !== "function" && (typeof fn !== "object" || fn === null)) {
       return {
         valid: false,
-        message: "Action must include a description string or description(context) function.",
+        message: "Action must include a function definition object or function(context) returning one.",
       };
     }
 
-    if (!Array.isArray(action.args) && typeof (action as any).args !== "function") {
-      return {
-        valid: false,
-        message: "Action args must be an array or args(context) function.",
-      };
-    }
-
-    if (Array.isArray(action.args)) {
-      const argsValidation = this.validateArguments(action.args);
-      if (!argsValidation.valid) {
-        return argsValidation;
+    // If static object, validate its shape
+    if (typeof fn === "object" && fn !== null) {
+      if (typeof fn.name !== "string" || fn.name.length === 0) {
+        return {
+          valid: false,
+          message: "Action function must define a non-empty name.",
+        };
+      }
+      if (typeof fn.parameters !== "object" || fn.parameters === null) {
+        return {
+          valid: false,
+          message: "Action function must define a parameters object.",
+        };
       }
     }
 
@@ -386,69 +389,6 @@ export class ActionRegistry extends EventEmitter {
       };
     }
 
-    return { valid: true };
-  }
-
-  private validateArguments(args: ActionArgumentDefinition[]): ActionValidationStatus {
-    for (const arg of args) {
-      if (typeof arg.name !== "string" || arg.name.length === 0) {
-        return {
-          valid: false,
-          message: "Action argument must include a non-empty name.",
-        };
-      }
-      if (typeof arg.description !== "string") {
-        return {
-          valid: false,
-          message: `Argument '${arg.name}' must include a description.`,
-        };
-      }
-
-      if (arg.type === "number") {
-        if (arg.min !== undefined && typeof arg.min !== "number") {
-          return {
-            valid: false,
-            message: `Argument '${arg.name}' has invalid min value.`,
-          };
-        }
-        if (arg.max !== undefined && typeof arg.max !== "number") {
-          return {
-            valid: false,
-            message: `Argument '${arg.name}' has invalid max value.`,
-          };
-        }
-      } else if (arg.type === "string") {
-        if (
-          "pattern" in arg &&
-          arg.pattern !== undefined &&
-          !(typeof arg.pattern === "string" || arg.pattern instanceof RegExp)
-        ) {
-          return {
-            valid: false,
-            message: `Argument '${arg.name}' has invalid pattern.`,
-          };
-        }
-      } else if (arg.type === "enum") {
-        if (
-          !Array.isArray(arg.options) ||
-          arg.options.length === 0 ||
-          arg.options.some((opt) => typeof opt !== "string")
-        ) {
-          return {
-            valid: false,
-            message: `Argument '${arg.name}' enum must provide non-empty string options.`,
-          };
-        }
-      } else if (arg.type === "boolean") {
-        // Boolean type has no additional validation requirements
-      } else {
-        const exhaustiveCheck: never = arg;
-        return {
-          valid: false,
-          message: `Argument '${(exhaustiveCheck as { name?: string }).name ?? "unknown"}' has unsupported type.`,
-        };
-      }
-    }
     return { valid: true };
   }
 }

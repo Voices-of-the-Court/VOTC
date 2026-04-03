@@ -104,13 +104,12 @@ export class LLMManager {
   }
 
   /**
-   * Send a structured JSON request for Actions.
+   * Send a tool-calling request for Actions.
    * Uses the actions provider override if set, otherwise active provider.
    */
   async sendActionsRequest(
     messages: ILLMCompletionRequest['messages'],
-    schemaName: string,
-    jsonSchemaObject: object,
+    tools: ILLMCompletionRequest['tools'],
     signal?: AbortSignal
   ): Promise<ILLMOutput> {
     const config = settingsRepository.getActionsProviderConfig();
@@ -126,24 +125,18 @@ export class LLMManager {
     const request: ILLMCompletionRequest = {
       model: config.defaultModel,
       messages,
-      stream: false, // structured outputs should be non-streamed
+      stream: false, // tool calling should be non-streamed
       ...config.defaultParameters,
       signal,
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: schemaName,
-          schema: jsonSchemaObject,
-          strict: true
-        }
-      }
+      tools,
+      tool_choice: 'auto',
     };
 
-    console.log(`[LLMManager] Sending structured request: ${JSON.stringify(request)}`);
+    console.log(`[LLMManager] Sending tool-calling request with ${tools?.length ?? 0} tools`);
 
-    const providerData = JSON.stringify(config).replace(/"apiKey":\s*"[^"]*"/g, 'HIDDEN'); // apiKey excluded
+    const providerData = JSON.stringify(config).replace(/"apiKey":\s*"[^"]*"/g, 'HIDDEN');
     console.log(`[LLMManager] Provider data stringified: ${providerData}`); 
-    console.log(`[TOKEN_COUNT] Structured request ${TokenCounter.estimateTokens(JSON.stringify(request))}`);
+    console.log(`[TOKEN_COUNT] Tool-calling request ${TokenCounter.estimateTokens(JSON.stringify(request))}`);
     return await provider.chatCompletion(request, config);
   }
 

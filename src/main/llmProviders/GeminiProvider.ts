@@ -181,6 +181,17 @@ export class GeminiProvider extends BaseProvider {
       body.systemInstruction = systemInstruction;
     }
 
+    // Convert OpenAI-style tools to Gemini functionDeclarations
+    if (request.tools && request.tools.length > 0) {
+      body.tools = [{
+        functionDeclarations: request.tools.map(tool => ({
+          name: tool.function.name,
+          description: tool.function.description || '',
+          parameters: tool.function.parameters ? this.convertJsonSchemaToGeminiFormat(tool.function.parameters) : undefined,
+        }))
+      }];
+    }
+
     return body;
   }
 
@@ -407,12 +418,25 @@ export class GeminiProvider extends BaseProvider {
       throw new Error('Gemini API: No candidates in response');
     }
 
-    // Extract text from parts
+    // Extract text and function calls from parts
     let content = '';
+    const toolCalls: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> = [];
+    
     if (candidate.content?.parts) {
-      for (const part of candidate.content.parts) {
+      for (let i = 0; i < candidate.content.parts.length; i++) {
+        const part = candidate.content.parts[i];
         if (part.text) {
           content += part.text;
+        }
+        if (part.functionCall) {
+          toolCalls.push({
+            id: `call_gemini_${i}`,
+            type: 'function',
+            function: {
+              name: part.functionCall.name,
+              arguments: JSON.stringify(part.functionCall.args || {}),
+            }
+          });
         }
       }
     }
@@ -435,6 +459,7 @@ export class GeminiProvider extends BaseProvider {
     return {
       id: response.responseId || undefined,
       content: content || null,
+      tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
       finish_reason: candidate.finishReason ? finishReasonMap[candidate.finishReason] || 'stop' : 'stop',
       usage,
     };
@@ -524,12 +549,19 @@ interface GeminiRequestBody {
   contents: GeminiContent[];
   generationConfig: GeminiGenerationConfig;
   systemInstruction?: GeminiContent;
+  tools?: Array<{
+    functionDeclarations: Array<{
+      name: string;
+      description: string;
+      parameters?: any;
+    }>;
+  }>;
 }
 
 interface GeminiResponse {
   candidates?: Array<{
     content?: {
-      parts: Array<{ text?: string }>;
+      parts: Array<{ text?: string; functionCall?: { name: string; args?: Record<string, any> } }>;
       role: string;
     };
     finishReason?: string;

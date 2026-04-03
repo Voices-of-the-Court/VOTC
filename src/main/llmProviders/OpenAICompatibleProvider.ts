@@ -119,6 +119,7 @@ export class OpenAICompatibleProvider extends BaseProvider {
       presence_penalty: request.presence_penalty,
       frequency_penalty: request.frequency_penalty,
       ...(request.response_format ? { response_format: request.response_format as any } : {}),
+      ...(request.tools ? { tools: request.tools as any, tool_choice: request.tool_choice ?? 'auto' } : {}),
       ...(request.stream ? { stream_options: { include_usage: true } } : {}),
     };
 

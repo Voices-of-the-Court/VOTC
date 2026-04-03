@@ -27,7 +27,9 @@ export interface ActionFeedbackEntry extends BaseEntry {
         actionId: string;
         success: boolean;
         message: string;
+        title?: string;
         sentiment: 'positive' | 'negative' | 'neutral';
+        messageType: 'badge' | 'narration';
     }>;
 }
 
@@ -75,6 +77,8 @@ export interface ActionApprovalEntry extends BaseEntry {
     // Actual execution result once approved
     resultFeedback?: string;
     resultSentiment?: 'positive' | 'negative' | 'neutral';
+    resultTitle?: string;
+    resultMessageType?: 'badge' | 'narration';
 }
 
 export function createActionApproval(params: {

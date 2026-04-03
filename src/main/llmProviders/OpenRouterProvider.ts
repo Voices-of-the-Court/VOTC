@@ -97,6 +97,7 @@ export class OpenRouterProvider extends BaseProvider {
         presence_penalty: request.presence_penalty,
         frequency_penalty: request.frequency_penalty,
         ...(request.response_format ? { response_format: request.response_format as any } : {}),
+        ...(request.tools ? { tools: request.tools as any, tool_choice: request.tool_choice ?? 'auto' } : {}),
         // OpenRouter-specific: exclude reasoning/thinking tokens from the response
         reasoning: {
           exclude: true,

@@ -1,14 +1,10 @@
 import { Conversation } from "../conversation/Conversation";
 import { Character } from "../gameData/Character";
 import { actionRegistry } from "./ActionRegistry";
-import { buildStructuredResponseJsonSchema } from "./jsonSchema";
-import { buildStructuredResponseSchema } from "./schema";
 import { llmManager } from "../LLMManager";
 import { ActionEffectWriter } from "./ActionEffectWriter";
-import { ActionArgumentValues, ActionInvocation, StructuredActionResponse, ActionExecutionResult } from "./types";
+import { ActionArgumentValues, ActionInvocation, ActionExecutionResult, ToolFunctionDefinition } from "./types";
 import { ActionPromptBuilder } from "./ActionPromptBuilder";
-import { healJsonResponseWithLogging } from "./responseHealing";
-import type { SchemaBuildInput } from "./jsonSchema";
 import { settingsRepository } from "../SettingsRepository";
 import { resolveI18nString } from "./i18nUtils";
 import { ActionSandbox } from "./ActionSandbox";
@@ -32,32 +28,32 @@ export interface ActionRunOptions {
   dryRun?: boolean;
 }
 
+/** Resolved tool definition with mapping back to action signature */
+interface ResolvedTool {
+  signature: string;
+  functionName: string;
+  toolDef: ToolFunctionDefinition;
+  validTargetCharacterIds?: number[];
+}
+
 export class ActionEngine {
   /**
    * Evaluate actions for the given NPC (as source) based on recent conversation state.
-   * - Gathers available actions via check()
-   * - Builds a structured-output schema limiting targets and args
-   * - Requests LLM to select actions with strict schema
-   * - Separates actions into auto-approved and needs-approval based on settings
-   * - Runs auto-approved actions immediately
-   * - Returns both executed and pending actions
+   * Uses LLM tool calling instead of structured JSON output.
    */
   static async evaluateForCharacter(conv: Conversation, npc: Character, signal?: AbortSignal): Promise<ActionEvaluationResult> {
     try {
-      // Check if cancelled before starting
       if (signal?.aborted) {
         return { autoApproved: [], needsApproval: [] };
       }
       
-      // Get user's language preference
       const userLang = settingsRepository.getLanguage();
       
-      // 1) Build candidate actions for this source character
+      // 1) Build candidate actions and their tool definitions
       const loaded = actionRegistry.getAllActions(/* includeDisabled = */ false);
+      const resolvedTools: ResolvedTool[] = [];
 
-      const available: SchemaBuildInput["availableActions"] = [];
       for (const act of loaded) {
-        // Check for cancellation during action gathering
         if (signal?.aborted) {
           return { autoApproved: [], needsApproval: [] };
         }
@@ -70,209 +66,179 @@ export class ActionEngine {
 
           if (!checkResult?.canExecute) continue;
 
-          const requiresTarget = !!(checkResult.validTargetCharacterIds && checkResult.validTargetCharacterIds.length > 0);
-
-          // Handle dynamic args and resolve i18n descriptions
-          let args;
-          if (typeof act.definition.args === 'function') {
-            args = act.definition.args({ gameData: conv.gameData, sourceCharacter: npc });
+          // Resolve the function definition (call it if dynamic)
+          let toolDef: ToolFunctionDefinition;
+          if (typeof act.definition.function === 'function') {
+            toolDef = act.definition.function({ gameData: conv.gameData, sourceCharacter: npc });
           } else {
-            args = act.definition.args;
-          }
-          
-          // Resolve i18n strings in argument descriptions
-          const resolvedArgs = args.map(arg => ({
-            ...arg,
-            description: resolveI18nString(arg.description, userLang)
-          }));
-
-          // Handle dynamic description and resolve i18n
-          let description: string;
-          if (typeof act.definition.description === 'function') {
-            const descResult = act.definition.description({ gameData: conv.gameData, sourceCharacter: npc });
-            description = resolveI18nString(descResult, userLang);
-          } else {
-            description = resolveI18nString(act.definition.description, userLang);
+            toolDef = { ...act.definition.function };
           }
 
-          available.push({
+          // Deep clone parameters so we can modify them
+          toolDef = {
+            ...toolDef,
+            parameters: JSON.parse(JSON.stringify(toolDef.parameters))
+          };
+
+          // Enrich targetCharacterId parameter with valid target IDs from check()
+          if (checkResult.validTargetCharacterIds && checkResult.validTargetCharacterIds.length > 0) {
+            if (toolDef.parameters.properties.targetCharacterId) {
+              toolDef.parameters.properties.targetCharacterId.enum = checkResult.validTargetCharacterIds;
+            }
+          }
+
+          resolvedTools.push({
             signature: act.id,
-            args: resolvedArgs,
-            requiresTarget,
+            functionName: toolDef.name,
+            toolDef,
             validTargetCharacterIds: checkResult.validTargetCharacterIds,
-            description,
           });
         } catch (err) {
-          // mark as invalid but continue
-          actionRegistry.registerValidation( act.id, {
+          actionRegistry.registerValidation(act.id, {
             valid: false,
             message: `check() threw: ${err instanceof Error ? err.message : String(err)}`
           });
         }
       }
 
-      if (available.length === 0) {
+      if (resolvedTools.length === 0) {
         return { autoApproved: [], needsApproval: [] };
       }
 
-      // Check for cancellation before LLM request
       if (signal?.aborted) {
         console.log('[DEBUG] ActionEngine: Aborted before LLM request');
         return { autoApproved: [], needsApproval: [] };
       }
 
-      // 2) Build messages and schema for LLM structured output
-      const messages = ActionPromptBuilder.buildActionMessages(conv, npc, available);
+      // 2) Build messages for LLM
+      const messages = ActionPromptBuilder.buildActionMessages(conv, npc);
 
-      // Determine schema type based on config setting or auto-detection
-      const actionsConfig = settingsRepository.getActionsProviderConfig();
-      let useMinimizedSchema: boolean;
-      
-      if (actionsConfig?.useMinimizedActionsSchema !== undefined) {
-        // User has explicitly set preference
-        useMinimizedSchema = actionsConfig.useMinimizedActionsSchema;
-      } else {
-        // Auto-detect: use minimized for Gemini models
-        useMinimizedSchema = actionsConfig?.defaultModel?.toLowerCase().includes('gemini') ?? false;
+      // 3) Build OpenAI-compatible tools array
+      const tools = resolvedTools.map(rt => ({
+        type: 'function' as const,
+        function: {
+          name: rt.toolDef.name,
+          description: rt.toolDef.description,
+          parameters: rt.toolDef.parameters,
+        }
+      }));
+
+      // Build function name → signature mapping
+      const fnNameToSignature = new Map<string, string>();
+      for (const rt of resolvedTools) {
+        fnNameToSignature.set(rt.functionName, rt.signature);
       }
-      console.log(`[DEBUG] ActionEngine: Using minimized schema: ${useMinimizedSchema}`);
-      // Primary schema (JSON Schema for provider)
-      const jsonSchema = buildStructuredResponseJsonSchema({
-        availableActions: available
-      }, useMinimizedSchema);
 
-      // Secondary validation (zod) to double-check the provider output at runtime
-      const zodSchema = buildStructuredResponseSchema({
-        availableActions: available
-      });
+      console.log(`[ActionEngine] Tool call request for ${npc.fullName}:`, messages);
+      console.log(`[ActionEngine] Available tools (${tools.length}):`, tools.map(t => t.function.name));
 
-      // 3) Request LLM with native structured output (pass abort signal)
-      
-      const output = await llmManager.sendActionsRequest(
-        messages,
-        "votc_actions",
-        jsonSchema,
-        signal
-      );
+      // 4) Request LLM with tool calling
+      const output = await llmManager.sendActionsRequest(messages, tools, signal);
 
-      // Check for cancellation after LLM request
       if (signal?.aborted) {
         console.log('[DEBUG] ActionEngine: Aborted after LLM request');
         return { autoApproved: [], needsApproval: [] };
       }
 
-      // Handle non-stream result
-      const result = await output as any; // ILLMCompletionResponse
+      const result = await output as any;
       
-      const content = (result && typeof result === "object") ? result.content : null;
-      console.log('[DEBUG] ActionEngine: Received LLM response', content);
-      if (!content || typeof content !== "string") {
+      console.log('[ActionEngine] LLM response:', JSON.stringify({
+        content: result?.content,
+        tool_calls: result?.tool_calls,
+        finish_reason: result?.finish_reason,
+        usage: result?.usage,
+      }));
+
+      // 5) Parse tool_calls from the response
+      const toolCalls = result?.tool_calls;
+      if (!toolCalls || !Array.isArray(toolCalls) || toolCalls.length === 0) {
+        console.log('[ActionEngine] No tool calls in response');
         return { autoApproved: [], needsApproval: [] };
       }
 
-      // Check for cancellation before parsing
+      console.log(`[ActionEngine] Processing ${toolCalls.length} tool calls from LLM`);
+
       if (signal?.aborted) {
-        console.log('[DEBUG] ActionEngine: Aborted before parsing response');
         return { autoApproved: [], needsApproval: [] };
       }
 
-      // 4) Parse and validate JSON with healing
-      let parsed: StructuredActionResponse | undefined;
-      try {
-        // First attempt: Try healing the JSON response
-        const maybeJson = healJsonResponseWithLogging(content, "ActionEngine");
-        
-        if (!maybeJson) {
-          return { autoApproved: [], needsApproval: [] };
-        }
-        
-        const validated = zodSchema.parse(maybeJson);
-        parsed = validated;
-      } catch (err) {
-        return { autoApproved: [], needsApproval: [] };
-      }
-
-      if (!parsed || !Array.isArray(parsed.actions) || parsed.actions.length === 0) {
-        console.log('[ActionEngine] No actions to process');
-        return { autoApproved: [], needsApproval: [] };
-      }
-      
-      console.log(`[ActionEngine] Processing ${parsed.actions.length} actions from LLM`);
-
-      // Check for cancellation before processing actions
-      if (signal?.aborted) {
-        console.log('[DEBUG] ActionEngine: Aborted before processing actions');
-        return { autoApproved: [], needsApproval: [] };
-      }
-
-      // 5) Get approval settings and separate actions
+      // 6) Convert tool calls to action invocations and separate by approval
       const approvalSettings = settingsRepository.getActionApprovalSettings();
-      console.log('[ActionEngine] Approval settings:', approvalSettings);
       const autoApproved: ActionExecutionResult[] = [];
       const needsApproval: ActionEvaluationResult['needsApproval'] = [];
 
-      for (const inv of parsed.actions) {
-        // Check for cancellation before each action
-        if (signal?.aborted) {
-          console.log('[DEBUG] ActionEngine: Aborted during action processing');
-          break;
-        }
+      for (const tc of toolCalls) {
+        if (signal?.aborted) break;
 
-        // Get action definition to check if it's destructive
-        const loaded = actionRegistry.getById(inv.actionId);
-        if (!loaded || !loaded.validation.valid) {
+        const fnName = tc.function?.name;
+        const signature = fnNameToSignature.get(fnName);
+        if (!signature) {
+          console.warn(`[ActionEngine] Unknown tool call function: ${fnName}`);
           continue;
         }
 
-        //FIX: Use getEffectiveDestructive to respect user overrides
-        const isDestructive = actionRegistry.getEffectiveDestructive(inv.actionId);
-        console.log(`[ActionEngine] Action ${inv.actionId} isDestructive: ${isDestructive}, hasOverride: ${actionRegistry.hasDestructiveOverride(inv.actionId)}`);
+        const loaded = actionRegistry.getById(signature);
+        if (!loaded || !loaded.validation.valid) continue;
+
+        // Parse the arguments
+        let args: ActionArgumentValues = {};
+        try {
+          args = typeof tc.function.arguments === 'string' 
+            ? JSON.parse(tc.function.arguments) 
+            : tc.function.arguments ?? {};
+        } catch (err) {
+          console.warn(`[ActionEngine] Failed to parse tool call arguments for ${fnName}:`, err);
+          continue;
+        }
+
+        console.log(`[ActionEngine] Tool call: ${fnName} (action: ${signature})`, JSON.stringify(args));
+
+        // Extract targetCharacterId from args if present
+        let targetCharacterId: number | null = null;
+        if ('targetCharacterId' in args && args.targetCharacterId != null) {
+          targetCharacterId = Number(args.targetCharacterId);
+          delete args.targetCharacterId;
+        }
+
+        const inv: ActionInvocation = {
+          actionId: signature,
+          targetCharacterId,
+          args,
+        };
+
+        const isDestructive = actionRegistry.getEffectiveDestructive(signature);
         
-        // Determine if this action needs approval
         let needsUserApproval = false;
-        
         switch (approvalSettings.approvalMode) {
           case 'none':
-            // 'none' means no auto-accept, so all actions need approval
             needsUserApproval = true;
             break;
           case 'non-destructive':
-            // 'non-destructive' means auto-accept non-destructive, so only destructive need approval
             needsUserApproval = isDestructive;
             break;
           case 'all':
-            // 'all' means auto-accept all, so no actions need approval
             needsUserApproval = false;
             break;
         }
-        
-        console.log(`[ActionEngine] Action ${inv.actionId} isDestructive property: ${loaded.definition.isDestructive}, computed: ${isDestructive}, needsApproval: ${needsUserApproval}`);
 
         if (needsUserApproval) {
-          // Add to pending approval list
-          const targetId = inv.targetCharacterId ?? null;
-          const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
-          
-          // Resolve i18n title
+          const target = targetCharacterId != null ? conv.gameData.characters.get(targetCharacterId) ?? undefined : undefined;
           const actionTitle = loaded.definition.title 
             ? resolveI18nString(loaded.definition.title, userLang)
             : undefined;
           
-          console.log(`[ActionEngine] Action ${inv.actionId} needs approval (destructive: ${isDestructive})`);
           needsApproval.push({
-            actionId: inv.actionId,
+            actionId: signature,
             actionTitle,
             sourceCharacterId: npc.id,
             sourceCharacterName: npc.shortName,
-            targetCharacterId: targetId ?? undefined,
+            targetCharacterId: targetCharacterId ?? undefined,
             targetCharacterName: target?.shortName,
-            args: inv.args ?? {},
+            args,
             isDestructive,
-            invocation: inv
+            invocation: inv,
           });
         } else {
-          // Execute immediately
-          console.log(`[ActionEngine] Action ${inv.actionId} auto-approved (destructive: ${isDestructive})`);
           const result = await this.runInvocation(conv, npc, inv);
           autoApproved.push(result);
         }
@@ -280,12 +246,9 @@ export class ActionEngine {
       
       return { autoApproved, needsApproval };
     } catch (err) {
-      // Check if this was an abort
       if (signal?.aborted) {
-        console.log('[DEBUG] ActionEngine: Caught abort signal in error handler');
         return { autoApproved: [], needsApproval: [] };
       }
-      // silent guard: action engine should never crash the conversation loop
       console.error("ActionEngine error:", err);
       return { autoApproved: [], needsApproval: [] };
     }
@@ -315,7 +278,7 @@ export class ActionEngine {
     // Get user's language preference
     const userLang = settingsRepository.getLanguage();
 
-    // console.log("Running action:", inv.actionId, { source: npc.id, target: targetId, args: inv.args });
+    console.log(`[ActionEngine] Firing action: ${inv.actionId} (source: ${npc.shortName}, target: ${target?.shortName ?? 'none'}, args: ${JSON.stringify(inv.args ?? {})}, dryRun: ${options?.dryRun ?? false})`);
     const runGameEffect = (effectBody: string) => {
       // In dry runs we avoid writing to the game run file
       if (options?.dryRun) {
@@ -348,23 +311,26 @@ export class ActionEngine {
       // Handle different return types
       let feedback: ActionExecutionResult['feedback'] = undefined;
       if (result) {
-        // console.log(`Action ${inv.actionId} executed successfully with result:`, result);
+        console.log(`[ActionEngine] Action ${inv.actionId} executed successfully with result:`, result);
         if (typeof result === 'string') {
           // Simple string feedback - resolve i18n and default to neutral sentiment
-          feedback = { message: result, sentiment: 'neutral' };
+          feedback = { message: result, sentiment: 'neutral', messageType: 'badge' };
         } else if (typeof result === 'object') {
           // Could be I18nString object or ActionFeedback object
           if ('message' in result) {
-            // ActionFeedback object with optional sentiment
+            // ActionFeedback object with optional sentiment and messageType
             feedback = {
               message: resolveI18nString(result.message, userLang),
-              sentiment: (result.sentiment || 'neutral') as 'positive' | 'negative' | 'neutral'
+              ...(result.title ? { title: resolveI18nString(result.title, userLang) } : {}),
+              sentiment: (result.sentiment || 'neutral') as 'positive' | 'negative' | 'neutral',
+              messageType: (result.messageType || 'badge') as 'badge' | 'narration'
             };
           } else {
             // Plain I18nString object (Record<string, string>)
             feedback = {
               message: resolveI18nString(result, userLang),
-              sentiment: 'neutral'
+              sentiment: 'neutral',
+              messageType: 'badge'
             };
           }
         }

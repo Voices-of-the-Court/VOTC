@@ -607,27 +607,20 @@ const setupIpcHandlers = () => {
         return { error: checkResult?.reason || 'Action cannot be executed', valid: false, canExecute: false };
       }
       
-      // Resolve dynamic args
-      let args;
-      if (typeof loaded.definition.args === 'function') {
-        args = loaded.definition.args({ gameData: conv.gameData, sourceCharacter });
+      // Resolve the function definition to get parameters
+      let functionDef;
+      if (typeof loaded.definition.function === 'function') {
+        functionDef = loaded.definition.function({ gameData: conv.gameData, sourceCharacter });
       } else {
-        args = loaded.definition.args;
+        functionDef = loaded.definition.function;
       }
-      
-      // Resolve i18n strings in argument descriptions
-      const resolvedArgs = args.map(arg => ({
-        ...arg,
-        description: resolveI18nString(arg.description, userLang),
-        displayName: arg.displayName ? resolveI18nString(arg.displayName, userLang) : undefined,
-      }));
       
       return {
         valid: true,
         canExecute: true,
         id: loaded.id,
         title: loaded.definition.title ? resolveI18nString(loaded.definition.title, userLang) : loaded.id,
-        args: resolvedArgs,
+        functionDef,
         requiresTarget: !!(checkResult.validTargetCharacterIds && checkResult.validTargetCharacterIds.length > 0),
         validTargetCharacterIds: checkResult.validTargetCharacterIds || [],
         isDestructive: actionRegistry.getEffectiveDestructive(actionId),
@@ -670,21 +663,25 @@ const setupIpcHandlers = () => {
           actionId: result.actionId,
           success: result.success,
           message: result.feedback.message,
-          sentiment: result.feedback.sentiment
+          ...(result.feedback.title ? { title: result.feedback.title } : {}),
+          sentiment: result.feedback.sentiment,
+          messageType: result.feedback.messageType
         });
       } else if (result.success) {
         conversationManager.addManualActionFeedback({
           actionId: result.actionId,
           success: true,
           message: `Action ${result.actionId} executed successfully`,
-          sentiment: 'neutral'
+          sentiment: 'neutral',
+          messageType: 'badge'
         });
       } else {
         conversationManager.addManualActionFeedback({
           actionId: result.actionId,
           success: false,
           message: result.error || `Action ${result.actionId} failed`,
-          sentiment: 'negative'
+          sentiment: 'negative',
+          messageType: 'badge'
         });
       }
       

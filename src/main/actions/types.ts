@@ -2,53 +2,29 @@ import { GameData } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
 import type { Conversation } from "../conversation/Conversation";
 
-export type ActionArgumentPrimitiveType = "number" | "string" | "enum" | "boolean";
-
 // i18n support: string or object with language codes
 export type I18nString = string | Record<string, string>;
-
-export interface ActionArgumentBase {
-  name: string;
-  displayName?: string;
-  description: I18nString;
-  required?: boolean;
-}
-
-export interface NumberArgument extends ActionArgumentBase {
-  type: "number";
-  min?: number;
-  max?: number;
-  step?: number;
-}
-
-export interface StringArgument extends ActionArgumentBase {
-  type: "string";
-  maxLength?: number;
-  minLength?: number;
-  pattern?: RegExp | string;
-}
-
-export interface EnumArgument extends ActionArgumentBase {
-  type: "enum";
-  options: string[];
-}
-
-export interface BooleanArgument extends ActionArgumentBase {
-  type: "boolean";
-}
-
-export type ActionArgumentDefinition =
-  | NumberArgument
-  | StringArgument
-  | EnumArgument
-  | BooleanArgument;
 
 export type ActionArgumentValue = number | string | boolean | null;
 
 export type ActionArgumentValues = Record<string, ActionArgumentValue>;
 
-export type DynamicArgsFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => ActionArgumentDefinition[];
-export type DynamicDescriptionFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => I18nString;
+// --- Tool calling types (v2) ---
+
+/** OpenAI-compatible function/tool definition */
+export interface ToolFunctionDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, any>;
+    required?: string[];
+    additionalProperties?: boolean;
+  };
+}
+
+/** Dynamic function definition that receives context */
+export type DynamicToolFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => ToolFunctionDefinition;
 
 export interface ActionCheckContext {
   gameData: GameData;
@@ -73,18 +49,21 @@ export interface ActionRunContext {
 }
 
 export type ActionFeedbackSentiment = 'positive' | 'negative' | 'neutral';
+export type ActionMessageType = 'badge' | 'narration';
 
 export interface ActionFeedback {
   message: I18nString;
+  title?: I18nString;
   sentiment?: ActionFeedbackSentiment;
+  messageType?: ActionMessageType;
 }
 
 export interface ActionDefinition {
   signature: string;
   title?: I18nString;
-  description: I18nString | DynamicDescriptionFunction;
-  args: ActionArgumentDefinition[] | DynamicArgsFunction;
-  isDestructive?: boolean; // New field to mark destructive actions
+  /** OpenAI-compatible function definition, or a function that returns one given context */
+  function: ToolFunctionDefinition | DynamicToolFunction;
+  isDestructive?: boolean;
   check: (context: ActionCheckContext) => Promise<ActionCheckResult> | ActionCheckResult;
   run: (context: ActionRunContext) => Promise<I18nString | ActionFeedback | void> | I18nString | ActionFeedback | void;
 }
@@ -94,7 +73,9 @@ export interface ActionExecutionResult {
   success: boolean;
   feedback?: {
     message: string;
+    title?: string;
     sentiment: ActionFeedbackSentiment;
+    messageType: ActionMessageType;
   };
   error?: string;
 }
@@ -103,8 +84,4 @@ export interface ActionInvocation {
   actionId: string;
   targetCharacterId?: number | null;
   args: ActionArgumentValues;
-}
-
-export interface StructuredActionResponse {
-  actions: ActionInvocation[];
 }

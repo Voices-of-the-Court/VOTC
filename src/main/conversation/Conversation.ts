@@ -59,6 +59,9 @@ export class Conversation {
         approvalEntryId: number;
     }> = new Map();
 
+    // Resolvers for respondAs to await approval decisions
+    private approvalResolvers: Map<number, (result: 'approved' | 'declined') => void> = new Map();
+
 
     constructor() {
         this.eventEmitter = new EventEmitter();
@@ -204,6 +207,12 @@ export class Conversation {
 
     // Handle response for a single NPC
     private async respondAs(npc: Character): Promise<void> {
+        // Create AbortController for this NPC turn
+        this.currentStreamController = new AbortController();
+        let wasCancelled = false;
+        let streamCompleted = false;
+
+        // Show loading placeholder immediately so the user sees activity
         const msgId = this.nextId++;
         const placeholder = createMessage({
             id: msgId,
@@ -215,12 +224,142 @@ export class Conversation {
         this.messages.push(placeholder);
         this.emitUpdate();
 
-        // Create AbortController for this stream
-        this.currentStreamController = new AbortController();
-        let wasCancelled = false;
-        let streamCompleted = false;
-
         try {
+            // --- Phase 1: Evaluate actions BEFORE message generation ---
+            const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
+            
+            if (this.currentStreamController?.signal.aborted) {
+                wasCancelled = true;
+                throw new Error('AbortError: Message cancelled');
+            }
+
+            // Process action results: execute auto-approved, separate narration vs badge
+            const autoFeedbackResults: import("../actions/types").ActionExecutionResult[] = [...actionResults.autoApproved];
+
+            // Handle needs-approval actions (dry-run preview, etc.)
+            const approvalPromises: Promise<'approved' | 'declined'>[] = [];
+            for (const action of actionResults.needsApproval) {
+                let previewFeedback: string | undefined;
+                let previewSentiment: 'positive' | 'negative' | 'neutral' | undefined;
+                try {
+                    const previewResult = await ActionEngine.runInvocation(this, npc, action.invocation, { dryRun: true });
+                    if (previewResult.feedback?.message) {
+                        previewFeedback = previewResult.feedback.message;
+                        previewSentiment = previewResult.feedback.sentiment || 'neutral';
+                    } else {
+                        const executed = await ActionEngine.runInvocation(this, npc, action.invocation);
+                        autoFeedbackResults.push(executed);
+                        continue;
+                    }
+                } catch (err) {
+                    console.error('[Conversation] Preview action failed:', err);
+                }
+
+                const approvalEntry = createActionApproval({
+                    id: this.nextId++,
+                    associatedMessageId: -1, // No AI message yet
+                    action: {
+                        actionId: action.actionId,
+                        actionTitle: action.actionTitle,
+                        sourceCharacterId: action.sourceCharacterId,
+                        sourceCharacterName: action.sourceCharacterName,
+                        targetCharacterId: action.targetCharacterId,
+                        targetCharacterName: action.targetCharacterName,
+                        args: action.args,
+                        isDestructive: action.isDestructive
+                    },
+                    previewFeedback,
+                    previewSentiment
+                });
+
+                // Remove placeholder temporarily so approval appears before loading dots
+                this.messages = this.messages.filter(m => m.id !== msgId);
+                this.messages.push(approvalEntry);
+                this.messages.push(placeholder);
+
+                this.pendingActionApprovals.set(approvalEntry.id, {
+                    npc,
+                    action,
+                    previewFeedback,
+                    previewSentiment,
+                    approvalEntryId: approvalEntry.id
+                });
+
+                // Create a promise that resolves when user approves/declines
+                approvalPromises.push(new Promise<'approved' | 'declined'>(resolve => {
+                    this.approvalResolvers.set(approvalEntry.id, resolve);
+                }));
+            }
+
+            // If there are pending approvals, show them and wait for all to resolve
+            if (approvalPromises.length > 0) {
+                this.emitUpdate();
+                console.log(`[Conversation] Waiting for ${approvalPromises.length} action approval(s) before generating message...`);
+                await Promise.all(approvalPromises);
+                console.log('[Conversation] All approvals resolved, proceeding with message generation');
+
+                if (this.currentStreamController?.signal.aborted) {
+                    wasCancelled = true;
+                    throw new Error('AbortError: Message cancelled');
+                }
+            }
+
+            // Collect feedback from approved actions (their results are stored on the approval entries)
+            for (const entry of this.messages) {
+                if (entry.type === 'action-approval' && entry.status === 'approved' && entry.resultFeedback) {
+                    autoFeedbackResults.push({
+                        actionId: entry.action.actionId,
+                        success: true,
+                        feedback: {
+                            message: entry.resultFeedback,
+                            sentiment: (entry.resultSentiment || 'neutral') as 'positive' | 'negative' | 'neutral',
+                            messageType: (entry.resultMessageType || 'badge') as 'badge' | 'narration',
+                            ...(entry.resultTitle ? { title: entry.resultTitle } : {}),
+                        }
+                    });
+                }
+            }
+
+            // Separate narration and badge feedback from all results
+            const feedbackItems = autoFeedbackResults
+                .filter(r => r.feedback || r.error)
+                .map(r => ({
+                    actionId: r.actionId,
+                    success: r.success,
+                    message: r.feedback?.message || r.error || 'Unknown error',
+                    ...(r.feedback?.title ? { title: r.feedback.title } : {}),
+                    sentiment: (r.feedback?.sentiment || 'negative') as 'positive' | 'negative' | 'neutral',
+                    messageType: (r.feedback?.messageType || 'badge') as 'badge' | 'narration'
+                }));
+
+            const narrationFeedbacks = feedbackItems.filter(f => f.messageType === 'narration');
+            const badgeFeedbacks = feedbackItems.filter(f => f.messageType === 'badge');
+
+            // Add narration feedback as a separate entry BEFORE the AI message placeholder
+            if (narrationFeedbacks.length > 0) {
+                // Remove placeholder temporarily, insert narration, then re-add placeholder
+                this.messages = this.messages.filter(m => m.id !== msgId);
+                const narrationEntry = createActionFeedback({
+                    id: this.nextId++,
+                    feedbacks: narrationFeedbacks
+                });
+                this.messages.push(narrationEntry);
+                this.messages.push(placeholder);
+                this.emitUpdate();
+            }
+
+            // Build action context string for the LLM prompt
+            let actionContext: string | undefined;
+            if (feedbackItems.length > 0) {
+                const lines = feedbackItems.map(f => {
+                    const prefix = f.messageType === 'narration' ? '[Narration]' : '[Event]';
+                    return `${prefix} ${f.message}`;
+                });
+                actionContext = `The following events just happened involving ${npc.shortName}:\n${lines.join('\n')}\n\nIncorporate these events naturally into ${npc.shortName}'s response. Do not repeat the narration verbatim, but acknowledge and react to what happened.`;
+            }
+
+            // --- Phase 2: Generate AI message ---
+
             // Has to be called after emitUpdate to show placeholder in UI in right time
             await this.checkAndSummarizeIfNeeded(npc);
             
@@ -228,7 +367,8 @@ export class Conversation {
                 this.getHistory().slice(this.lastSummarizedMessageIndex), 
                 npc, 
                 this.gameData,
-                this.currentSummary
+                this.currentSummary,
+                actionContext
             );
 
             console.log(`Message from ${npc.fullName}:`, llmMessages);
@@ -238,8 +378,6 @@ export class Conversation {
             const activeConfig = settingsRepository.getActiveProviderConfig();
             const isOpenRouter = activeConfig?.providerType === 'openrouter';
             
-            // For OpenRouter, don't pass the signal to avoid double billing on cancellation
-            // For other providers, pass the signal for immediate cancellation
             const result = await llmManager.sendChatRequest(
                 llmMessages,
                 isOpenRouter ? undefined : this.currentStreamController.signal
@@ -252,16 +390,12 @@ export class Conversation {
                 try {
                     const streamIterator = result as AsyncGenerator<ILLMStreamChunk, ILLMCompletionResponse | void>;
                     
-                    // For OpenRouter: wrap stream consumption in a detachable promise since they are double charging on cancellation
                     if (isOpenRouter) {
                         const streamPromise = (async () => {
                             for await (const chunk of streamIterator) {
-                                // Check local cancellation flag
                                 if (wasCancelled) {
-                                    // Continue consuming silently without UI updates
                                     continue;
                                 }
-                                
                                 if (chunk.delta?.content) {
                                     placeholder.content += chunk.delta.content;
                                     this.emitUpdate();
@@ -269,13 +403,11 @@ export class Conversation {
                             }
                         })();
                         
-                        // Poll for cancellation while stream is active
                         const checkCancellation = async () => {
                             while (!streamCompleted && !wasCancelled) {
                                 if (this.currentStreamController?.signal.aborted) {
                                     wasCancelled = true;
                                     console.log('[OpenRouter] Cancellation detected - stream will continue in background');
-                                    // Don't await streamPromise - let it finish in background
                                     streamPromise.catch(err => console.error('[OpenRouter] Background stream error:', err));
                                     throw new Error('AbortError: Message cancelled');
                                 }
@@ -283,17 +415,14 @@ export class Conversation {
                             }
                         };
                         
-                        // Race between stream completion and cancellation check
                         await Promise.race([streamPromise, checkCancellation()]);
                         streamCompleted = true;
                     } else {
-                        // For other providers: normal cancellation with signal
                         for await (const chunk of streamIterator) {
                             if (this.currentStreamController?.signal.aborted) {
                                 wasCancelled = true;
                                 throw new Error('AbortError: Message cancelled');
                             }
-                            
                             if (chunk.delta?.content) {
                                 placeholder.content += chunk.delta.content;
                                 this.emitUpdate();
@@ -302,7 +431,6 @@ export class Conversation {
                         streamCompleted = true;
                     }
                 } catch (streamError) {
-                    // Stream was aborted
                     if (streamError instanceof Error && streamError.message === 'AbortError: Message cancelled') {
                         wasCancelled = true;
                         throw streamError;
@@ -312,10 +440,14 @@ export class Conversation {
                 
                 placeholder.isStreaming = false;
                 
-                // Only execute actions if stream completed successfully (not cancelled)
-                if (streamCompleted && !wasCancelled) {
-                    const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
-                    await this.handleActionResults(msgId, npc, actionResults);
+                // Add badge feedback associated with the AI message
+                if (streamCompleted && !wasCancelled && badgeFeedbacks.length > 0) {
+                    const badgeEntry = createActionFeedback({
+                        id: this.nextId++,
+                        associatedMessageId: msgId,
+                        feedbacks: badgeFeedbacks
+                    });
+                    this.messages.push(badgeEntry);
                 }
             } else if (result && typeof result === 'object' && 'content' in result && typeof result.content === 'string') {
                 // Handle synchronous response
@@ -324,19 +456,33 @@ export class Conversation {
                 placeholder.isStreaming = false;
                 streamCompleted = true;
                 
-                // Execute actions and collect feedback
-                const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
-                await this.handleActionResults(msgId, npc, actionResults);
+                // Add badge feedback associated with the AI message
+                if (badgeFeedbacks.length > 0) {
+                    const badgeEntry = createActionFeedback({
+                        id: this.nextId++,
+                        associatedMessageId: msgId,
+                        feedbacks: badgeFeedbacks
+                    });
+                    this.messages.push(badgeEntry);
+                }
             } else {
                 throw new Error('Bad LLM response format');
+            }
+
+            // Pause conversation if setting is enabled and we have pending approvals
+            const approvalSettings = settingsRepository.getActionApprovalSettings();
+            if (this.pendingActionApprovals.size > 0 && approvalSettings.pauseOnApproval && this.npcQueue.length > 0) {
+                this.pauseConversation();
             }
         } catch (error) {
             console.error('Failed to get response for', npc.shortName, ':', error);
 
-            // Remove the placeholder message
-            this.messages = this.messages.filter(msg => msg.id !== msgId);
+            // Remove the placeholder message if it exists
+            const msgIds = this.messages.filter(m => 'role' in m && m.role === 'assistant' && m.name === npc.fullName && (m as any).isStreaming).map(m => m.id);
+            if (msgIds.length > 0) {
+                this.messages = this.messages.filter(msg => !msgIds.includes(msg.id));
+            }
 
-            // Check if this was an abort (user cancelled)
             if (error instanceof Error && error.message === 'AbortError: Message cancelled') {
                 wasCancelled = true;
             } else {
@@ -347,124 +493,16 @@ export class Conversation {
                 });
                 this.messages.push(err);
             }
-            // Pause conversation on any interruption if more NPCs remain
             if (this.npcQueue.length > 0) {
                 this.pauseConversation();
             }
         } finally {
-            // Clear pause state if queue is empty and this was a cancellation
             if (wasCancelled && this.npcQueue.length === 0 && this.isPaused) {
                 this.isPaused = false;
             }
             
             this.emitUpdate();
             this.currentStreamController = null;
-        }
-    }
-
-    /**
-     * Handle action results from ActionEngine - separate auto-approved from needs-approval
-     */
-    private async handleActionResults(
-        associatedMessageId: number,
-        npc: Character,
-        actionResults: import("../actions/ActionEngine").ActionEvaluationResult
-    ): Promise<void> {
-        const autoFeedbackResults: import("../actions/types").ActionExecutionResult[] = [...actionResults.autoApproved];
-
-        // Process actions that need approval individually
-        for (const action of actionResults.needsApproval) {
-            // Try to build a preview without writing any effects
-            let previewFeedback: string | undefined;
-            let previewSentiment: 'positive' | 'negative' | 'neutral' | undefined;
-            try {
-                const previewResult = await ActionEngine.runInvocation(this, npc, action.invocation, { dryRun: true });
-                if (previewResult.feedback?.message) {
-                    previewFeedback = previewResult.feedback.message;
-                    previewSentiment = previewResult.feedback.sentiment || 'neutral';
-                } else {
-                    // Treat actions without feedback as background and auto-approve immediately
-                    const executed = await ActionEngine.runInvocation(this, npc, action.invocation);
-                    autoFeedbackResults.push(executed);
-                    continue;
-                }
-            } catch (err) {
-                console.error('[Conversation] Preview action failed:', err);
-            }
-
-            const approvalEntry = createActionApproval({
-                id: this.nextId++,
-                associatedMessageId,
-                action: {
-                    actionId: action.actionId,
-                    actionTitle: action.actionTitle,
-                    sourceCharacterId: action.sourceCharacterId,
-                    sourceCharacterName: action.sourceCharacterName,
-                    targetCharacterId: action.targetCharacterId,
-                    targetCharacterName: action.targetCharacterName,
-                    args: action.args,
-                    isDestructive: action.isDestructive
-                },
-                previewFeedback,
-                previewSentiment
-            });
-
-            this.messages.push(approvalEntry);
-
-            // Store pending action for later execution
-            this.pendingActionApprovals.set(approvalEntry.id, {
-                npc,
-                action,
-                previewFeedback,
-                previewSentiment,
-                approvalEntryId: approvalEntry.id
-            });
-        }
-
-        // Add feedback for auto-approved/background actions
-        if (autoFeedbackResults.length > 0) {
-            this.addActionFeedback(associatedMessageId, autoFeedbackResults);
-        }
-
-        // Pause conversation if setting is enabled and we have pending approvals
-        const approvalSettings = settingsRepository.getActionApprovalSettings();
-        if (this.pendingActionApprovals.size > 0 && approvalSettings.pauseOnApproval && this.npcQueue.length > 0) {
-            this.pauseConversation();
-        }
-
-        if (this.pendingActionApprovals.size > 0) {
-            this.emitUpdate();
-        }
-    }
-
-    private addActionFeedback(associatedMessageId: number, actionResults: import("../actions/types").ActionExecutionResult[]): void {
-        console.log('[Conversation] addActionFeedback called with results:', actionResults);
-        
-        // Filter results that have feedback or errors
-        const feedbackItems = actionResults
-            .filter(r => r.feedback || r.error)
-            .map(r => ({
-                actionId: r.actionId,
-                success: r.success,
-                message: r.feedback?.message || r.error || 'Unknown error',
-                sentiment: (r.feedback?.sentiment || 'negative') as 'positive' | 'negative' | 'neutral'
-            }));
-
-        console.log('[Conversation] Filtered feedback items:', feedbackItems);
-
-        // Add feedback entry if any actions provided feedback
-        if (feedbackItems.length > 0) {
-            const feedbackEntry = createActionFeedback({
-                id: this.nextId++,
-                associatedMessageId,
-                feedbacks: feedbackItems
-            });
-            console.log('[Conversation] Creating feedback entry:', feedbackEntry);
-            this.messages.push(feedbackEntry);
-            this.emitUpdate();
-            console.log('[Conversation] Feedback entry added and update emitted');
-        } else {
-            console.log('[Conversation] No feedback items to display');
         }
     }
 
@@ -1007,7 +1045,7 @@ export class Conversation {
         this.pendingActionApprovals.delete(approvalEntryId);
         this.emitUpdate();
 
-        // Execute the approved action (await to avoid race conditions)
+        // Execute the approved action before resolving the waiter
         try {
             const result = await ActionEngine.runInvocation(this, pending.npc, pending.action.invocation);
 
@@ -1015,21 +1053,36 @@ export class Conversation {
             if (result.feedback?.message && result.feedback.message !== approvalEntry.resultFeedback) {
                 approvalEntry.resultFeedback = result.feedback.message;
                 approvalEntry.resultSentiment = result.feedback.sentiment || 'neutral';
+                if (result.feedback.title) {
+                    approvalEntry.resultTitle = result.feedback.title;
+                }
+                if (result.feedback.messageType) {
+                    approvalEntry.resultMessageType = result.feedback.messageType;
+                }
                 this.emitUpdate();
             }
         }
         catch (err) {
-            console.error('[Conversation] Background action execution failed:', err);
+            console.error('[Conversation] Approved action execution failed:', err);
             // Update with error feedback
             approvalEntry.resultFeedback = `Failed: ${err instanceof Error ? err.message : String(err)}`;
             approvalEntry.resultSentiment = 'negative';
             this.emitUpdate();
         }
 
-        // Resume conversation if it was paused
-        const approvalSettings = settingsRepository.getActionApprovalSettings();
-        if (approvalSettings.pauseOnApproval && this.isPaused && this.npcQueue.length > 0) {
-            this.resumeConversation();
+        // Resolve the approval waiter AFTER execution completes so respondAs can collect results
+        const resolver = this.approvalResolvers.get(approvalEntryId);
+        if (resolver) {
+            this.approvalResolvers.delete(approvalEntryId);
+            resolver('approved');
+        }
+
+        // Resume conversation if it was paused (and no respondAs is waiting)
+        if (!resolver) {
+            const approvalSettings = settingsRepository.getActionApprovalSettings();
+            if (approvalSettings.pauseOnApproval && this.isPaused && this.npcQueue.length > 0) {
+                this.resumeConversation();
+            }
         }
     }
 
@@ -1059,12 +1112,22 @@ export class Conversation {
         // Remove approval entry entirely on decline
         this.messages.splice(entryIndex, 1);
         this.pendingActionApprovals.delete(approvalEntryId);
+
+        // Resolve the approval waiter if respondAs is waiting
+        const resolver = this.approvalResolvers.get(approvalEntryId);
+        if (resolver) {
+            this.approvalResolvers.delete(approvalEntryId);
+            resolver('declined');
+        }
+
         this.emitUpdate();
 
-        // Resume conversation if it was paused
-        const approvalSettings = settingsRepository.getActionApprovalSettings();
-        if (approvalSettings.pauseOnApproval && this.isPaused && this.npcQueue.length > 0) {
-            this.resumeConversation();
+        // Resume conversation if it was paused (only when no respondAs is waiting)
+        if (!resolver) {
+            const approvalSettings = settingsRepository.getActionApprovalSettings();
+            if (approvalSettings.pauseOnApproval && this.isPaused && this.npcQueue.length > 0) {
+                this.resumeConversation();
+            }
         }
     }
     /**

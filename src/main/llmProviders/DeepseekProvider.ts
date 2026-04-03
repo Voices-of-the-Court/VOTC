@@ -82,6 +82,7 @@ export class DeepseekProvider extends BaseProvider {
       frequency_penalty: transformedRequest.frequency_penalty,
       // Deepseek only supports json_object, not json_schema
       ...(transformedRequest.response_format ? { response_format: transformedRequest.response_format as any } : {}),
+      ...(request.tools ? { tools: request.tools as any, tool_choice: request.tool_choice ?? 'auto' } : {}),
       ...(transformedRequest.stream ? { stream_options: { include_usage: true } } : {}),
     };
 

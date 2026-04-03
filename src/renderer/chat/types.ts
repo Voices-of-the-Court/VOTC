@@ -24,7 +24,9 @@ export interface ActionFeedbackEntry extends BaseEntry {
     actionId: string;
     success: boolean;
     message: string;
+    title?: string;
     sentiment: 'positive' | 'negative' | 'neutral';
+    messageType: 'badge' | 'narration';
   }>;
 }
 

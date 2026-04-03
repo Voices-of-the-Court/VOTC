@@ -44,6 +44,25 @@ export interface ILLMCompletionRequest {
    * or { type: 'json_object' } for generic JSON constraint.
    */
   response_format?: Record<string, any>;
+  /**
+   * Optional tools (functions) the model may call.
+   * Uses the OpenAI tool calling format.
+   */
+  tools?: Array<{
+    type: 'function';
+    function: {
+      name: string;
+      description?: string;
+      parameters?: Record<string, any>;
+    };
+  }>;
+  /**
+   * Controls how the model uses tools.
+   * - 'auto': model decides whether to call tools (default)
+   * - 'none': model must not call tools
+   * - 'required': model must call at least one tool
+   */
+  tool_choice?: 'auto' | 'none' | 'required';
   // Provider-specific parameters can be handled within each implementation
   // or by adding an optional 'options?: Record<string, any>' field
 }

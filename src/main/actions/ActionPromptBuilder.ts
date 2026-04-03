@@ -1,57 +1,43 @@
 import { Conversation } from "../conversation/Conversation";
 import { Character } from "../gameData/Character";
 import { ILLMMessage } from "../llmProviders/types";
-import type { SchemaBuildInput } from "./jsonSchema";
 
 /**
- * Builds LLM messages for action selection with structured outputs.
- * - Includes recent conversation history
- * - Lists characters with IDs and their stable order index
- * - Describes available actions, their args, and valid targets
- * - Instructs the model to return only JSON (the provider will enforce schema)
+ * Builds LLM messages for action selection using tool calling.
+ * The available tools are passed separately to the LLM provider.
+ * This builder provides conversation context and instructions.
  */
 export class ActionPromptBuilder {
   static buildActionMessages(
     conv: Conversation,
     npc: Character,
-    available: SchemaBuildInput["availableActions"],
     historyWindow: number = conv.gameData.characters.size
   ): ILLMMessage[] {
     const messages: ILLMMessage[] = [];
 
-    // 1) System role: purpose and strict output guidance
+    // 1) System role: purpose and tool-calling guidance
     const systemIntro =
 `You are an action selection engine in a roleplay AI system.
 
-Your ONLY job is to decide which game actions should be executed right now based on the conversation and available actions.
+Your job is to decide which game actions should be executed right now based on the conversation. Use the provided tools to execute actions. You may call zero or more tools.
 
 KEY RULES:
-- You MUST return ONLY valid JSON matching the schema provided by the provider. No prose, no explanations, no code fences.
-- Use ONLY actions from the "Available Actions" list below. Never invent actionIds or argument names.
-- Every action must have exactly one targetCharacterId (or none if the action allows it).
-- If an action needs a target, use ONLY the validTargetCharacterIds listed for that action.
+- Use ONLY the tools provided. Never invent tool names or argument names.
+- If a tool has a targetCharacterId parameter, use a valid character ID from the roster below.
 - Fill arguments exactly as specified (types, min/max, enums).
+- If nothing meaningful happened, do not call any tools.
 
 PLAYER-SPECIFIC ACTIONS & isPlayerSource:
 - Some actions are player-only (e.g. playerPaysGoldTo). Use them when the player performed the action in the conversation.
 - Actions with isPlayerSource: boolean let you flip the source to the player character "${conv.gameData.playerName}". Set it to true only when the context clearly shows the player is the source.
 
 GOLD PAYMENT RULE (very important):
-- If the player's last message narrates paying gold AND the NPC accepts it (or takes the gold), you MUST include the correct gold action:
-  • playerPaysGoldTo (when player is paying)
-  • paysGoldTo (when NPC is paying)
-- This is required to update the treasury state. Do not skip it just because the payment was already narrated.
+- If the player's last message narrates paying gold AND the NPC accepts it, you MUST call the correct gold action tool.
 
 IMPRISONMENT RULE (very important):
-- If the player's message narrates imprisoning the current NPC (or the NPC imprisoning the player), you MUST include isImprisonedBy.
-- Target = the jailor.
-- prisonType = "dungeon" (default) or "house_arrest".
-- Use isPlayerSource: true ONLY if the PLAYER is the one being imprisoned.
-- This is required to update the imprisonment state.
+- If the player's message narrates imprisoning the current NPC (or vice versa), you MUST call isImprisonedBy.
 
-If nothing else fits, use the noOp action.
-
-You are now processing the NPC "${npc.fullName}" turn, but you may still output player-specific actions when needed to keep game state correct.`;
+You are now processing the NPC "${npc.fullName}" turn.`;
 
     messages.push({ role: "system", content: systemIntro });
 
@@ -106,102 +92,18 @@ You are now processing the NPC "${npc.fullName}" turn, but you may still output 
 
     messages.push({
       role: "system",
-      content: `Characters in this conversation (order matches CK3 global list):\n${characterRosterLines.join("\n")}\n\nYou are now selecting actions for the current turn.`
+      content: `Characters in this conversation (order matches CK3 global list):\n${characterRosterLines.join("\n")}`
     });
 
-    // 5. Available Actions — cleaner formatting
-    const actionLines: string[] = [];
-    for (const action of available) {
-      const argDescs = action.args.length
-        ? action.args.map(a => {
-            if (a.type === "enum") return `- ${a.name}: enum{${a.options.join(", ")}} ${a.required ? "(required)" : "(optional)"}`;
-            if (a.type === "number") {
-              const bounds = [
-                a.min !== undefined ? `min=${a.min}` : "",
-                a.max !== undefined ? `max=${a.max}` : "",
-                a.step !== undefined ? `step=${a.step}` : ""
-              ].filter(Boolean).join(", ");
-              return `- ${a.name}: number${bounds ? ` [${bounds}]` : ""} ${a.required ? "(required)" : "(optional)"}`;
-            }
-            if (a.type === "string") {
-              const bounds = [
-                a.minLength !== undefined ? `minLen=${a.minLength}` : "",
-                a.maxLength !== undefined ? `maxLen=${a.maxLength}` : "",
-                a.pattern ? `pattern=${typeof a.pattern === "string" ? a.pattern : a.pattern.source}` : ""
-              ].filter(Boolean).join(", ");
-              return `- ${a.name}: string${bounds ? ` [${bounds}]` : ""} ${a.required ? "(required)" : "(optional)"}`;
-            }
-            return `- ${a.name}: ${a.type} ${a.required ? "(required)" : "(optional)"}`;
-          }).join("\n")
-        : "- (no args)";
-
-      const targetLine = action.validTargetCharacterIds?.length
-        ? `Targets: one of { ${action.validTargetCharacterIds.join(", ")} }`
-        : action.requiresTarget
-          ? "Targets: required (any valid character id in roster)"
-          : "Targets: none (omit or use null)";
-
-      actionLines.push(
-`${action.signature}
-Description: ${action.description || "—"}
-${targetLine}
-Args:
-${argDescs}
-`
-      );
-    }
-
-    const actionsBlock =
-`Available Actions:
-
-${actionLines.join("\n\n")}
-
-Return JSON only. No extra text.`;
-    messages.push({ role: "system", content: actionsBlock });
-
-    // 6. Few-shot examples (most powerful improvement)
-    const fewShot = `Examples of correct JSON output:
-
-Example 1 — Normal NPC reaction:
-{
-  "actions": [
-    {
-      "actionId": "changeOpinionOf",
-      "targetCharacterId": 47903,
-      "args": { "value": -2 }
-    },
-    {
-      "actionId": "setEmotion",
-      "targetCharacterId": 55376,
-      "args": { "emotion": "anger" }
-    }
-  ]
-}
-
-Example 2 — Player just paid gold and NPC accepted it:
-{
-  "actions": [
-    {
-      "actionId": "playerPaysGoldTo",
-      "targetCharacterId": 55376,
-      "args": { "amount": 200 }
-    }
-  ]
-}
-
-Follow this exact structure.`;
-
-    messages.push({ role: "system", content: fewShot });
-
-    // 7. Final user instruction
+    // 5. Final user instruction
     const outroBlock =
-`Given everything above, select the actions (if any) that should be executed right now.
+`Given the conversation above, call the appropriate tool(s) for actions that should be executed right now.
 
-You may output:
+You may call tools for:
 • Actions for ${npc.fullName} (id=${npc.id})
-• OR player-specific actions (e.g. playerPaysGoldTo) when the conversation shows the player performed them
+• OR player-specific actions when the conversation shows the player performed them
 
-Respect all argument types, constraints, and valid targets.`;
+If no actions are needed, do not call any tools.`;
 
     messages.push({ role: "user", content: outroBlock });
 

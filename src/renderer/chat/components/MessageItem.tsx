@@ -4,15 +4,16 @@ import StreamingMarkdown from './StreamingMarkdown';
 import ActionFeedbackItem from './ActionFeedbackItem';
 import SummaryImportNotification from './SummaryImportNotification';
 import ActionApprovalItem from './ActionApprovalItem';
-import { ChatEntry } from '../types';
+import { ChatEntry, ActionFeedbackEntry } from '../types';
 import AlertIcon from '../../assets/Alert.png';
 
 
 interface MessageItemProps {
   entry: ChatEntry;
+  badgeFeedbacks?: ActionFeedbackEntry[];
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ entry, badgeFeedbacks }) => {
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
@@ -146,6 +147,27 @@ const MessageItem: React.FC<MessageItemProps> = ({ entry }) => {
               </span>
             )}
           </>
+        )}
+        {badgeFeedbacks && badgeFeedbacks.length > 0 && (
+          <div className="action-feedback-list message-badge-feedbacks">
+            {badgeFeedbacks.flatMap(fe => 
+              fe.feedbacks
+                .filter(f => (f.messageType || 'badge') === 'badge')
+                .map((feedback, index) => {
+                  let itemClass = 'action-feedback-item';
+                  if (!feedback.success) {
+                    itemClass += ' error';
+                  } else {
+                    itemClass += ` ${feedback.sentiment}`;
+                  }
+                  return (
+                    <div key={`${fe.id}-${index}`} className={itemClass}>
+                      <span className="action-feedback-message">{feedback.message}</span>
+                    </div>
+                  );
+                })
+            )}
+          </div>
         )}
       </div>
     </div>
