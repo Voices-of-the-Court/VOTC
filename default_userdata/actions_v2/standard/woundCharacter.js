@@ -38,7 +38,7 @@ module.exports = {
     pl: "Zranić postać",
     zh: "伤害角色"
   },
-  function: ({ sourceCharacter }) => ({
+  function: ({ gameData }) => ({
     name: 'wound_character',
     description: `Use when one of the characters is injured, or is reasonably likely to get injured.`,
     parameters: {
@@ -73,10 +73,11 @@ module.exports = {
     },
   }),
 
-  check: ({ gameData, sourceCharacter }) => {
+  check: ({ gameData }) => {
     const allIds = Array.from(gameData.characters.keys());
     return {
       canExecute: true,
+      validSourceCharacterIds: allIds,
       validTargetCharacterIds: allIds,
     };
   },

@@ -1,5 +1,4 @@
 import { Conversation } from "../conversation/Conversation";
-import { Character } from "../gameData/Character";
 import { ILLMMessage } from "../llmProviders/types";
 
 /**
@@ -10,7 +9,6 @@ import { ILLMMessage } from "../llmProviders/types";
 export class ActionPromptBuilder {
   static buildActionMessages(
     conv: Conversation,
-    npc: Character,
     historyWindow: number = conv.gameData.characters.size
   ): ILLMMessage[] {
     const messages: ILLMMessage[] = [];
@@ -23,21 +21,19 @@ Your job is to decide which game actions should be executed right now based on t
 
 KEY RULES:
 - Use ONLY the tools provided. Never invent tool names or argument names.
+- Every tool call MUST include a sourceCharacterId — the character performing the action.
 - If a tool has a targetCharacterId parameter, use a valid character ID from the roster below.
 - Fill arguments exactly as specified (types, min/max, enums).
 - If nothing meaningful happened, do not call any tools.
-
-PLAYER-SPECIFIC ACTIONS & isPlayerSource:
-- Some actions are player-only (e.g. playerPaysGoldTo). Use them when the player performed the action in the conversation.
-- Actions with isPlayerSource: boolean let you flip the source to the player character "${conv.gameData.playerName}". Set it to true only when the context clearly shows the player is the source.
+- You may call multiple tools in one response for different characters.
 
 GOLD PAYMENT RULE (very important):
 - If the player's last message narrates paying gold AND the NPC accepts it, you MUST call the correct gold action tool.
 
 IMPRISONMENT RULE (very important):
-- If the player's message narrates imprisoning the current NPC (or vice versa), you MUST call isImprisonedBy.
+- If the player's message narrates imprisoning a character (or vice versa), you MUST call isImprisonedBy.
 
-You are now processing the NPC "${npc.fullName}" turn.`;
+You are deciding actions for the entire turn — specify the sourceCharacterId for each action.`;
 
     messages.push({ role: "system", content: systemIntro });
 
@@ -99,9 +95,7 @@ You are now processing the NPC "${npc.fullName}" turn.`;
     const outroBlock =
 `Given the conversation above, call the appropriate tool(s) for actions that should be executed right now.
 
-You may call tools for:
-• Actions for ${npc.fullName} (id=${npc.id})
-• OR player-specific actions when the conversation shows the player performed them
+For each tool call, specify the sourceCharacterId to indicate which character is performing the action. You may call tools for any character in the conversation.
 
 If no actions are needed, do not call any tools.`;
 

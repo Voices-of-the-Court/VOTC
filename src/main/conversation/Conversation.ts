@@ -205,8 +205,8 @@ export class Conversation {
             .filter(c => c.id !== this.gameData.playerID);
     }
 
-    // Handle response for a single NPC
-    private async respondAs(npc: Character): Promise<void> {
+    // Handle response for a single NPC (message generation only — actions already evaluated)
+    private async respondAs(npc: Character, actionFeedbackResults: import("../actions/types").ActionExecutionResult[] = []): Promise<void> {
         // Create AbortController for this NPC turn
         this.currentStreamController = new AbortController();
         let wasCancelled = false;
@@ -225,103 +225,13 @@ export class Conversation {
         this.emitUpdate();
 
         try {
-            // --- Phase 1: Evaluate actions BEFORE message generation ---
-            const actionResults = await ActionEngine.evaluateForCharacter(this, npc, this.currentStreamController?.signal);
-            
             if (this.currentStreamController?.signal.aborted) {
                 wasCancelled = true;
                 throw new Error('AbortError: Message cancelled');
             }
 
-            // Process action results: execute auto-approved, separate narration vs badge
-            const autoFeedbackResults: import("../actions/types").ActionExecutionResult[] = [...actionResults.autoApproved];
-
-            // Handle needs-approval actions (dry-run preview, etc.)
-            const approvalPromises: Promise<'approved' | 'declined'>[] = [];
-            for (const action of actionResults.needsApproval) {
-                let previewFeedback: string | undefined;
-                let previewSentiment: 'positive' | 'negative' | 'neutral' | undefined;
-                try {
-                    const previewResult = await ActionEngine.runInvocation(this, npc, action.invocation, { dryRun: true });
-                    if (previewResult.feedback?.message) {
-                        previewFeedback = previewResult.feedback.message;
-                        previewSentiment = previewResult.feedback.sentiment || 'neutral';
-                    } else {
-                        const executed = await ActionEngine.runInvocation(this, npc, action.invocation);
-                        autoFeedbackResults.push(executed);
-                        continue;
-                    }
-                } catch (err) {
-                    console.error('[Conversation] Preview action failed:', err);
-                }
-
-                const approvalEntry = createActionApproval({
-                    id: this.nextId++,
-                    associatedMessageId: -1, // No AI message yet
-                    action: {
-                        actionId: action.actionId,
-                        actionTitle: action.actionTitle,
-                        sourceCharacterId: action.sourceCharacterId,
-                        sourceCharacterName: action.sourceCharacterName,
-                        targetCharacterId: action.targetCharacterId,
-                        targetCharacterName: action.targetCharacterName,
-                        args: action.args,
-                        isDestructive: action.isDestructive
-                    },
-                    previewFeedback,
-                    previewSentiment
-                });
-
-                // Remove placeholder temporarily so approval appears before loading dots
-                this.messages = this.messages.filter(m => m.id !== msgId);
-                this.messages.push(approvalEntry);
-                this.messages.push(placeholder);
-
-                this.pendingActionApprovals.set(approvalEntry.id, {
-                    npc,
-                    action,
-                    previewFeedback,
-                    previewSentiment,
-                    approvalEntryId: approvalEntry.id
-                });
-
-                // Create a promise that resolves when user approves/declines
-                approvalPromises.push(new Promise<'approved' | 'declined'>(resolve => {
-                    this.approvalResolvers.set(approvalEntry.id, resolve);
-                }));
-            }
-
-            // If there are pending approvals, show them and wait for all to resolve
-            if (approvalPromises.length > 0) {
-                this.emitUpdate();
-                console.log(`[Conversation] Waiting for ${approvalPromises.length} action approval(s) before generating message...`);
-                await Promise.all(approvalPromises);
-                console.log('[Conversation] All approvals resolved, proceeding with message generation');
-
-                if (this.currentStreamController?.signal.aborted) {
-                    wasCancelled = true;
-                    throw new Error('AbortError: Message cancelled');
-                }
-            }
-
-            // Collect feedback from approved actions (their results are stored on the approval entries)
-            for (const entry of this.messages) {
-                if (entry.type === 'action-approval' && entry.status === 'approved' && entry.resultFeedback) {
-                    autoFeedbackResults.push({
-                        actionId: entry.action.actionId,
-                        success: true,
-                        feedback: {
-                            message: entry.resultFeedback,
-                            sentiment: (entry.resultSentiment || 'neutral') as 'positive' | 'negative' | 'neutral',
-                            messageType: (entry.resultMessageType || 'badge') as 'badge' | 'narration',
-                            ...(entry.resultTitle ? { title: entry.resultTitle } : {}),
-                        }
-                    });
-                }
-            }
-
-            // Separate narration and badge feedback from all results
-            const feedbackItems = autoFeedbackResults
+            // Separate narration and badge feedback from pre-computed action results
+            const feedbackItems = actionFeedbackResults
                 .filter(r => r.feedback || r.error)
                 .map(r => ({
                     actionId: r.actionId,
@@ -355,10 +265,10 @@ export class Conversation {
                     const prefix = f.messageType === 'narration' ? '[Narration]' : '[Event]';
                     return `${prefix} ${f.message}`;
                 });
-                actionContext = `The following events just happened involving ${npc.shortName}:\n${lines.join('\n')}\n\nIncorporate these events naturally into ${npc.shortName}'s response. Do not repeat the narration verbatim, but acknowledge and react to what happened.`;
+                actionContext = `The following events just happened in the conversation:\n${lines.join('\n')}\n\nIncorporate these events naturally into ${npc.shortName}'s response. Do not repeat the narration verbatim, but acknowledge and react to what happened.`;
             }
 
-            // --- Phase 2: Generate AI message ---
+            // --- Generate AI message ---
 
             // Has to be called after emitUpdate to show placeholder in UI in right time
             await this.checkAndSummarizeIfNeeded(npc);
@@ -440,7 +350,7 @@ export class Conversation {
                 
                 placeholder.isStreaming = false;
                 
-                // Add badge feedback associated with the AI message
+                // Add badge feedback associated with the AI message (only for first NPC)
                 if (streamCompleted && !wasCancelled && badgeFeedbacks.length > 0) {
                     const badgeEntry = createActionFeedback({
                         id: this.nextId++,
@@ -456,7 +366,7 @@ export class Conversation {
                 placeholder.isStreaming = false;
                 streamCompleted = true;
                 
-                // Add badge feedback associated with the AI message
+                // Add badge feedback associated with the AI message (only for first NPC)
                 if (badgeFeedbacks.length > 0) {
                     const badgeEntry = createActionFeedback({
                         id: this.nextId++,
@@ -467,12 +377,6 @@ export class Conversation {
                 }
             } else {
                 throw new Error('Bad LLM response format');
-            }
-
-            // Pause conversation if setting is enabled and we have pending approvals
-            const approvalSettings = settingsRepository.getActionApprovalSettings();
-            if (this.pendingActionApprovals.size > 0 && approvalSettings.pauseOnApproval && this.npcQueue.length > 0) {
-                this.pauseConversation();
             }
         } catch (error) {
             console.error('Failed to get response for', npc.shortName, ':', error);
@@ -557,10 +461,119 @@ export class Conversation {
 
         console.log('Processing queue with', this.npcQueue.length, 'NPCs remaining');
 
+        // --- Phase 1: Single action evaluation for the entire turn ---
+        this.currentStreamController = new AbortController();
+        const signal = this.currentStreamController.signal;
+
+        let allFeedbackResults: import("../actions/types").ActionExecutionResult[] = [];
+
+        try {
+            const actionResults = await ActionEngine.evaluateForTurn(this, signal);
+
+            if (signal.aborted) {
+                this.currentStreamController = null;
+                return;
+            }
+
+            allFeedbackResults = [...actionResults.autoApproved];
+
+            // Handle needs-approval actions (dry-run preview, etc.)
+            const approvalPromises: Promise<'approved' | 'declined'>[] = [];
+            for (const action of actionResults.needsApproval) {
+                let previewFeedback: string | undefined;
+                let previewSentiment: 'positive' | 'negative' | 'neutral' | undefined;
+                try {
+                    const previewResult = await ActionEngine.runInvocation(this, action.invocation, { dryRun: true });
+                    if (previewResult.feedback?.message) {
+                        previewFeedback = previewResult.feedback.message;
+                        previewSentiment = previewResult.feedback.sentiment || 'neutral';
+                    } else {
+                        const executed = await ActionEngine.runInvocation(this, action.invocation);
+                        allFeedbackResults.push(executed);
+                        continue;
+                    }
+                } catch (err) {
+                    console.error('[Conversation] Preview action failed:', err);
+                }
+
+                const sourceNpc = this.gameData.characters.get(action.sourceCharacterId);
+
+                const approvalEntry = createActionApproval({
+                    id: this.nextId++,
+                    associatedMessageId: -1,
+                    action: {
+                        actionId: action.actionId,
+                        actionTitle: action.actionTitle,
+                        sourceCharacterId: action.sourceCharacterId,
+                        sourceCharacterName: action.sourceCharacterName,
+                        targetCharacterId: action.targetCharacterId,
+                        targetCharacterName: action.targetCharacterName,
+                        args: action.args,
+                        isDestructive: action.isDestructive
+                    },
+                    previewFeedback,
+                    previewSentiment
+                });
+
+                this.messages.push(approvalEntry);
+
+                this.pendingActionApprovals.set(approvalEntry.id, {
+                    npc: sourceNpc!,
+                    action,
+                    previewFeedback,
+                    previewSentiment,
+                    approvalEntryId: approvalEntry.id
+                });
+
+                approvalPromises.push(new Promise<'approved' | 'declined'>(resolve => {
+                    this.approvalResolvers.set(approvalEntry.id, resolve);
+                }));
+            }
+
+            // If there are pending approvals, show them and wait for all to resolve
+            if (approvalPromises.length > 0) {
+                this.emitUpdate();
+                console.log(`[Conversation] Waiting for ${approvalPromises.length} action approval(s) before generating messages...`);
+                await Promise.all(approvalPromises);
+                console.log('[Conversation] All approvals resolved, proceeding with message generation');
+
+                if (signal.aborted) {
+                    this.currentStreamController = null;
+                    return;
+                }
+            }
+
+            // Collect feedback from approved actions
+            for (const entry of this.messages) {
+                if (entry.type === 'action-approval' && entry.status === 'approved' && entry.resultFeedback) {
+                    allFeedbackResults.push({
+                        actionId: entry.action.actionId,
+                        success: true,
+                        feedback: {
+                            message: entry.resultFeedback,
+                            sentiment: (entry.resultSentiment || 'neutral') as 'positive' | 'negative' | 'neutral',
+                            messageType: (entry.resultMessageType || 'badge') as 'badge' | 'narration',
+                            ...(entry.resultTitle ? { title: entry.resultTitle } : {}),
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            if (!signal.aborted) {
+                console.error('[Conversation] Action evaluation failed:', err);
+            }
+        }
+
+        this.currentStreamController = null;
+
+        // --- Phase 2: Generate messages for each NPC ---
+        // Pass all action feedback to the first NPC only (to avoid duplicate badge/narration entries)
+        let isFirstNpc = true;
         while (this.npcQueue.length > 0 && !this.isPaused) {
             const npc = this.npcQueue.shift()!;
             try {
-                await this.respondAs(npc);
+                await this.respondAs(npc, isFirstNpc ? allFeedbackResults : []);
+                isFirstNpc = false;
             } catch (error) {
                 console.error('Unhandled error in respondAs for', npc.shortName, ':', error);
                 this.emitUpdate();
@@ -1047,7 +1060,7 @@ export class Conversation {
 
         // Execute the approved action before resolving the waiter
         try {
-            const result = await ActionEngine.runInvocation(this, pending.npc, pending.action.invocation);
+            const result = await ActionEngine.runInvocation(this, pending.action.invocation);
 
             // Update feedback after execution
             if (result.feedback?.message && result.feedback.message !== approvalEntry.resultFeedback) {

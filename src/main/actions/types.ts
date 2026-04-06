@@ -24,15 +24,15 @@ export interface ToolFunctionDefinition {
 }
 
 /** Dynamic function definition that receives context */
-export type DynamicToolFunction = (context: { gameData?: GameData; sourceCharacter: Character }) => ToolFunctionDefinition;
+export type DynamicToolFunction = (context: { gameData: GameData }) => ToolFunctionDefinition;
 
 export interface ActionCheckContext {
   gameData: GameData;
-  sourceCharacter: Character;
 }
 
 export interface ActionCheckResult {
   canExecute: boolean;
+  validSourceCharacterIds?: number[];
   validTargetCharacterIds?: number[];
   reason?: string;
 }
@@ -82,6 +82,7 @@ export interface ActionExecutionResult {
 
 export interface ActionInvocation {
   actionId: string;
+  sourceCharacterId: number;
   targetCharacterId?: number | null;
   args: ActionArgumentValues;
 }

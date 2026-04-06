@@ -600,7 +600,6 @@ const setupIpcHandlers = () => {
       // Run check to get valid targets
       const checkResult = await loaded.definition.check({
         gameData: conv.gameData,
-        sourceCharacter,
       });
       
       if (!checkResult?.canExecute) {
@@ -610,7 +609,7 @@ const setupIpcHandlers = () => {
       // Resolve the function definition to get parameters
       let functionDef;
       if (typeof loaded.definition.function === 'function') {
-        functionDef = loaded.definition.function({ gameData: conv.gameData, sourceCharacter });
+        functionDef = loaded.definition.function({ gameData: conv.gameData });
       } else {
         functionDef = loaded.definition.function;
       }
@@ -651,11 +650,12 @@ const setupIpcHandlers = () => {
       
       const invocation = {
         actionId,
+        sourceCharacterId,
         targetCharacterId: targetCharacterId ?? null,
         args,
       };
       
-      const result = await ActionEngine.runInvocation(conv, sourceCharacter, invocation);
+      const result = await ActionEngine.runInvocation(conv, invocation);
       
       // Add action feedback entry to conversation
       if (result.feedback) {

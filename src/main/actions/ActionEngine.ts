@@ -1,5 +1,4 @@
 import { Conversation } from "../conversation/Conversation";
-import { Character } from "../gameData/Character";
 import { actionRegistry } from "./ActionRegistry";
 import { llmManager } from "../LLMManager";
 import { ActionEffectWriter } from "./ActionEffectWriter";
@@ -33,15 +32,16 @@ interface ResolvedTool {
   signature: string;
   functionName: string;
   toolDef: ToolFunctionDefinition;
+  validSourceCharacterIds?: number[];
   validTargetCharacterIds?: number[];
 }
 
 export class ActionEngine {
   /**
-   * Evaluate actions for the given NPC (as source) based on recent conversation state.
-   * Uses LLM tool calling instead of structured JSON output.
+   * Evaluate actions for the entire turn (all characters) with a single LLM tool-call request.
+   * The LLM specifies sourceCharacterId in each tool call to indicate who performs the action.
    */
-  static async evaluateForCharacter(conv: Conversation, npc: Character, signal?: AbortSignal): Promise<ActionEvaluationResult> {
+  static async evaluateForTurn(conv: Conversation, signal?: AbortSignal): Promise<ActionEvaluationResult> {
     try {
       if (signal?.aborted) {
         return { autoApproved: [], needsApproval: [] };
@@ -61,7 +61,6 @@ export class ActionEngine {
         try {
           const checkResult = await act.definition.check({
             gameData: conv.gameData,
-            sourceCharacter: npc,
           });
 
           if (!checkResult?.canExecute) continue;
@@ -69,7 +68,7 @@ export class ActionEngine {
           // Resolve the function definition (call it if dynamic)
           let toolDef: ToolFunctionDefinition;
           if (typeof act.definition.function === 'function') {
-            toolDef = act.definition.function({ gameData: conv.gameData, sourceCharacter: npc });
+            toolDef = act.definition.function({ gameData: conv.gameData });
           } else {
             toolDef = { ...act.definition.function };
           }
@@ -79,6 +78,23 @@ export class ActionEngine {
             ...toolDef,
             parameters: JSON.parse(JSON.stringify(toolDef.parameters))
           };
+
+          // Inject sourceCharacterId parameter with valid source IDs from check()
+          const validSourceIds = checkResult.validSourceCharacterIds ?? Array.from(conv.gameData.characters.keys());
+          if (validSourceIds.length > 0) {
+            toolDef.parameters.properties.sourceCharacterId = {
+              type: 'number',
+              description: 'ID of the character performing this action.',
+              enum: validSourceIds,
+            };
+            // Add to required if not already there
+            if (!toolDef.parameters.required) {
+              toolDef.parameters.required = [];
+            }
+            if (!toolDef.parameters.required.includes('sourceCharacterId')) {
+              toolDef.parameters.required.push('sourceCharacterId');
+            }
+          }
 
           // Enrich targetCharacterId parameter with valid target IDs from check()
           if (checkResult.validTargetCharacterIds && checkResult.validTargetCharacterIds.length > 0) {
@@ -91,6 +107,7 @@ export class ActionEngine {
             signature: act.id,
             functionName: toolDef.name,
             toolDef,
+            validSourceCharacterIds: validSourceIds,
             validTargetCharacterIds: checkResult.validTargetCharacterIds,
           });
         } catch (err) {
@@ -110,8 +127,8 @@ export class ActionEngine {
         return { autoApproved: [], needsApproval: [] };
       }
 
-      // 2) Build messages for LLM
-      const messages = ActionPromptBuilder.buildActionMessages(conv, npc);
+      // 2) Build messages for LLM (no specific NPC — covers entire turn)
+      const messages = ActionPromptBuilder.buildActionMessages(conv);
 
       // 3) Build OpenAI-compatible tools array
       const tools = resolvedTools.map(rt => ({
@@ -129,10 +146,10 @@ export class ActionEngine {
         fnNameToSignature.set(rt.functionName, rt.signature);
       }
 
-      console.log(`[ActionEngine] Tool call request for ${npc.fullName}:`, messages);
+      console.log(`[ActionEngine] Tool call request for turn:`, messages);
       console.log(`[ActionEngine] Available tools (${tools.length}):`, tools.map(t => t.function.name));
 
-      // 4) Request LLM with tool calling
+      // 4) Request LLM with tool calling (SINGLE call for the whole turn)
       const output = await llmManager.sendActionsRequest(messages, tools, signal);
 
       if (signal?.aborted) {
@@ -177,8 +194,8 @@ export class ActionEngine {
           continue;
         }
 
-        const loaded = actionRegistry.getById(signature);
-        if (!loaded || !loaded.validation.valid) continue;
+        const loadedAction = actionRegistry.getById(signature);
+        if (!loadedAction || !loadedAction.validation.valid) continue;
 
         // Parse the arguments
         let args: ActionArgumentValues = {};
@@ -193,6 +210,24 @@ export class ActionEngine {
 
         console.log(`[ActionEngine] Tool call: ${fnName} (action: ${signature})`, JSON.stringify(args));
 
+        // Extract sourceCharacterId from args
+        let sourceCharacterId: number | null = null;
+        if ('sourceCharacterId' in args && args.sourceCharacterId != null) {
+          sourceCharacterId = Number(args.sourceCharacterId);
+          delete args.sourceCharacterId;
+        }
+
+        if (sourceCharacterId == null) {
+          console.warn(`[ActionEngine] Tool call ${fnName} missing sourceCharacterId, skipping`);
+          continue;
+        }
+
+        const source = conv.gameData.characters.get(sourceCharacterId);
+        if (!source) {
+          console.warn(`[ActionEngine] Source character ${sourceCharacterId} not found, skipping`);
+          continue;
+        }
+
         // Extract targetCharacterId from args if present
         let targetCharacterId: number | null = null;
         if ('targetCharacterId' in args && args.targetCharacterId != null) {
@@ -202,6 +237,7 @@ export class ActionEngine {
 
         const inv: ActionInvocation = {
           actionId: signature,
+          sourceCharacterId,
           targetCharacterId,
           args,
         };
@@ -223,15 +259,15 @@ export class ActionEngine {
 
         if (needsUserApproval) {
           const target = targetCharacterId != null ? conv.gameData.characters.get(targetCharacterId) ?? undefined : undefined;
-          const actionTitle = loaded.definition.title 
-            ? resolveI18nString(loaded.definition.title, userLang)
+          const actionTitle = loadedAction.definition.title 
+            ? resolveI18nString(loadedAction.definition.title, userLang)
             : undefined;
           
           needsApproval.push({
             actionId: signature,
             actionTitle,
-            sourceCharacterId: npc.id,
-            sourceCharacterName: npc.shortName,
+            sourceCharacterId,
+            sourceCharacterName: source.shortName,
             targetCharacterId: targetCharacterId ?? undefined,
             targetCharacterName: target?.shortName,
             args,
@@ -239,7 +275,7 @@ export class ActionEngine {
             invocation: inv,
           });
         } else {
-          const result = await this.runInvocation(conv, npc, inv);
+          const result = await this.runInvocation(conv, inv);
           autoApproved.push(result);
         }
       }
@@ -255,11 +291,11 @@ export class ActionEngine {
   }
 
   /**
-   * Execute an action invocation. When dryRun is true, game effects are not written.
+   * Execute an action invocation. Resolves sourceCharacter from inv.sourceCharacterId.
+   * When dryRun is true, game effects are not written.
    */
   static async runInvocation(
     conv: Conversation,
-    npc: Character,
     inv: ActionInvocation,
     options?: ActionRunOptions
   ): Promise<ActionExecutionResult> {
@@ -272,13 +308,22 @@ export class ActionEngine {
       };
     }
 
+    const source = conv.gameData.characters.get(inv.sourceCharacterId);
+    if (!source) {
+      return {
+        actionId: inv.actionId,
+        success: false,
+        error: `Source character ${inv.sourceCharacterId} not found`
+      };
+    }
+
     const targetId = inv.targetCharacterId ?? null;
     const target = targetId != null ? conv.gameData.characters.get(targetId) ?? undefined : undefined;
 
     // Get user's language preference
     const userLang = settingsRepository.getLanguage();
 
-    console.log(`[ActionEngine] Firing action: ${inv.actionId} (source: ${npc.shortName}, target: ${target?.shortName ?? 'none'}, args: ${JSON.stringify(inv.args ?? {})}, dryRun: ${options?.dryRun ?? false})`);
+    console.log(`[ActionEngine] Firing action: ${inv.actionId} (source: ${source.shortName}, target: ${target?.shortName ?? 'none'}, args: ${JSON.stringify(inv.args ?? {})}, dryRun: ${options?.dryRun ?? false})`);
     const runGameEffect = (effectBody: string) => {
       // In dry runs we avoid writing to the game run file
       if (options?.dryRun) {
@@ -286,7 +331,7 @@ export class ActionEngine {
       }
       ActionEffectWriter.writeEffect(
         conv.gameData,
-        npc.id,
+        source.id,
         targetId,
         effectBody
       );
@@ -299,7 +344,7 @@ export class ActionEngine {
       // Execute action in sandboxed VM context for security
       const result = await ActionSandbox.executeAction(loaded.filePath, {
         gameData: conv.gameData,
-        sourceCharacter: npc,
+        sourceCharacter: source,
         targetCharacter: target,
         runGameEffect,
         args,

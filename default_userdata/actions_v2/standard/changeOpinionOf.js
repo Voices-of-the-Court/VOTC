@@ -12,15 +12,15 @@ module.exports = {
     pl: "Zmień opinię źródła o celu",
     zh: "改变源角色对目标的看法"
   },
-  function: ({ sourceCharacter }) => ({
+  function: ({ gameData }) => ({
         name: 'change_opinion',
-        description: `trigger when target character says or does something that will change ${sourceCharacter.shortName}'s opinion of target character.`,
+        description: `Trigger when a character says or does something that will change another character's opinion of them.`,
         parameters: {
             type: 'object',
             properties: {
                 targetCharacterId: {
                     type: 'number',
-                    description: 'ID of the target character whose opinion is changing.',
+                    description: 'ID of the target character whose actions are changing the source character\'s opinion.',
                 },
                 increase_opinion: {
                     type: 'number',
@@ -39,13 +39,12 @@ module.exports = {
             additionalProperties: false,
         },
     }),
-    check: ({ gameData, sourceCharacter }) => {
-    // Can change opinion of any other character
+    check: ({ gameData }) => {
     const allIds = Array.from(gameData.characters.keys());
-    const validTargets = allIds.filter((id) => id !== sourceCharacter.id);
     return {
       canExecute: true,
-      validTargetCharacterIds: validTargets,
+      validSourceCharacterIds: allIds,
+      validTargetCharacterIds: allIds,
     };
   },
 

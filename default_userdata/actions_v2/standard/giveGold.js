@@ -12,40 +12,50 @@ module.exports = {
     pl: "Daj złoto",
     zh: "赠送金币"
   },
-  function: ({ sourceCharacter, gameData }) => ({
-    name: 'give_gold',
-    description: `Use when a character gives or pays gold to another character. ${sourceCharacter.shortName} currently has ${sourceCharacter.gold} gold.`,
-    parameters: {
-      type: 'object',
-      properties: {
-        targetCharacterId: {
-          type: 'number',
-          description: 'ID of the character receiving the gold.',
+  function: ({ gameData }) => {
+    const characterInfo = Array.from(gameData.characters.values())
+      .map(c => `${c.shortName} (id=${c.id}): ${c.gold} gold`)
+      .join(', ');
+    return {
+      name: 'give_gold',
+      description: `Use when a character gives or pays gold to another character. Characters: ${characterInfo}`,
+      parameters: {
+        type: 'object',
+        properties: {
+          targetCharacterId: {
+            type: 'number',
+            description: 'ID of the character receiving the gold.',
+          },
+          amount: {
+            type: 'number',
+            description: `Amount of gold to give.`,
+            minimum: 1,
+          },
         },
-        amount: {
-          type: 'number',
-          description: `Amount of gold to give. ${sourceCharacter.shortName} currently has ${sourceCharacter.gold} gold.`,
-          minimum: 1,
-          maximum: sourceCharacter.gold,
-        },
+        required: ['targetCharacterId', 'amount'],
+        additionalProperties: false,
       },
-      required: ['targetCharacterId', 'amount'],
-      additionalProperties: false,
-    },
-  }),
-  check: ({ gameData, sourceCharacter }) => {
-    if (sourceCharacter.gold <= 0) {
+    };
+  },
+  check: ({ gameData }) => {
+    const allIds = Array.from(gameData.characters.keys());
+    const validSources = allIds.filter((id) => {
+      const c = gameData.characters.get(id);
+      return c && c.gold > 0;
+    });
+
+    if (validSources.length === 0) {
       return {
         canExecute: false,
+        validSourceCharacterIds: [],
         validTargetCharacterIds: [],
       };
     }
 
-    const allIds = Array.from(gameData.characters.keys());
-    const validTargets = allIds.filter((id) => id !== sourceCharacter.id);
     return {
       canExecute: true,
-      validTargetCharacterIds: validTargets,
+      validSourceCharacterIds: validSources,
+      validTargetCharacterIds: allIds,
     };
   },
 
