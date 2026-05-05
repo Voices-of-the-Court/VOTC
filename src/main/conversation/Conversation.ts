@@ -13,6 +13,7 @@ import { runFileManager } from "../actions/RunFileManager";
 import { shell } from "electron";
 import { TokenCounter } from "../utils/TokenCounter";
 import type { ActionInvocation } from "../actions/types";
+import { initializationService } from "../utils/InitializationService";
 
 export class Conversation {
     id = v4();
@@ -66,6 +67,61 @@ export class Conversation {
     }
 
     private async initializeGameData(): Promise<void> {
+        // Ensure required files exist (votc.txt, letters.txt) and check for issues
+        const fileResult = await initializationService.ensureRequiredFiles();
+        
+        // Handle any warnings from file creation
+        for (const warning of fileResult.warnings) {
+            if (warning.type === 'permission') {
+                console.error('Conversation.initializeGameData: Permission error:', warning.message);
+                const permError = createError({
+                    id: this.nextId++,
+                    content: 'Permission Denied',
+                    details: warning.suggestion || 'Please run the application as Administrator.'
+                });
+                this.messages.push(permError);
+            } else if (warning.type === 'ironman') {
+                console.warn('Conversation.initializeGameData: Iron Man mode detected:', warning.message);
+                const ironManWarning = createError({
+                    id: this.nextId++,
+                    content: 'Iron Man Save Detected',
+                    details: warning.suggestion || 'Iron Man saves do not support action execution. You can still have conversations, but game actions will not work.'
+                });
+                this.messages.push(ironManWarning);
+            } else if (warning.type === 'debug_log_missing') {
+                console.error('Conversation.initializeGameData: debug.log missing:', warning.message);
+                const debugLogError = createError({
+                    id: this.nextId++,
+                    content: 'Debug Log Not Found',
+                    details: warning.suggestion || 'The debug.log file is missing. Make sure CK3 has been launched at least once with debug mode enabled.'
+                });
+                this.messages.push(debugLogError);
+            } else if (warning.type === 'debug_log_unreadable') {
+                console.error('Conversation.initializeGameData: debug.log unreadable:', warning.message);
+                const debugLogError = createError({
+                    id: this.nextId++,
+                    content: 'Debug Log Not Readable',
+                    details: warning.suggestion || 'Permission denied while reading debug.log. Try running the application as Administrator.'
+                });
+                this.messages.push(debugLogError);
+            } else if (warning.type === 'path_not_found' || warning.type === 'path_detection') {
+                console.error('Conversation.initializeGameData: Path error:', warning.message);
+                const pathError = createError({
+                    id: this.nextId++,
+                    content: 'CK3 Path Not Found',
+                    details: warning.suggestion || 'Please configure the CK3 user folder path in settings.'
+                });
+                this.messages.push(pathError);
+            }
+        }
+        
+        // If file creation failed completely, stop initialization
+        if (!fileResult.success && fileResult.warnings.some(w => w.type === 'permission' || w.type === 'path_not_found' || w.type === 'debug_log_missing' || w.type === 'debug_log_unreadable')) {
+            this.isActive = false;
+            this.emitUpdate();
+            return;
+        }
+        
         const ck3DebugPath = settingsRepository.getCK3DebugLogPath();
         console.log(`Conversation.initializeGameData: CK3 debug log path: ${ck3DebugPath}`);
         

@@ -17,6 +17,13 @@ export interface SummaryMetadata {
   filePath: string;
 }
 
+// Types for initialization warnings
+export interface InitializationWarning {
+  type: 'ironman' | 'permission' | 'path_not_found' | 'path_detection' | 'debug_log_missing' | 'debug_log_unreadable';
+  message: string;
+  suggestion?: string;
+}
+
 declare global {
   interface Window {
     conversationAPI: {
@@ -59,6 +66,8 @@ declare global {
       collectAndOpenLogs: () => Promise<{ success: boolean; path?: string; error?: string }>;
       getAppVersion: () => Promise<string>;
       onOverlayVisibilityChange: (callback: (isVisible: boolean) => void) => () => void;
+      getInitializationWarnings: () => Promise<InitializationWarning[]>;
+      onInitializationWarnings: (callback: (warnings: InitializationWarning[]) => void) => () => void;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;

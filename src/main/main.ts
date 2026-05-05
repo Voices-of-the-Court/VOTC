@@ -31,6 +31,7 @@ import { letterManager } from './letter/LetterManager';
 import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
 import { runFileManager } from './actions/RunFileManager';
+import { initializationService } from './utils/InitializationService';
 
 initLogger();
 // Keep a reference to the config window, managed globally
@@ -802,6 +803,11 @@ const setupIpcHandlers = () => {
     return app.getVersion();
   });
 
+  // Initialization warnings handler
+  ipcMain.handle('app:getInitializationWarnings', () => {
+    return initializationService.getWarnings();
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---
@@ -1099,11 +1105,16 @@ const setupFocusMonitoring = (window: BrowserWindow) => {
   focusMonitor.start();
 };
 
-app.on('ready', () => {
+app.on('ready', async () => {
   console.log(app.getPath('userData'));
   clearLog();
   promptConfigManager.seedDefaults();
   setupIpcHandlers(); // Setup handlers first
+  
+  // Run initialization service to detect CK3 path and create required files
+  const initResult = await initializationService.initialize();
+  console.log('Initialization result:', initResult);
+  
   chatWindow = createWindow(); // Create the main chat window and assign to global
   
   // Set up auto-updater
@@ -1112,6 +1123,13 @@ app.on('ready', () => {
   // Check for updates on startup
   if (app.isPackaged) {
     appUpdater.checkForUpdates();
+  }
+  
+  // Send initialization warnings to renderer after it's ready
+  if (initResult.warnings.length > 0 && chatWindow && !chatWindow.isDestroyed()) {
+    chatWindow.webContents.once('did-finish-load', () => {
+      chatWindow!.webContents.send('initialization-warnings', initResult.warnings);
+    });
   }
   
   // Initialize actions registry with saved settings and preload actions

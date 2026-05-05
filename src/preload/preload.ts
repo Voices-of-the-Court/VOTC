@@ -38,6 +38,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Return a function to remove the listener
     return () => ipcRenderer.removeListener('overlay-visibility-change', subscription);
   },
+  // Initialization warnings
+  getInitializationWarnings: (): Promise<Array<{ type: string; message: string; suggestion?: string }>> =>
+    ipcRenderer.invoke('app:getInitializationWarnings'),
+  onInitializationWarnings: (callback: (warnings: Array<{ type: string; message: string; suggestion?: string }>) => void) => {
+    const handler = (_event: any, warnings: any[]) => callback(warnings);
+    ipcRenderer.on('initialization-warnings', handler);
+    return () => ipcRenderer.removeListener('initialization-warnings', handler);
+  },
 
 });
 

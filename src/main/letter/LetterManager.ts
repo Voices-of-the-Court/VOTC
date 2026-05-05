@@ -163,8 +163,17 @@ export class LetterManager {
         const runFolder = path.join(ck3UserPath, "run");
         const letterFilePath = path.join(runFolder, "letters.txt");
         console.log(`LetterManager: Resolved letters.txt path: ${letterFilePath}`);
-        fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");
-        console.log("Created letters.txt file");
+        try {
+          fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");
+          console.log("Created letters.txt file");
+        } catch (error: any) {
+          // EBADF: bad file descriptor - file may be locked or in use
+          if (error.code === 'EBADF') {
+            console.warn('LetterManager: File descriptor is no longer valid when writing letters.txt, skipping');
+          } else {
+            console.error('LetterManager: Failed to write letters.txt:', error);
+          }
+        }
     }
 
     const context = await this.loadLatestGameDataWithLetter();
