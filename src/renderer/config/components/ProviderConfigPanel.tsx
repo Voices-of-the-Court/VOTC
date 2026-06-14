@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LLMProviderConfig } from '../../../main/llmProviders/types';
+import type { LLMProviderConfig } from '@llmTypes';
 import { useConfigStore, useAppSettings } from '../store/useConfigStore';
-import { DEFAULT_PARAMETERS } from '../../../main/llmProviders/types';
+import { DEFAULT_PARAMETERS } from '@llmTypes';
 
 import ModelSelector from './ModelSelector';
 import ContextLengthField from './ContextLengthField';

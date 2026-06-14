@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset, ConversationSummary, SummaryMetadata } from '../../../main/llmProviders/types';
+import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset, ConversationSummary, SummaryMetadata } from '@llmTypes';
 import {
   PROVIDER_TYPES,
   DEFAULT_PROVIDER_CONFIGS,
   DEFAULT_ACTIVE_PROVIDER,
   DEFAULT_PARAMETERS,
-} from '../../../main/llmProviders/types';
+} from '@llmTypes';
 
 interface ConfigStore {
   // Settings state

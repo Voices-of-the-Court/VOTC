@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useConfigStore } from '../store/useConfigStore';
-import type { SummaryMetadata } from '../../../main/llmProviders/types';
+import type { SummaryMetadata } from '@llmTypes';
 
 const SummariesManager: React.FC = () => {
   const { t } = useTranslation();

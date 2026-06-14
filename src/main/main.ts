@@ -1,16 +1,19 @@
 import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell } from 'electron';
-import fs from 'fs';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
 import { providerRegistry } from './llmProviders/ProviderRegistry';
 import { conversationManager } from './conversation/ConversationManager';
-import { LLMProviderConfig, PromptPreset, PromptSettings } from './llmProviders/types';
+import { LLMProviderConfig, PromptPreset, PromptSettings } from '@llmTypes';
 import { ClipboardListener } from './ClipboardListener';
-import { initLogger, clearLog } from './utils/logger';
-import { importLegacySummaries } from './utils/importLegacySummaries';
+import { 
+  initLogger, clearLog,
+  importLegacySummaries,
+  exportPromptsZip,
+  SummariesManager,
+  initializationService
+} from './utils';
 import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR, VOTC_SUMMARIES_DIR } from './utils/paths';
-import { SummariesManager } from './utils/SummariesManager';
 import { actionRegistry } from './actions/ActionRegistry';
 import { ActionEngine } from './actions/ActionEngine';
 import { promptConfigManager } from './conversation/PromptConfigManager';
@@ -28,10 +31,8 @@ import './llmProviders/DeepseekProvider';
 import './llmProviders/GeminiProvider';
 
 import { letterManager } from './letter/LetterManager';
-import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
 import { runFileManager } from './actions/RunFileManager';
-import { initializationService } from './utils/InitializationService';
 
 initLogger();
 // Keep a reference to the config window, managed globally
@@ -43,32 +44,6 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 Menu.setApplicationMenu(null)
-
-const exportPromptsZip = (destination: string, settings: PromptSettings, presets: PromptPreset[]): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const output = fs.createWriteStream(destination);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      output.on('close', () => resolve());
-      output.on('error', reject);
-      archive.on('error', reject);
-
-      archive.pipe(output);
-
-      // Include prompts directory (pList, aliChat, helpers, etc.)
-      archive.directory(VOTC_PROMPTS_DIR, 'prompts');
-
-      // Include current prompt settings and presets
-      archive.append(JSON.stringify(settings, null, 2), { name: 'prompt-settings.json' });
-      archive.append(JSON.stringify(presets, null, 2), { name: 'prompt-presets.json' });
-
-      archive.finalize();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
 
 const createWindow = (): BrowserWindow => {
   // Get primary display dimensions
@@ -82,8 +57,6 @@ const createWindow = (): BrowserWindow => {
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    // alwaysOnTop: true, // Keep window on top
-    // skipTaskbar: true, // Don't show in taskbar
     fullscreen: true,
     thickFrame: false,
     hasShadow: false,
@@ -1108,6 +1081,7 @@ const setupFocusMonitoring = (window: BrowserWindow) => {
 app.on('ready', async () => {
   console.log(app.getPath('userData'));
   clearLog();
+  settingsRepository.migrateApiKeysIfNeeded();
   promptConfigManager.seedDefaults();
   setupIpcHandlers(); // Setup handlers first
   

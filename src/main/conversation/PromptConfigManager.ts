@@ -8,7 +8,7 @@ import {
   VOTC_PROMPTS_EXAMPLES_DIR,
   VOTC_PROMPTS_HELPERS_DIR
 } from '../utils/paths';
-import { PromptBlock, PromptPreset, PromptSettings } from '../llmProviders/types';
+import { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
 
 const DEFAULT_USERDATA_DIR = path.join(app.getAppPath(), 'default_userdata', 'prompts');
 const DEFAULT_MAIN_TEMPLATE_PATH = 'system/default.hbs';

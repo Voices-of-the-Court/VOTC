@@ -12,7 +12,7 @@ import { VOTC_ACTIONS_DIR, VOTC_DATA_DIR } from "../utils/paths";
 import {
   ActionSettings,
   ActionValidationStatus,
-} from "../llmProviders/types";
+} from "@llmTypes";
 
 const STANDARD_SUBDIR = "standard";
 const CUSTOM_SUBDIR = "custom";

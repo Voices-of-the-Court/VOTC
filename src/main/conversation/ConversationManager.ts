@@ -1,5 +1,5 @@
 import { Conversation } from "./Conversation";
-import { ILLMStreamChunk } from "../llmProviders/types";
+import { ILLMStreamChunk } from "@llmTypes";
 import { EventEmitter } from "events";
 import { PromptBuilder } from "./PromptBuilder";
 import { createActionFeedback } from "./types";

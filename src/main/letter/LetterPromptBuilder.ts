@@ -4,7 +4,7 @@ import { promptConfigManager } from "../conversation/PromptConfigManager";
 import { settingsRepository } from "../SettingsRepository";
 import { GameData } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
-import { PromptBlock, PromptSettings, ILLMMessage } from "../llmProviders/types";
+import { PromptBlock, PromptSettings, ILLMMessage } from "@llmTypes";
 import { LetterData } from "./types";
 
 export class LetterPromptBuilder {

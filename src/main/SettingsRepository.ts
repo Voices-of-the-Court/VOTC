@@ -12,8 +12,13 @@ import {
   PROVIDER_TYPES,
   DEFAULT_PROVIDER_CONFIGS,
   DEFAULT_ACTIVE_PROVIDER,
-} from './llmProviders/types';
+} from '@llmTypes';
 import { promptConfigManager } from './conversation/PromptConfigManager';
+import {
+  encryptProviderConfigs,
+  decryptProviderConfigs,
+  hasPlainKeys,
+} from './utils/ApiKeyCrypto';
 
 // Define the schema for electron-store for type safety
 // Note: We don't use enum validation here to avoid breaking existing settings during refactoring
@@ -278,6 +283,20 @@ export class SettingsRepository {
     }
   }
 
+  migrateApiKeysIfNeeded(): void {
+    const rawSettings = this.store.get('llmSettings', { providers: [], presets: [], activeProviderInstanceId: null });
+    const allConfigs = [...(rawSettings.providers || []), ...(rawSettings.presets || [])];
+    if (hasPlainKeys(allConfigs)) {
+      console.log('[SettingsRepository] Migrating plain-text API keys to encrypted form...');
+      // getLLMSettings decrypts (pass-through for plaintext) → saveLLMSettings encrypts
+      const decrypted = this.getLLMSettings();
+      this.saveLLMSettings(decrypted);
+      console.log('[SettingsRepository] API key migration complete.');
+    } else {
+      console.log('[ApiKeyCrypto] safeStorage is available on this system. API keys will be encrypted.');
+    }
+  }
+
   private getDefaultPromptSettings(): PromptSettings {
     return promptConfigManager.normalizeSettings(
       {
@@ -334,12 +353,23 @@ export class SettingsRepository {
 
   getLLMSettings(): LLMSettings {
     // Defaults are handled by initializeDefaultSettings and schema
-    return this.store.get('llmSettings');
+    const settings = this.store.get('llmSettings');
+    // decrypt apiKeys for in-memory use
+    decryptProviderConfigs(settings.providers);
+    decryptProviderConfigs(settings.presets);
+    return settings;
   }
 
   saveLLMSettings(settings: LLMSettings): void {
-    this.store.set('llmSettings', settings);
-    console.log('LLM Settings saved.');
+    // encrypt apiKeys before persisting (shallow-clone arrays to avoid
+    // mutating the objects the rest of the app holds references to)
+    const toSave: LLMSettings = {
+      ...settings,
+      providers: encryptProviderConfigs(settings.providers),
+      presets: encryptProviderConfigs(settings.presets),
+    };
+    this.store.set('llmSettings', toSave);
+    console.log('LLM Settings saved (apiKeys encrypted).');
   }
 
   getGlobalStreamSetting(): boolean {

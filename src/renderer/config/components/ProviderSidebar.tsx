@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ProviderType as ConfigProviderType } from '../../../main/llmProviders/types';
-import { PROVIDER_TYPES } from '../../../main/llmProviders/types';
+import type { ProviderType as ConfigProviderType } from '@llmTypes';
+import { PROVIDER_TYPES } from '@llmTypes';
 import { useAppSettings } from '../store/useConfigStore';
 
 interface ProviderSidebarProps {

@@ -4,10 +4,10 @@ import {
   ILLMCompletionRequest,
   ILLMOutput,
   ILLMModel,
-} from './llmProviders/types';
+} from '@llmTypes';
 import { settingsRepository } from './SettingsRepository';
 import { providerRegistry } from './llmProviders/ProviderRegistry';
-import { TokenCounter } from './utils/TokenCounter';
+import { TokenCounter } from './utils';
 
 export class LLMManager {
   private providers: Map<string, ILLMProvider>; // Cache instantiated providers

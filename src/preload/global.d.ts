@@ -1,4 +1,4 @@
-import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings, ActionApprovalSettings } from '../main/llmProviders/types';
+import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings, ActionApprovalSettings } from '@llmTypes';
 
 // Types for summaries manager
 export interface ConversationSummary {

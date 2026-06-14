@@ -8,8 +8,8 @@ import { parseLog, cleanLogFile } from "../gameData/parseLog";
 import { letterPromptBuilder } from "./LetterPromptBuilder";
 import { LetterData, StoredLetter, LetterStatusInfo, LetterResponseStatus, LetterSummaryStatus, LetterStatusSnapshot } from "./types";
 import { GameData } from "../gameData/GameData";
-import type { ILLMMessage } from "../llmProviders/types";
-import { TokenCounter } from "../utils/TokenCounter";
+import type { ILLMMessage } from "@llmTypes";
+import { TokenCounter } from "../utils";
 
 export class LetterManager {
   private currentTotalDays: number = 0;

@@ -307,7 +307,9 @@
     "summaryProvider": "摘要服务商",
     "useActiveProvider": "使用当前服务商",
     "contextSettings": "语境设置",
-    "contextSettingsHelp": "配置如何将摘要包含在提示中。"
+    "contextSettingsHelp": "配置如何将摘要包含在提示中。",
+    "maxPastSummariesHelp": "在提示中包含的过去对话摘要的最大数量。数值越高，提供的上下文越多，但消耗的令牌也越多。",
+    "maxPastSummaries": "最大历史摘要数量"
   },
   "summariesManager": {
     "characterId": "角色 ID",

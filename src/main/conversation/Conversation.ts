@@ -4,16 +4,16 @@ import { parseLog, cleanLogFile } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
-import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
+import { ILLMStreamChunk, ILLMCompletionResponse } from "@llmTypes";
 import { ConversationEntry, Message, createError, createMessage, createActionFeedback, createSummaryImport, createActionApproval } from "./types";
 import { PromptBuilder } from "./PromptBuilder";
 import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
 import { runFileManager } from "../actions/RunFileManager";
 import { shell } from "electron";
-import { TokenCounter } from "../utils/TokenCounter";
+import { TokenCounter, initializationService } from "../utils";
 import type { ActionInvocation } from "../actions/types";
-import { initializationService } from "../utils/InitializationService";
+
 
 export class Conversation {
     id = v4();

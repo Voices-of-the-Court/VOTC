@@ -5,8 +5,8 @@ import { TemplateEngine } from "./TemplateEngine";
 import { PromptScriptLoader } from "./PromptScriptLoader";
 import { settingsRepository } from "../SettingsRepository";
 import { promptConfigManager } from "./PromptConfigManager";
-import { PromptBlock, PromptSettings } from "../llmProviders/types";
-import { TokenCounter } from "../utils/TokenCounter";
+import { PromptBlock, PromptSettings } from "@llmTypes";
+import { TokenCounter } from "../utils";
 
 export interface PromptBlockWithTokens {
     block: PromptBlock;
