@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import Chat from './chat/Chat';
 import ConfigPanel from './config/ConfigPanel';
+import PromptLocaleNotification from './config/components/PromptLocaleNotification';
 import { useConfigStore, useAppSettings } from './config/store/useConfigStore';
 import type { InitializationWarning } from '../preload/global.d';
 import AlertIcon from './assets/Alert.png';
@@ -162,6 +163,8 @@ function App() {
         </div>
       )}
       {showChat && <Chat onToggleConfig={toggleConfig} />}
+      {/* Global notification for prompt-locale auto-switches (startup / language change) */}
+      <PromptLocaleNotification />
       {showConfig && (
         <ConfigPanel
           onClose={() => {

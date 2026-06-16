@@ -100,6 +100,10 @@ const schema: Schema<AppSettings> = {
     type: 'boolean',
     default: true
   },
+  autoSwitchPromptLocale: {
+    type: 'boolean',
+    default: true
+  },
   language: {
     type: 'string',
     default: 'en'
@@ -264,6 +268,9 @@ export class SettingsRepository {
     if (currentAppSettings.showSettingsOnStartup === undefined) {
         this.store.set('showSettingsOnStartup', true); // Default to showing settings on startup
     }
+    if ((currentAppSettings as any).autoSwitchPromptLocale === undefined) {
+        this.store.set('autoSwitchPromptLocale', true); // Default to auto-switching prompt locale
+    }
     if ((currentAppSettings as any).actionApprovalSettings === undefined) {
         this.store.set('actionApprovalSettings', {
             approvalMode: 'none',
@@ -341,6 +348,7 @@ export class SettingsRepository {
       generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),
       messageFontSize: this.getMessageFontSize(),
       showSettingsOnStartup: this.getShowSettingsOnStartup(),
+      autoSwitchPromptLocale: this.getAutoSwitchPromptLocale(),
       allowPrerelease: this.getAllowPrerelease(),
       promptSettings: this.getPromptSettings(),
       letterPromptSettings: this.getLetterPromptSettings(),
@@ -443,6 +451,15 @@ export class SettingsRepository {
   saveShowSettingsOnStartupSetting(enabled: boolean): void {
     this.store.set('showSettingsOnStartup', enabled);
     console.log('Show settings on startup setting saved:', enabled);
+  }
+
+  getAutoSwitchPromptLocale(): boolean {
+    return this.store.get('autoSwitchPromptLocale', true); // Default to true
+  }
+
+  saveAutoSwitchPromptLocaleSetting(enabled: boolean): void {
+    this.store.set('autoSwitchPromptLocale', enabled);
+    console.log('Auto switch prompt locale setting saved:', enabled);
   }
 
   getLanguage(): string {

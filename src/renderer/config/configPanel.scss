@@ -1099,6 +1099,90 @@ hr {
   align-items: center;
   gap: 4px;
   color: #EFB16A;
+
+  &.auto-switch-toggle {
+    white-space: nowrap;
+    font-size: 0.85em;
+    margin-left: 10px;
+
+    span {
+      white-space: nowrap;
+    }
+  }
+}
+
+/* Auto-switch notification popup */
+.auto-switch-notification {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(239, 177, 106, 0.5);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 8px;
+  animation: promptDropdownFadeIn 0.2s ease;
+
+  .auto-switch-notification-header {
+    margin-bottom: 8px;
+
+    .auto-switch-notification-title {
+      color: #EFB16A;
+      font-weight: bold;
+      font-size: 13px;
+    }
+  }
+
+  .auto-switch-notification-list {
+    list-style: none;
+    margin: 0 0 10px 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    li {
+      color: #ccc;
+      font-size: 12px;
+      padding: 4px 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      border-left: 3px solid #EFB16A;
+    }
+  }
+
+  .auto-switch-notification-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+
+    button {
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s ease;
+
+      &.primary {
+        background: rgba(239, 177, 106, 0.3);
+        color: #EFB16A;
+        border: 1px solid #EFB16A;
+
+        &:hover {
+          background: rgba(239, 177, 106, 0.5);
+          box-shadow: 0 0 8px rgba(239, 177, 106, 0.6);
+        }
+      }
+
+      &:not(.primary) {
+        background: rgba(0, 0, 0, 0.4);
+        color: #ccc;
+        border: 1px solid #555;
+
+        &:hover {
+          border-color: #888;
+          background: rgba(0, 0, 0, 0.6);
+        }
+      }
+    }
+  }
 }
 
 /* Modal Styles - Scoped to config panel */

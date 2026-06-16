@@ -362,6 +362,10 @@ const setupIpcHandlers = () => {
     settingsRepository.saveShowSettingsOnStartupSetting(enabled);
   });
 
+  ipcMain.handle('llm:saveAutoSwitchPromptLocaleSetting', (_, enabled: boolean) => {
+    settingsRepository.saveAutoSwitchPromptLocaleSetting(enabled);
+  });
+
   ipcMain.handle('llm:getLanguage', () => {
     return settingsRepository.getLanguage();
   });

@@ -85,6 +85,7 @@ declare global {
       saveGenerateFollowingMessagesSetting: (enabled: boolean) => Promise<void>;
       saveMessageFontSize: (fontSize: number) => Promise<void>;
       saveShowSettingsOnStartupSetting: (enabled: boolean) => Promise<void>;
+      saveAutoSwitchPromptLocaleSetting: (enabled: boolean) => Promise<void>;
       getLanguage: () => Promise<string>;
       saveLanguage: (language: string) => Promise<void>;
       getAllowPrerelease: () => Promise<boolean>;

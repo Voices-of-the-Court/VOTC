@@ -7,6 +7,8 @@ import {
   DEFAULT_ACTIVE_PROVIDER,
   DEFAULT_PARAMETERS,
 } from '@llmTypes';
+import i18n from '../../i18n';
+import { reconcileSettingsLocales, type PromptLocaleSwitch } from '../utils/promptLocaleReconcile';
 
 interface ConfigStore {
   // Settings state
@@ -48,6 +50,8 @@ interface ConfigStore {
     examples: string[];
   };
   promptPresets: PromptPreset[];
+  /** Switches produced by the last auto-switch reconcile, for the global notification. */
+  promptLocaleSwitches: PromptLocaleSwitch[];
   
   // Actions
   loadSettings: () => Promise<void>;
@@ -80,6 +84,13 @@ interface ConfigStore {
   updateGenerateFollowingMessages: (enabled: boolean) => Promise<void>;
   updateMessageFontSize: (fontSize: number) => Promise<void>;
   updateShowSettingsOnStartup: (enabled: boolean) => Promise<void>;
+  updateAutoSwitchPromptLocale: (enabled: boolean) => Promise<void>;
+  /** Reconcile prompt script files to `targetLang` (startup / language change). */
+  reconcilePromptLocales: (targetLang: string, opts?: { force?: boolean }) => Promise<void>;
+  /** Clear the pending switch notification without changing files. */
+  dismissPromptLocaleSwitches: () => void;
+  /** Restore the previous script paths for all pending switches and pin them. */
+  revertPromptLocaleSwitches: () => Promise<void>;
   updateAllowPrerelease: (enabled: boolean) => Promise<void>;
   updateCK3Folder: (path: string) => Promise<void>;
   selectCK3Folder: () => Promise<void>;
@@ -149,6 +160,7 @@ export const useConfigStore = create<ConfigStore>()(
       letterPromptSettings: null,
       promptFiles: { system: [], descriptions: [], examples: [] },
       promptPresets: [],
+      promptLocaleSwitches: [],
 
       // Load settings from backend
       loadSettings: async () => {
@@ -189,6 +201,15 @@ export const useConfigStore = create<ConfigStore>()(
         } else {
           // Default to the default active provider
           get().selectProvider(DEFAULT_ACTIVE_PROVIDER);
+        }
+
+        // Startup locale migration: switch prompt scripts to match the
+        // persisted app language. Uses `settings.language` (source of truth)
+        // rather than i18n, which may not have settled yet. Guarded by the
+        // autoSwitchPromptLocale setting and a per-language dedupe.
+        if (settings.autoSwitchPromptLocale !== false) {
+          const lang = (settings.language || 'en').toLowerCase().split('-')[0];
+          await get().reconcilePromptLocales(lang);
         }
       },
 
@@ -640,7 +661,89 @@ export const useConfigStore = create<ConfigStore>()(
             : null,
         }));
       },
-      
+
+      updateAutoSwitchPromptLocale: async (enabled) => {
+        await window.llmConfigAPI.saveAutoSwitchPromptLocaleSetting(enabled);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { ...state.appSettings, autoSwitchPromptLocale: enabled }
+            : null,
+        }));
+        // Turning it on should reconcile immediately so the user sees the effect.
+        if (enabled) {
+          const lang = (i18n.language || 'en').toLowerCase().split('-')[0];
+          await get().reconcilePromptLocales(lang, { force: true });
+        } else {
+          // Clear any pending notification when disabled.
+          set({ promptLocaleSwitches: [] });
+        }
+      },
+
+      reconcilePromptLocales: async (targetLang, opts) => {
+        const state = get();
+        const { appSettings, promptSettings, letterPromptSettings, promptFiles } = state;
+        if (!appSettings || !promptSettings || !letterPromptSettings) return;
+        if (appSettings.autoSwitchPromptLocale === false) return;
+
+        const lang = targetLang.toLowerCase().split('-')[0];
+        // A genuine app-language change (not the first run, not a same-language
+        // force re-run like toggling the feature).
+        const isLanguageChange =
+          lastReconciledLang !== null && lastReconciledLang !== lang;
+        // Dedupe by language (NOT by scriptPath) so editing a block never
+        // re-triggers a switch, and switching to the same language twice is a no-op.
+        if (!opts?.force && lastReconciledLang === lang) return;
+        lastReconciledLang = lang;
+
+        const convBase = isLanguageChange ? clearLocalePins(promptSettings) : promptSettings;
+        const letterBase = isLanguageChange ? clearLocalePins(letterPromptSettings) : letterPromptSettings;
+
+        const conv = reconcileSettingsLocales(
+          convBase, promptFiles.descriptions, promptFiles.examples, lang, 'conversation',
+        );
+        const letter = reconcileSettingsLocales(
+          letterBase, promptFiles.descriptions, promptFiles.examples, lang, 'letter',
+        );
+
+        const pinsClearedConv = isLanguageChange && convBase !== promptSettings;
+        const pinsClearedLetter = isLanguageChange && letterBase !== letterPromptSettings;
+        if (conv.changed || pinsClearedConv) await state.savePromptSettings(conv.settings);
+        if (letter.changed || pinsClearedLetter) await state.saveLetterPromptSettings(letter.settings);
+
+        set({ promptLocaleSwitches: [...conv.switches, ...letter.switches] });
+      },
+
+      dismissPromptLocaleSwitches: () => {
+        set({ promptLocaleSwitches: [] });
+      },
+
+      revertPromptLocaleSwitches: async () => {
+        const { promptLocaleSwitches, promptSettings, letterPromptSettings } = get();
+        if (promptLocaleSwitches.length === 0) return;
+
+        const restore = (settings: PromptSettings | null, mode: 'conversation' | 'letter') => {
+          if (!settings) return settings;
+          const byBlock = new Map(
+            promptLocaleSwitches.filter((s) => s.mode === mode).map((s) => [s.blockId, s]),
+          );
+          if (byBlock.size === 0) return settings;
+          return {
+            ...settings,
+            blocks: settings.blocks.map((b) => {
+              const sw = byBlock.get(b.id);
+              if (!sw) return b;
+              return { ...b, scriptPath: sw.fromPath, localePinned: true };
+            }),
+          } as PromptSettings;
+        };
+
+        const newConv = restore(promptSettings, 'conversation');
+        const newLetter = restore(letterPromptSettings, 'letter');
+        if (newConv !== promptSettings) await get().savePromptSettings(newConv!);
+        if (newLetter !== letterPromptSettings) await get().saveLetterPromptSettings(newLetter!);
+        set({ promptLocaleSwitches: [] });
+      },
+
       updateAllowPrerelease: async (enabled) => {
         await window.llmConfigAPI.saveAllowPrerelease(enabled);
         set((state) => ({
@@ -818,3 +921,24 @@ export const useModelState = () => {
 
 export const usePromptSettings = () => useConfigStore((state) => state.promptSettings);
 export const usePromptFiles = () => useConfigStore((state) => state.promptFiles);
+
+let lastReconciledLang: string | null = null;
+
+function clearLocalePins(settings: PromptSettings): PromptSettings {
+  let touched = false;
+  const blocks = settings.blocks.map((b) => {
+    if (b.localePinned) {
+      touched = true;
+      const next = { ...b };
+      delete next.localePinned;
+      return next;
+    }
+    return b;
+  });
+  return touched ? { ...settings, blocks } : settings;
+}
+
+i18n.on('languageChanged', (lng: string) => {
+  const lang = (lng || 'en').toLowerCase().split('-')[0];
+  void useConfigStore.getState().reconcilePromptLocales(lang);
+});

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { useConfigStore } from './store/useConfigStore';
 import type { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
 import PromptPreview from './components/PromptPreview';
 import HandlebarsTextarea from './components/HandlebarsTextarea';
+import PromptGroupSelector from './components/PromptGroupSelector';
 
 type BlockUpdater = (block: PromptBlock) => PromptBlock;
 
@@ -13,6 +15,7 @@ const PromptsView: React.FC = () => {
   const letterPromptSettings = useConfigStore((state) => state.letterPromptSettings);
   const promptFiles = useConfigStore((state) => state.promptFiles);
   const promptPresets = useConfigStore((state) => state.promptPresets);
+  const appSettings = useConfigStore((state) => state.appSettings);
   const loadPromptSettings = useConfigStore((state) => state.loadPromptSettings);
   const loadLetterPromptSettings = useConfigStore((state) => state.loadLetterPromptSettings);
   const savePromptSettings = useConfigStore((state) => state.savePromptSettings);
@@ -24,6 +27,10 @@ const PromptsView: React.FC = () => {
   const exportPromptsZip = useConfigStore((state) => state.exportPromptsZip);
   const openPromptsFolder = useConfigStore((state) => state.openPromptsFolder);
   const openPromptFile = useConfigStore((state) => state.openPromptFile);
+  const updateAutoSwitchPromptLocale = useConfigStore((state) => state.updateAutoSwitchPromptLocale);
+
+  const autoSwitchPromptLocale = appSettings?.autoSwitchPromptLocale ?? true;
+  const appLanguage = (i18n.language || 'en').toLowerCase().split('-')[0];
 
   const [localSettings, setLocalSettings] = useState<PromptSettings | null>(null);
   const [mode, setMode] = useState<'conversation' | 'letter'>('conversation');
@@ -189,7 +196,11 @@ const PromptsView: React.FC = () => {
   };
 
   const handleScriptSelect = (blockId: string, scriptPath: string) => {
-    updateBlock(blockId, (b) => ({ ...b, scriptPath }));
+    // Pin the block against same-language reconcile (startup dedupe / toggling
+    // the feature) so this explicit choice isn't overridden for the current
+    // language. A later app-language change will release the pin and let
+    // autoswitch follow the new language (with a notification to revert).
+    updateBlock(blockId, (b) => ({ ...b, scriptPath, localePinned: true }));
   };
 
   const renderBlockContent = (block: PromptBlock) => {
@@ -197,14 +208,13 @@ const PromptsView: React.FC = () => {
       case 'description':
         return (
           <div className="field-row compact">
-            <select
-              value={block.scriptPath || ''}
-              onChange={(e) => handleScriptSelect(block.id, e.target.value)}
-            >
-              {promptFiles.descriptions.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+            <PromptGroupSelector
+              files={promptFiles.descriptions}
+              currentScriptPath={block.scriptPath || ''}
+              appLanguage={appLanguage}
+              onSelect={(p) => handleScriptSelect(block.id, p)}
+              ariaLabel={block.label}
+            />
             <div className="mini-buttons">
               <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
               <button onClick={() => openPromptFile('character_description')}>Folder</button>
@@ -214,14 +224,13 @@ const PromptsView: React.FC = () => {
       case 'examples':
         return (
           <div className="field-row compact">
-            <select
-              value={block.scriptPath || ''}
-              onChange={(e) => handleScriptSelect(block.id, e.target.value)}
-            >
-              {promptFiles.examples.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+            <PromptGroupSelector
+              files={promptFiles.examples}
+              currentScriptPath={block.scriptPath || ''}
+              appLanguage={appLanguage}
+              onSelect={(p) => handleScriptSelect(block.id, p)}
+              ariaLabel={block.label}
+            />
             <div className="mini-buttons">
               <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
               <button onClick={() => openPromptFile('example_messages')}>Folder</button>
@@ -389,6 +398,14 @@ const PromptsView: React.FC = () => {
           <button onClick={openPromptsFolder}>{t('prompts.openPromptsFolder')}</button>
           <button onClick={() => refreshPromptFiles()}>{t('prompts.refreshFiles')}</button>
           <button onClick={handleExport}>{t('prompts.exportZip')}</button>
+          <label className="toggle auto-switch-toggle" title={t('prompts.autoSwitchPromptLocaleHelp')}>
+            <input
+              type="checkbox"
+              checked={autoSwitchPromptLocale}
+              onChange={(e) => updateAutoSwitchPromptLocale(e.target.checked)}
+            />
+            <span>{t('prompts.autoSwitchPromptLocale')}</span>
+          </label>
         </div>
       </div>
       <div className="field-row spaced">

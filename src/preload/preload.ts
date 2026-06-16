@@ -65,6 +65,7 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   saveGenerateFollowingMessagesSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGenerateFollowingMessagesSetting', enabled),
   saveMessageFontSize: (fontSize: number): Promise<void> => ipcRenderer.invoke('llm:saveMessageFontSize', fontSize),
   saveShowSettingsOnStartupSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveShowSettingsOnStartupSetting', enabled),
+  saveAutoSwitchPromptLocaleSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveAutoSwitchPromptLocaleSetting', enabled),
   getLanguage: (): Promise<string> => ipcRenderer.invoke('llm:getLanguage'),
   saveLanguage: (language: string): Promise<void> => ipcRenderer.invoke('llm:saveLanguage', language),
   getAllowPrerelease: (): Promise<boolean> => ipcRenderer.invoke('llm:getAllowPrerelease'),

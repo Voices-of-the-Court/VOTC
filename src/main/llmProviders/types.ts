@@ -229,6 +229,7 @@ export interface PromptBlock {
   scriptPath?: string; // For description/examples blocks
   limit?: number; // For capped list blocks (e.g., memories)
   pinned?: boolean; // UI hint for non-removable blocks like history
+  localePinned?: boolean; // User explicitly chose/reverted this scriptPath; autoswitch leaves it alone until the next app-language change
 }
 
 export interface SuffixConfig {
@@ -277,6 +278,7 @@ export interface AppSettings {
   generateFollowingMessages?: boolean; // Generate responses from characters who haven't responded yet
   messageFontSize?: number; // Font size for chat messages in rem units
   showSettingsOnStartup?: boolean; // Show settings panel when frontend initializes
+  autoSwitchPromptLocale?: boolean; // Auto-switch prompt script files to match app language
   promptSettings?: PromptSettings; // Prompt templates/scripts configuration
   letterPromptSettings?: PromptSettings; // Letter prompt templates/scripts configuration
   actionSettings?: ActionSettings;
