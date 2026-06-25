@@ -143,7 +143,7 @@ export class Character {
     }
 
     removeTrait(name: string): void{
-        this.traits.filter( (trait) => {
+        this.traits = this.traits.filter((trait) => {
             return trait.name.toLowerCase() !== name.toLowerCase();
         });
     }
