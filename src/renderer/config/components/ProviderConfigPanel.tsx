@@ -9,6 +9,11 @@ import ContextLengthField from './ContextLengthField';
 import FormGroupInput from './FormGroupInput';
 import Tooltip from './Tooltip';
 import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent, DeepseekConfigFieldsComponent, GeminiConfigFieldsComponent } from './ConfigFields';
+import SegmentedSwitch from './SegmentedSwitch';
+
+// OpenRouter anthropic/* models honor an explicit cache TTL; others use implicit caching.
+const isAnthropicModel = (model?: string): boolean =>
+  typeof model === 'string' && model.startsWith('anthropic/');
 
 const Player2OpenAppButton: React.FC = () => {
   const { t } = useTranslation();
@@ -295,6 +300,48 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
             <option value="minimized">{t('connection.actionsSchemaMinimized')}</option>
           </select>
         </div>
+        
+        {/* Prompt caching — per-config (OpenRouter only). Benefits any model via
+            prefix matching + sticky session routing; explicit TTL is Anthropic-only. */}
+        {config.providerType === 'openrouter' && (
+          <div className="form-group prompt-caching-group">
+            <label htmlFor="promptCachingEnabled">
+              {t('connection.promptCaching')}
+              <Tooltip text={t('connection.promptCachingHelp')} position="top" />
+            </label>
+            <input
+              type="checkbox"
+              id="promptCachingEnabled"
+              name="promptCachingEnabled"
+              checked={config.promptCachingEnabled ?? true}
+              onChange={(e) => updateEditingConfig({ promptCachingEnabled: e.target.checked })}
+            />
+            {(config.promptCachingEnabled ?? true) && (
+              <div className="prompt-caching-meta">
+                {isAnthropicModel(config.defaultModel) ? (
+                  <>
+                    <div className="prompt-caching-ttl-row">
+                      <label className="prompt-caching-ttl-label">{t('connection.promptCacheTtl')}</label>
+                      <SegmentedSwitch
+                        size="sm"
+                        ariaLabel={t('connection.promptCacheTtl')}
+                        value={config.promptCacheTtl ?? '1h'}
+                        onChange={(ttl) => updateEditingConfig({ promptCacheTtl: ttl })}
+                        options={[
+                          { value: '5m', label: '5m', title: '5 minutes' },
+                          { value: '1h', label: '1h', title: '1 hour' },
+                        ]}
+                      />
+                    </div>
+                    <small className="prompt-caching-hint">{t('connection.promptCacheTtlHint')}</small>
+                  </>
+                ) : (
+                  <small className="prompt-caching-hint">{t('connection.promptCachingImplicitHint')}</small>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         
         <DefaultParameterFieldsComponent config={config} onInputChange={onInputChange} t={t} />
         

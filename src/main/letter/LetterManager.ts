@@ -192,7 +192,13 @@ export class LetterManager {
     let responseError: string | null = null;
 
     try {
-      const result = await llmManager.sendChatRequest(messages as unknown as any[], undefined, true);
+      const result = await llmManager.sendChatRequest(
+        messages as unknown as any[],
+        undefined,
+        true,
+        // Letters never use prompt caching.
+        { requestKind: 'letter' }
+      );
       reply = await this.extractReply(result);
       
       if (!reply) {

@@ -73,7 +73,12 @@ export class LLMManager {
   async sendChatRequest(
     messages: ILLMCompletionRequest['messages'],
     signal?: AbortSignal,
-    noStream?: boolean
+    noStream?: boolean,
+    options?: {
+      cacheControl?: { enabled: boolean; ttl?: '5m' | '1h' };
+      sessionId?: string;
+      requestKind?: 'chat' | 'letter' | 'summary' | 'action';
+    }
   ): Promise<ILLMOutput> {
     const activeConfig = settingsRepository.getActiveProviderConfig();
     if (!activeConfig) {
@@ -95,6 +100,9 @@ export class LLMManager {
       // Merge default parameters from config with specific request params
       ...activeConfig.defaultParameters,
       signal,
+      cacheControl: options?.cacheControl,
+      sessionId: options?.sessionId,
+      requestKind: options?.requestKind,
       // ...params,
     };
     const providerData = JSON.stringify(activeConfig).replace(/"apiKey":\s*"[^"]*"/g, 'HIDDEN'); // apiKey excluded

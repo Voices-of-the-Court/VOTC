@@ -19,6 +19,14 @@ export class Conversation {
     id = v4();
     messages: ConversationEntry[] = [];
     gameData!: GameData;
+    /**
+     * Frozen deep-clone of gameData taken at conversation start (after summaries are
+     * loaded/imported). Used to render the STABLE cached prompt prefix when prompt
+     * caching is enabled, so action mutations (gold/traits/relations/etc.) during the
+     * conversation don't invalidate the cache. The live `gameData` keeps being mutated
+     * by actions and is used to compute the per-turn state-diff appended to the tail.
+     */
+    frozenGameData?: GameData;
     isActive: boolean = false;
     nextId: number = 0;
     private eventEmitter: EventEmitter;
@@ -155,6 +163,19 @@ export class Conversation {
             // Check for summaries from other players
             await this.checkForOtherPlayerSummaries();
             
+            // Snapshot gameData AFTER summaries are loaded/imported so they don't show
+            // up as false-positive diffs. Only snapshot when prompt caching is enabled
+            // on the ACTIVE OpenRouter provider/preset config.
+            const activeCfg = settingsRepository.getActiveProviderConfig();
+            const cachingOn = activeCfg?.providerType === 'openrouter'
+                && activeCfg?.promptCachingEnabled === true;
+            if (cachingOn) {
+                this.frozenGameData = structuredClone(this.gameData);
+                console.log('[Conversation] Frozen gameData snapshot taken for prompt caching (config promptCachingEnabled)');
+            } else {
+                this.frozenGameData = undefined;
+            }
+            
             this.isActive = true;
         } catch (error) {
             console.error('Failed to parse log file:', error);
@@ -176,7 +197,8 @@ export class Conversation {
             this.getHistory().slice(this.lastSummarizedMessageIndex),
             npc, 
             this.gameData,
-            this.currentSummary
+            this.currentSummary,
+            this.frozenGameData
         );
         
         const estimatedTokens = this.estimateTokenCount(currentMessages);
@@ -284,21 +306,30 @@ export class Conversation {
                 this.getHistory().slice(this.lastSummarizedMessageIndex), 
                 npc, 
                 this.gameData,
-                this.currentSummary
+                this.currentSummary,
+                this.frozenGameData
             );
 
             console.log(`Message from ${npc.fullName}:`, llmMessages);
             console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, this.estimateTokenCount(llmMessages));
             
-            // Check if OpenRouter is the active provider
             const activeConfig = settingsRepository.getActiveProviderConfig();
             const isOpenRouter = activeConfig?.providerType === 'openrouter';
+            const cachingOn = isOpenRouter && activeConfig?.promptCachingEnabled === true;
             
             // For OpenRouter, don't pass the signal to avoid double billing on cancellation
             // For other providers, pass the signal for immediate cancellation
             const result = await llmManager.sendChatRequest(
                 llmMessages,
-                isOpenRouter ? undefined : this.currentStreamController.signal
+                isOpenRouter ? undefined : this.currentStreamController.signal,
+                undefined,
+                {
+                    cacheControl: cachingOn
+                        ? { enabled: true, ttl: activeConfig?.promptCacheTtl ?? '1h' }
+                        : undefined,
+                    sessionId: this.id,
+                    requestKind: 'chat',
+                }
             );
 
             if (settingsRepository.getGlobalStreamSetting() &&

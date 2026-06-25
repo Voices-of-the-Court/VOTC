@@ -925,6 +925,22 @@ hr {
   }
 }
 
+/* Pinned (system-managed) prompt blocks: no drag affordance, default cursor */
+.prompt-block.pinned {
+  .block-header {
+    cursor: default;
+
+    &:active {
+      cursor: default;
+    }
+  }
+
+  .block-actions button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
 .badge {
   padding: 2px 6px;
   border: 1px solid #EFB16A;
@@ -936,6 +952,45 @@ hr {
 .badge.pinned {
   border-color: #5cb85c;
   color: #5cb85c;
+}
+
+/* Prompt-caching indicators (Prompts tab) */
+.badge.frozen {
+  border-color: #6aa6ef;
+  color: #6aa6ef;
+}
+
+.badge.live {
+  border-color: #e07b5a;
+  color: #e07b5a;
+}
+
+.badge.system-managed {
+  border-color: #9aa0a6;
+  color: #9aa0a6;
+  font-style: italic;
+}
+
+.prompt-cache-banner {
+  margin: 8px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #6aa6ef;
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: rgba(106, 166, 239, 0.08);
+
+  strong {
+    color: #6aa6ef;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.82em;
+    line-height: 1.4;
+    opacity: 0.85;
+  }
 }
 
 .block-actions {
@@ -2411,4 +2466,36 @@ hr {
       box-shadow: 0 0 6px rgba(239, 177, 106, 0.4);
     }
   }
+}
+/* ===== Prompt caching (per-provider/preset, OpenRouter) ===== */
+.provider-config-panel .prompt-caching-group {
+  // inherits .form-group padding/spacing
+}
+
+.provider-config-panel .prompt-caching-meta {
+  margin-top: 8px;
+}
+
+.provider-config-panel .prompt-caching-ttl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.provider-config-panel .prompt-caching-ttl-label {
+  // Standalone label inside the row: amber to match other field labels.
+  color: #EFB16A;
+  font-weight: bold;
+  font-size: 0.85em;
+  margin: 0; // reset global label margins
+  display: inline-block;
+}
+
+.provider-config-panel .prompt-caching-hint {
+  display: block;
+  margin-top: 6px;
+  color: #9aa0a6; // muted, readable on dark (NOT black)
+  font-size: 0.78em;
+  line-height: 1.4;
 }

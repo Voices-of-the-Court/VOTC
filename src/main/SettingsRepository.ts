@@ -35,6 +35,8 @@ const baseProviderConfigSchema = {
     defaultParameters: { type: 'object' as const },
     customContextLength: { type: 'number' as const },
     useMinimizedActionsSchema: { type: 'boolean' as const },
+    promptCachingEnabled: { type: 'boolean' as const },
+    promptCacheTtl: { type: 'string' as const, enum: ['5m', '1h'] },
   },
   required: ['instanceId', 'providerType']
 };
@@ -287,6 +289,33 @@ export class SettingsRepository {
     }
     if (currentAppSettings.allowPrerelease === undefined) {
         this.store.set('allowPrerelease', false);
+    }
+    this.migratePromptCachingToPerConfig();
+  }
+
+  /**
+   * One-time migration for existing OpenRouter base configs and presets that lack
+   * prompt caching fields, seed the prior global default (disabled, 1h TTL).
+   * Writes only when the field is missing; never overwrites an explicit value.
+   */
+  private migratePromptCachingToPerConfig(): void {
+    const settings = this.getLLMSettings();
+    let changed = false;
+    const migrate = (cfg: LLMProviderConfig) => {
+      if (cfg.promptCachingEnabled === undefined) {
+        cfg.promptCachingEnabled = false;
+        changed = true;
+      }
+      if (cfg.promptCacheTtl === undefined) {
+        cfg.promptCacheTtl = '1h';
+        changed = true;
+      }
+    };
+    settings.providers.filter(p => p.providerType === 'openrouter').forEach(migrate);
+    settings.presets.filter(p => p.providerType === 'openrouter').forEach(migrate);
+    if (changed) {
+      this.saveLLMSettings(settings);
+      console.log('[SettingsRepository] Migrated prompt caching setting to per-config (OpenRouter).');
     }
   }
 

@@ -39,6 +39,21 @@ const PromptsView: React.FC = () => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [presetName, setPresetName] = useState<string>('');
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
+
+    const activeConfig = useMemo(() => {
+    const id = appSettings?.llmSettings?.activeProviderInstanceId;
+    if (!id) return null;
+    const ls = appSettings?.llmSettings;
+    if (!ls) return null;
+    return [...(ls.providers || []), ...(ls.presets || [])].find((p) => p.instanceId === id) || null;
+  }, [appSettings]);
+  // Prompt caching is active for this view only in conversation mode + an OpenRouter config that has it enabled.
+  const cachingOn = mode === 'conversation'
+    && activeConfig?.providerType === 'openrouter'
+    && (activeConfig?.promptCachingEnabled ?? false);
+  // Blocks rendered from the FROZEN game-state snapshot. History and rolling_summary are
+  // excuded as reasonably dynamic blocks.
+  const PREFIX_TYPES: string[] = ['main', 'description', 'examples', 'memories', 'past_summaries'];
   const [promptSettingsVersion, setPromptSettingsVersion] = useState<number>(0);
 
   useEffect(() => {
@@ -334,6 +349,12 @@ const PromptsView: React.FC = () => {
       case 'main':
       case 'history':
         return <p className="muted-text">This block uses the main prompt text or conversation history.</p>;
+      case 'current_state':
+        return (
+          <p className="muted-text">
+            {t('prompts.currentStateBlockHelp')}
+          </p>
+        );
       default:
         return null;
     }
@@ -341,13 +362,19 @@ const PromptsView: React.FC = () => {
 
   const renderBlock = (block: PromptBlock, index: number) => {
     const isExpanded = expandedId === block.id;
+    // Pinned blocks are system-managed, so cannot be reordered.
+    const isPinned = !!block.pinned;
+    const isSystemManaged = block.type === 'current_state';
+    // current_state is DISABLED when prompt caching is off (it emits nothing at runtime in that case).
+    const isVisuallyDisabled = isSystemManaged ? !cachingOn : !block.enabled;
     return (
       <div
         key={block.id}
-        className={`prompt-block ${block.enabled ? '' : 'disabled'} ${draggingId === block.id ? 'dragging' : ''}`}
+        className={`prompt-block ${isVisuallyDisabled ? 'disabled' : ''} ${draggingId === block.id ? 'dragging' : ''} ${isPinned ? 'pinned' : ''}`}
         onDragOver={(e) => {
           e.preventDefault();
-          if (draggingId && draggingId !== block.id) {
+          // Don't allow dropping onto a pinned block (would move around a fixed block).
+          if (draggingId && draggingId !== block.id && !isPinned) {
             moveBlock(draggingId, block.id);
           }
         }}
@@ -355,26 +382,39 @@ const PromptsView: React.FC = () => {
       >
         <div
           className="block-header"
-          draggable
-          onDragStart={() => setDraggingId(block.id)}
+          draggable={!isPinned}
+          onDragStart={() => {
+            if (!isPinned) setDraggingId(block.id);
+          }}
         >
           <div className="block-title">
-            <span className="drag-handle">↕</span>
+            {!isPinned && <span className="drag-handle">↕</span>}
             <strong>{index + 1}. {block.label}</strong>
             <span className="badge">{block.type}</span>
             {block.pinned && <span className="badge pinned">pinned</span>}
+            {cachingOn && PREFIX_TYPES.includes(block.type) && (
+              <span className="badge frozen" title={t('prompts.frozenBadgeHelp')}>{t('prompts.frozenBadge')}</span>
+            )}
+            {cachingOn && block.type === 'current_state' && (
+              <span className="badge live" title={t('prompts.liveBadgeHelp')}>{t('prompts.liveBadge')}</span>
+            )}
           </div>
           <div className="block-actions">
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={block.enabled}
-                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, enabled: e.target.checked }))}
-              />
-              <span>{t('prompts.enabled')}</span>
-            </label>
-            <button onClick={() => moveBlockBy(block.id, -1)}>↑</button>
-            <button onClick={() => moveBlockBy(block.id, 1)}>↓</button>
+            {!isSystemManaged && (
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={block.enabled}
+                  onChange={(e) => updateBlock(block.id, (b) => ({ ...b, enabled: e.target.checked }))}
+                />
+                <span>{t('prompts.enabled')}</span>
+              </label>
+            )}
+            {isSystemManaged && (
+              <span className="badge system-managed" title={t('prompts.systemManagedHelp')}>{t('prompts.systemManaged')}</span>
+            )}
+            <button onClick={() => moveBlockBy(block.id, -1)} disabled={isPinned} title={isPinned ? t('prompts.pinnedNoReorder') : undefined}>↑</button>
+            <button onClick={() => moveBlockBy(block.id, 1)} disabled={isPinned} title={isPinned ? t('prompts.pinnedNoReorder') : undefined}>↓</button>
             <button onClick={() => setExpandedId(isExpanded ? null : block.id)}>{isExpanded ? t('prompts.hide') : t('prompts.edit')}</button>
           </div>
         </div>
@@ -481,6 +521,13 @@ const PromptsView: React.FC = () => {
             <button onClick={() => handleSavePreset('new')}>{t('prompts.saveAsNew')}</button>
             <button disabled={!selectedPresetId} onClick={handleDeletePreset}>{t('prompts.delete')}</button>
           </div>
+        </div>
+      )}
+
+      {cachingOn && (
+        <div className="prompt-cache-banner">
+          <strong>{t('prompts.cachingBannerTitle')}</strong>
+          <p>{t('prompts.cachingBannerBody')}</p>
         </div>
       )}
 

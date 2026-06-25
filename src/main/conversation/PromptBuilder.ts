@@ -6,7 +6,7 @@ import { PromptScriptLoader } from "./PromptScriptLoader";
 import { settingsRepository } from "../SettingsRepository";
 import { promptConfigManager } from "./PromptConfigManager";
 import { PromptBlock, PromptSettings } from "@llmTypes";
-import { TokenCounter } from "../utils";
+import { TokenCounter, StateDiffer } from "../utils";
 
 export interface PromptBlockWithTokens {
     block: PromptBlock;
@@ -86,16 +86,27 @@ export class PromptBuilder {
         history: Message[], 
         char: Character, 
         gameData: GameData,
-        currentSessionSummary?: string
+        currentSessionSummary?: string,
+        frozenGameData?: GameData
     ): any[] {
         const promptSettings = settingsRepository.getPromptSettings();
         const blocks = promptSettings.blocks || [];
         const llmMessages: any[] = [];
 
+        // When prompt caching is enabled, a frozen gameData snapshot renders STABLE
+        // cached prefix. The live gameData feeds the 'current_state' block, which sits right
+        // after History and renders the live scene + a small per-turn diff, so the
+        // model sees current state without invalidating the cached prefix.
+        const prefixGameData: GameData = frozenGameData || gameData;
+        // The current character in the frozen snapshot (by id); fall back to live char.
+        const prefixChar: Character = (frozenGameData && frozenGameData.characters.get(char.id)) || char;
+
         const context = {
-            character: char,
-            gameData,
+            character: prefixChar,
+            gameData: prefixGameData,
             summary: currentSessionSummary,
+            liveGameData: gameData,
+            frozenGameData: frozenGameData,
         };
 
         const workingHistory: any[] = history
@@ -122,6 +133,34 @@ export class PromptBuilder {
         }
 
         return llmMessages;
+    }
+
+    private static renderCurrentState(
+        frozenGameData: GameData | undefined,
+        liveGameData: GameData,
+        prefixChar: Character
+    ): string | null {
+        // Inert unless caching is enabled
+        if (!frozenGameData) return null;
+
+        const liveChar: Character = liveGameData.characters.get(prefixChar.id) || prefixChar;
+        const parts: string[] = [];
+
+        try {
+            const sceneText = StateDiffer.renderCurrentScene(liveGameData, liveChar);
+            if (sceneText) parts.push(sceneText);
+        } catch (e) {
+            console.error('[PromptBuilder] Failed to render current scene block:', e);
+        }
+
+        try {
+            const diffText = StateDiffer.renderDiff(frozenGameData, liveGameData);
+            if (diffText) parts.push(diffText);
+        } catch (e) {
+            console.error('[PromptBuilder] Failed to render state diff block:', e);
+        }
+
+        return parts.length > 0 ? parts.join('\n\n') : null;
     }
 
         /**
@@ -327,6 +366,18 @@ static buildFinalSummary(
                 );
                 break;
             }
+            case 'current_state': {
+                // Live tail for prompt caching. Renders nothing om caching off
+                const content = this.renderCurrentState(
+                    baseContext.frozenGameData,
+                    baseContext.liveGameData,
+                    character
+                );
+                if (content) {
+                    messages.push({ role: block.role || 'system', content });
+                }
+                break;
+            }
             case 'instruction': {
                 const tpl = block.template || '[Write next reply only as {{character.fullName}}]';
                 const content = renderTemplate(tpl, baseContext);
@@ -354,17 +405,23 @@ static buildFinalSummary(
         history: Message[],
         char: Character,
         gameData: GameData,
-        currentSessionSummary?: string
+        currentSessionSummary?: string,
+        frozenGameData?: GameData
     ): PromptPreviewResult {
         const promptSettings = settingsRepository.getPromptSettings();
         const blocks = promptSettings.blocks || [];
         const llmMessages: any[] = [];
         const blocksWithTokens: PromptBlockWithTokens[] = [];
 
+        const prefixGameData: GameData = frozenGameData || gameData;
+        const prefixChar: Character = (frozenGameData && frozenGameData.characters.get(char.id)) || char;
+
         const context = {
-            character: char,
-            gameData,
+            character: prefixChar,
+            gameData: prefixGameData,
             summary: currentSessionSummary,
+            liveGameData: gameData,
+            frozenGameData: frozenGameData,
         };
 
         const workingHistory: any[] = history
@@ -530,6 +587,23 @@ static buildFinalSummary(
                 messages.push(...historyMessages);
                 const content = historyMessages.map(m => `${m.role}: ${m.content}`).join('\n\n');
                 return { block, content, tokens: TokenCounter.calculateTotalTokens(historyMessages) };
+            }
+            case 'current_state': {
+                try {
+                    const content = this.renderCurrentState(
+                        baseContext.frozenGameData,
+                        baseContext.liveGameData,
+                        character
+                    );
+                    if (content) {
+                        messages.push({ role: block.role || 'system', content });
+                        return { block, content, tokens: TokenCounter.estimateTokens(content) };
+                    }
+                } catch (error) {
+                    const errorMsg = error instanceof Error ? error.message : String(error);
+                    return { block, content: '', tokens: 0, error: `Error in "${block.label || 'Current State'}" block: ${errorMsg}` };
+                }
+                break;
             }
             case 'instruction': {
                 const tpl = block.template || '[Write next reply only as {{character.fullName}}]';

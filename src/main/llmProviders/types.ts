@@ -44,6 +44,22 @@ export interface ILLMCompletionRequest {
    * or { type: 'json_object' } for generic JSON constraint.
    */
   response_format?: Record<string, any>;
+  /**
+   * Prompt caching configuration.
+   * On OpenRouter + Anthropic models, enables automatic top-level `cache_control`
+   * caching of the prompt prefix to reduce cost/latency across multi-turn conversations.
+   */
+  cacheControl?: {
+    enabled: boolean;
+    ttl?: '5m' | '1h'; // Anthropic cache TTL. Default '1h' (survives long reply pauses).
+  };
+  /**
+   * Stable per-conversation id used for OpenRouter sticky routing so successive
+   * requests in the same conversation land on the same provider (keeps cache warm).
+   */
+  sessionId?: string;
+  /** Kind of request, so providers can opt in/out of caching. Letters never cache. */
+  requestKind?: 'chat' | 'letter' | 'summary' | 'action';
   // Provider-specific parameters can be handled within each implementation
   // or by adding an optional 'options?: Record<string, any>' field
 }
@@ -85,6 +101,13 @@ export interface ILLMCompletionResponse {
     prompt_tokens?: number;
     completion_tokens?: number;
     total_tokens?: number;
+    /** OpenRouter/OpenAI-compatible cache breakdown. */
+    prompt_tokens_details?: {
+      cached_tokens?: number; // tokens read from cache (cache hit)
+      cache_write_tokens?: number; // tokens written to cache on this request
+    };
+    /** OpenRouter-reported cost discount from caching. */
+    cache_discount?: number;
   };
 }
 
@@ -172,6 +195,15 @@ export interface ProviderConfigBase {
   defaultParameters?: Partial<Omit<ILLMCompletionRequest, 'messages' | 'model' | 'stream'>>; // Parameters like temperature, max_tokens. Stream is global.
   customContextLength?: number; // User-specified context length override
   useMinimizedActionsSchema?: boolean; // Controls JSON schema complexity for actions: undefined = auto-detect, true = minimized, false = advanced
+  /** Per-config prompt caching toggle (OpenRouter). When on, the conversation prompt
+   * prefix is rendered from a frozen gameData snapshot so it stays byte-stable
+   * across turns (cache hits even as actions mutate gold/traits/relations). 
+   * Current State block carries the dynamic tail. Benefits any OpenRouter
+   * model via prefix matching + sticky session routing. */
+  promptCachingEnabled?: boolean;
+  /** Prompt cache TTL. Honored by Anthropic models (emitted as cache_control ttl).
+   * Other models use OpenRouter's implicit caching where TTL is provider-managed. */
+  promptCacheTtl?: '5m' | '1h';
 }
 
 export type OpenRouterConfig = ProviderConfigBase & { providerType: 'openrouter'; };
@@ -216,6 +248,7 @@ export type PromptBlockType =
   | 'rolling_summary'
   | 'past_summaries'
   | 'history'
+  | 'current_state'
   | 'instruction'
   | 'custom';
 

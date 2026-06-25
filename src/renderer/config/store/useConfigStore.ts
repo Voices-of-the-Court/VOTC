@@ -385,6 +385,8 @@ export const useConfigStore = create<ConfigStore>()(
           defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
           customContextLength: editingConfig.customContextLength,
           useMinimizedActionsSchema: editingConfig.useMinimizedActionsSchema,
+          promptCachingEnabled: editingConfig.promptCachingEnabled,
+          promptCacheTtl: editingConfig.promptCacheTtl,
         };
         
         try {
@@ -471,6 +473,8 @@ export const useConfigStore = create<ConfigStore>()(
           defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
           customContextLength: editingConfig.customContextLength,
           useMinimizedActionsSchema: editingConfig.useMinimizedActionsSchema,
+          promptCachingEnabled: editingConfig.promptCachingEnabled,
+          promptCacheTtl: editingConfig.promptCacheTtl,
         };
         
         try {

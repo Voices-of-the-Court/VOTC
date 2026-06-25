@@ -301,7 +301,8 @@ export class ConversationManager {
             history,
             character,
             this.currentConversation.gameData,
-            this.currentConversation.currentSummary
+            this.currentConversation.currentSummary,
+            this.currentConversation.frozenGameData
         );
 
         return {

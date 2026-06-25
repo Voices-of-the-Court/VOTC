@@ -359,6 +359,7 @@ export class GameData {
     /**
      * Import summaries from another player character
      */
+    async importSummariesFromOtherPlayer(
         characterId: number,
         sourcePlayerId: string,
         mergeWithExisting: boolean = false
