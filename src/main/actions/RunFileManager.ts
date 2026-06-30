@@ -37,8 +37,13 @@ export class RunFileManager{
             console.log(`RunFileManager: Successfully resolved votc.txt path: ${this.path}`);
         }        
         try {
-            const currentText = fs.readFileSync(this.path, 'utf-8');
-            console.log(`RunFileManager: Current text in run file: ${currentText}`);
+            let currentText = '';
+            if (fs.existsSync(this.path)) {
+                currentText = fs.readFileSync(this.path, 'utf-8');
+                console.log(`RunFileManager: Current text in run file: ${currentText}`);
+            } else {
+                console.log(`RunFileManager: Run file does not exist yet - creating it`);
+            }
             
             if (currentText.trim() === '') {
                 console.log(`RunFileManager: Run file is empty - writing to it: ${text}`);
