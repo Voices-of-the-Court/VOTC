@@ -5,7 +5,7 @@ import { TemplateEngine } from "./TemplateEngine";
 import { PromptScriptLoader } from "./PromptScriptLoader";
 import { settingsRepository } from "../SettingsRepository";
 import { promptConfigManager } from "./PromptConfigManager";
-import { PromptBlock, PromptSettings } from "@llmTypes";
+import { ILLMMessage, PromptBlock, PromptSettings } from "@llmTypes";
 import { TokenCounter, StateDiffer } from "../utils";
 
 export interface PromptBlockWithTokens {
@@ -16,10 +16,11 @@ export interface PromptBlockWithTokens {
     error?: string;
 }
 
-export interface PromptPreviewResult {
-    messages: Array<{ role: string; content: string; name?: string }>;
+export interface PromptBuildResult {
+    messages: ILLMMessage[];
     blocks: PromptBlockWithTokens[];
     totalTokens: number;
+    errors: string[];
 }
 
 export class PromptBuilder {
@@ -66,12 +67,15 @@ export class PromptBuilder {
         opts?: {
             /** Filled with the index of the last USER message emitted by the history block. */
             cacheBoundary?: { lastHistoryUserMessageIndex: number | null };
+            /** When true (default), throw a combined Error if any block failed to render.
+             *  Set to false for previews so partial results + per-block errors are surfaced. */
+            throwOnError?: boolean;
         }
-    ): any[] {
+    ): PromptBuildResult {
         const promptSettings = settingsRepository.getPromptSettings();
         const blocks = promptSettings.blocks || [];
         const llmMessages: any[] = [];
-        const errors: string[] = [];
+        const blocksWithTokens: PromptBlockWithTokens[] = [];
 
         // When prompt caching is enabled, a frozen gameData snapshot renders STABLE
         // cached prefix. The live gameData feeds the 'current_state' block, which sits right
@@ -113,22 +117,45 @@ export class PromptBuilder {
                 }
                 llmMessages.push(...result.messages);
             }
-            if (result.error) {
-                errors.push(result.error);
-            }
+            // applyBlock already returns per-block tokens; keep them instead of
+            // recomputing them in a separate method.
+            blocksWithTokens.push(result);
         }
 
         if (promptSettings.suffix?.enabled && promptSettings.suffix.template) {
+            const suffixBlock: PromptBlock = {
+                id: 'suffix',
+                type: 'custom' as any,
+                label: promptSettings.suffix.label || 'Suffix',
+                enabled: true,
+                role: 'system',
+                template: promptSettings.suffix.template
+            };
             try {
                 const suffixContent = this.templateEngine.renderTemplateString(promptSettings.suffix.template, context);
                 llmMessages.push({ role: 'system', content: suffixContent });
+                blocksWithTokens.push({
+                    block: suffixBlock,
+                    content: suffixContent,
+                    tokens: TokenCounter.estimateTokens(suffixContent),
+                    messages: [{ role: 'system', content: suffixContent }]
+                });
             } catch (error) {
                 const errorMsg = error instanceof Error ? error.message : String(error);
-                errors.push(`Template error in Suffix block: ${errorMsg}`);
+                blocksWithTokens.push({
+                    block: suffixBlock,
+                    content: '',
+                    tokens: 0,
+                    error: `Template error in Suffix block: ${errorMsg}`
+                });
             }
         }
 
-        if (errors.length > 0) {
+        const errors = blocksWithTokens
+            .map(b => b.error)
+            .filter((e): e is string => !!e);
+
+        if (errors.length > 0 && (opts?.throwOnError ?? true)) {
             throw new Error(errors.join('\n'));
         }
 
@@ -136,7 +163,12 @@ export class PromptBuilder {
             opts.cacheBoundary.lastHistoryUserMessageIndex = lastHistoryUserMessageIndex;
         }
 
-        return llmMessages;
+        return {
+            messages: llmMessages,
+            blocks: blocksWithTokens,
+            totalTokens: TokenCounter.calculateTotalTokens(llmMessages),
+            errors
+        };
     }
 
     private static renderCurrentState(
@@ -456,82 +488,5 @@ static buildFinalSummary(
             const errorMsg = error instanceof Error ? error.message : String(error);
             return errorResult(errorMsg);
         }
-    }
-
-    /**
-     * Build messages with token counting for preview
-     */
-    static buildMessagesWithTokenCount(
-        history: Message[],
-        char: Character,
-        gameData: GameData,
-        currentSessionSummary?: string,
-        frozenGameData?: GameData
-    ): PromptPreviewResult {
-        const promptSettings = settingsRepository.getPromptSettings();
-        const blocks = promptSettings.blocks || [];
-        const llmMessages: any[] = [];
-        const blocksWithTokens: PromptBlockWithTokens[] = [];
-
-        const prefixGameData: GameData = frozenGameData || gameData;
-        const prefixChar: Character = (frozenGameData && frozenGameData.characters.get(char.id)) || char;
-
-        const context = {
-            character: prefixChar,
-            gameData: prefixGameData,
-            summary: currentSessionSummary,
-            liveGameData: gameData,
-            frozenGameData: frozenGameData,
-        };
-
-        const workingHistory: any[] = history
-            .map(m => ({
-                role: m.role,
-                name: m.name,
-                content: m.content
-            }))
-            .filter(m => !!m.content);
-
-        for (const block of blocks) {
-            if (!block.enabled) continue;
-            const result = this.applyBlock(block, workingHistory, context, promptSettings);
-            if (!result) continue;
-            if (result.messages?.length) {
-                llmMessages.push(...result.messages);
-            }
-            blocksWithTokens.push(result);
-        }
-
-        if (promptSettings.suffix?.enabled && promptSettings.suffix.template) {
-            const suffixBlock: PromptBlock = {
-                id: 'suffix',
-                type: 'custom' as any,
-                label: promptSettings.suffix.label || 'Suffix',
-                enabled: true,
-                role: 'system',
-                template: promptSettings.suffix.template
-            };
-            try {
-                const suffixContent = this.templateEngine.renderTemplateString(promptSettings.suffix.template, context);
-                llmMessages.push({ role: 'system', content: suffixContent });
-                blocksWithTokens.push({
-                    block: suffixBlock,
-                    content: suffixContent,
-                    tokens: TokenCounter.estimateTokens(suffixContent),
-                    messages: [{ role: 'system', content: suffixContent }]
-                });
-            } catch (error) {
-                const errorMsg = error instanceof Error ? error.message : String(error);
-                blocksWithTokens.push({ block: suffixBlock, content: '', tokens: 0, error: `Template error in Suffix block: ${errorMsg}` });
-            }
-        }
-
-        const totalTokens = TokenCounter.calculateTotalTokens(llmMessages);
-
-        return {
-            messages: llmMessages,
-            blocks: blocksWithTokens,
-            totalTokens
-        };
     }
 }

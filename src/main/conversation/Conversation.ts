@@ -193,7 +193,9 @@ export class Conversation {
     }
 
     private async checkAndSummarizeIfNeeded(npc: Character): Promise<void> {
-        const currentMessages = PromptBuilder.buildMessages(
+        // buildMessages already estimates total tokens, so reuse that instead of
+        // re-counting the rendered messages here.
+        const { totalTokens: estimatedTokens } = PromptBuilder.buildMessages(
             this.getHistory().slice(this.lastSummarizedMessageIndex),
             npc, 
             this.gameData,
@@ -201,7 +203,6 @@ export class Conversation {
             this.frozenGameData
         );
         
-        const estimatedTokens = this.estimateTokenCount(currentMessages);
         const contextLimit = await llmManager.getCurrentContextLength() || 10000;
         
         if (estimatedTokens > contextLimit * this.CONTEXT_LIMIT_PERCENTAGE) {
@@ -303,7 +304,7 @@ export class Conversation {
             await this.checkAndSummarizeIfNeeded(npc);
             
             const cacheBoundary = { lastHistoryUserMessageIndex: null as number | null };
-            const llmMessages = PromptBuilder.buildMessages(
+            const { messages: llmMessages, totalTokens } = PromptBuilder.buildMessages(
                 this.getHistory().slice(this.lastSummarizedMessageIndex), 
                 npc, 
                 this.gameData,
@@ -313,7 +314,7 @@ export class Conversation {
             );
 
             console.log(`Message from ${npc.fullName}:`, llmMessages);
-            console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, this.estimateTokenCount(llmMessages));
+            console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, totalTokens);
             
             const activeConfig = settingsRepository.getActiveProviderConfig();
             const isOpenRouter = activeConfig?.providerType === 'openrouter';

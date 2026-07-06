@@ -297,12 +297,13 @@ export class ConversationManager {
         }
 
         const history = this.currentConversation.getHistory();
-        const result = PromptBuilder.buildMessagesWithTokenCount(
+        const result = PromptBuilder.buildMessages(
             history,
             character,
             this.currentConversation.gameData,
             this.currentConversation.currentSummary,
-            this.currentConversation.frozenGameData
+            this.currentConversation.frozenGameData,
+            { throwOnError: false }
         );
 
         return {
