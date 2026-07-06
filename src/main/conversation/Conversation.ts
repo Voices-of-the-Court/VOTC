@@ -302,12 +302,14 @@ export class Conversation {
             // Has to be called after emitUpdate to show placeholder in UI in right time
             await this.checkAndSummarizeIfNeeded(npc);
             
+            const cacheBoundary = { lastHistoryUserMessageIndex: null as number | null };
             const llmMessages = PromptBuilder.buildMessages(
                 this.getHistory().slice(this.lastSummarizedMessageIndex), 
                 npc, 
                 this.gameData,
                 this.currentSummary,
-                this.frozenGameData
+                this.frozenGameData,
+                { cacheBoundary }
             );
 
             console.log(`Message from ${npc.fullName}:`, llmMessages);
@@ -329,6 +331,7 @@ export class Conversation {
                         : undefined,
                     sessionId: this.id,
                     requestKind: 'chat',
+                    cacheHistoryEndIndex: cacheBoundary.lastHistoryUserMessageIndex ?? undefined,
                 }
             );
 

@@ -53,43 +53,47 @@ function extractCacheUsage(usage: any): {
  * last text block (Anthropic-native format, passed through by OpenRouter).
  * Skips tiny contents (< 50 chars) so we never waste a breakpoint on a trivial block.
  */
-function markMessageForCache(message: any, ttl: '1h' | undefined): void {
+function markMessageForCache(message: any, ttl: '1h' | undefined): boolean {
   const cacheControl = ttl ? { type: 'ephemeral', ttl } : { type: 'ephemeral' };
   if (typeof message.content === 'string') {
-    if (!message.content || message.content.length < 50) return;
     message.content = [{ type: 'text', text: message.content, cache_control: cacheControl }];
+    return true;
   } else if (Array.isArray(message.content) && message.content.length > 0) {
     for (let i = message.content.length - 1; i >= 0; i--) {
       const block = message.content[i];
       if (block && (block.type === 'text' || !block.type)) {
         block.cache_control = cacheControl;
-        return;
+        return true;
       }
     }
   }
+  return false;
 }
 
-/**
- * Inject cache_control breakpoints for an Anthropic chat request
- * In VOTC's prompt, the volatile `current_state` block and the per-turn
- * `instruction` sit AFTER history, so the second-to-last user/assistant message
- * is the last real history turn — breakpoints never land on changing content.
- */
-function injectCacheBreakpoints(messages: any[], ttl: '1h' | undefined): void {
+export function injectCacheBreakpoint( // for an Anthropic chat request
+  messages: any[],
+  ttl: '1h' | undefined,
+  historyEndIndex?: number
+): void {
   if (!Array.isArray(messages) || messages.length === 0) return;
 
-  // 1. First system message (persona prefix).
-  const sysMsg = messages.find((m: any) => m.role === 'system');
-  if (sysMsg) markMessageForCache(sysMsg, ttl);
+  if (historyEndIndex == null || historyEndIndex < 0 || historyEndIndex >= messages.length) {
+    console.log('[OpenRouter][cache] no breakpoint (history boundary missing or out of range)');
+    return;
+  }
 
-  // 2. Second-to-last user/assistant message (last history turn).
-  const conversationalIdx: number[] = [];
-  messages.forEach((m: any, i: number) => {
-    if (m.role === 'user' || m.role === 'assistant') conversationalIdx.push(i);
-  });
-  if (conversationalIdx.length >= 2) {
-    const target = messages[conversationalIdx[conversationalIdx.length - 2]];
-    if (target) markMessageForCache(target, ttl);
+  const target = messages[historyEndIndex];
+  if (!target || target.role !== 'user') {
+    console.log(
+      `[OpenRouter][cache] no breakpoint (idx=${historyEndIndex} role=${target?.role ?? 'n/a'}, wanted user)`
+    );
+    return;
+  }
+
+  if (markMessageForCache(target, ttl)) {
+    console.log(`[OpenRouter][cache] breakpoint idx=${historyEndIndex} role=user (history)`);
+  } else {
+    console.log(`[OpenRouter][cache] no breakpoint (idx=${historyEndIndex} content below 50-char threshold)`);
   }
 }
 
@@ -187,7 +191,7 @@ export class OpenRouterProvider extends BaseProvider {
         // object (which Conversation also logs). structuredClone preserves the
         // array-of-blocks content shape.
         requestParams.messages = structuredClone(requestParams.messages);
-        injectCacheBreakpoints(requestParams.messages, ttl);
+        injectCacheBreakpoint(requestParams.messages, ttl, request.cacheHistoryEndIndex);
         (requestParams as any).provider = {
           order: ['Anthropic'],
           allow_fallbacks: true,

@@ -78,6 +78,7 @@ export class LLMManager {
       cacheControl?: { enabled: boolean; ttl?: '5m' | '1h' };
       sessionId?: string;
       requestKind?: 'chat' | 'letter' | 'summary' | 'action';
+      cacheHistoryEndIndex?: number;
     }
   ): Promise<ILLMOutput> {
     const activeConfig = settingsRepository.getActiveProviderConfig();
@@ -103,6 +104,7 @@ export class LLMManager {
       cacheControl: options?.cacheControl,
       sessionId: options?.sessionId,
       requestKind: options?.requestKind,
+      cacheHistoryEndIndex: options?.cacheHistoryEndIndex,
       // ...params,
     };
     const providerData = JSON.stringify(activeConfig).replace(/"apiKey":\s*"[^"]*"/g, 'HIDDEN'); // apiKey excluded

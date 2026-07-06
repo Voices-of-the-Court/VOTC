@@ -207,6 +207,8 @@
     "deletePreset": "Delete this preset?",
     "edit": "Edit",
     "enabled": "Enabled",
+    "examplesAsText": "Render as plain text",
+    "examplesAsTextHelp": "Flatten the example messages into a single text block using the configured role, instead of inserting them as individual messages. Use this for models that reject strict user/assistant role ordering or duplicate roles.",
     "exportedTo": "Exported to {{path}}",
     "exportZip": "Export ZIP",
     "failedToExport": "Failed to export prompts.",

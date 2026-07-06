@@ -359,7 +359,6 @@ export class GameData {
     /**
      * Import summaries from another player character
      */
-    async importSummariesFromOtherPlayer(
         characterId: number,
         sourcePlayerId: string,
         mergeWithExisting: boolean = false
@@ -579,7 +578,7 @@ export class Character {
     }
 
     removeTrait(name: string): void{
-        this.traits.filter( (trait) => {
+        this.traits = this.traits.filter((trait) => {
             return trait.name.toLowerCase() !== name.toLowerCase();
         });
     }

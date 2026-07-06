@@ -238,19 +238,40 @@ const PromptsView: React.FC = () => {
         );
       case 'examples':
         return (
-          <div className="field-row compact">
-            <PromptGroupSelector
-              files={promptFiles.examples}
-              currentScriptPath={block.scriptPath || ''}
-              appLanguage={appLanguage}
-              onSelect={(p) => handleScriptSelect(block.id, p)}
-              ariaLabel={block.label}
-            />
-            <div className="mini-buttons">
-              <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
-              <button onClick={() => openPromptFile('example_messages')}>Folder</button>
+          <>
+            <div className="field-row compact">
+              <PromptGroupSelector
+                files={promptFiles.examples}
+                currentScriptPath={block.scriptPath || ''}
+                appLanguage={appLanguage}
+                onSelect={(p) => handleScriptSelect(block.id, p)}
+                ariaLabel={block.label}
+              />
+              <div className="mini-buttons">
+                <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
+                <button onClick={() => openPromptFile('example_messages')}>Folder</button>
+              </div>
             </div>
-          </div>
+            <div className="field-row compact">
+              <label>{t('prompts.role')}</label>
+              <select
+                value={block.role || 'system'}
+                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, role: e.target.value as any }))}
+              >
+                <option value="system">system</option>
+                <option value="user">user</option>
+                <option value="assistant">assistant</option>
+              </select>
+            </div>
+            <label className="toggle" title={t('prompts.examplesAsTextHelp')}>
+              <input
+                type="checkbox"
+                checked={!!block.examplesAsText}
+                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, examplesAsText: e.target.checked }))}
+              />
+              <span>{t('prompts.examplesAsText')}</span>
+            </label>
+          </>
         );
       case 'memories':
         return (

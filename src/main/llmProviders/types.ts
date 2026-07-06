@@ -58,6 +58,7 @@ export interface ILLMCompletionRequest {
    * requests in the same conversation land on the same provider (keeps cache warm).
    */
   sessionId?: string;
+  cacheHistoryEndIndex?: number;
   /** Kind of request, so providers can opt in/out of caching. Letters never cache. */
   requestKind?: 'chat' | 'letter' | 'summary' | 'action';
   // Provider-specific parameters can be handled within each implementation
@@ -261,6 +262,7 @@ export interface PromptBlock {
   template?: string; // Handlebars template for text-based blocks
   scriptPath?: string; // For description/examples blocks
   limit?: number; // For capped list blocks (e.g., memories)
+  examplesAsText?: boolean; // examples: render script output as a single plain-text message using block.role instead of individual messages
   pinned?: boolean; // UI hint for non-removable blocks like history
   localePinned?: boolean; // User explicitly chose/reverted this scriptPath; autoswitch leaves it alone until the next app-language change
 }
