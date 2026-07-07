@@ -461,7 +461,7 @@ static buildFinalSummary(
                         character
                     );
                     if (content) {
-                        const role = block.role || 'system';
+                        const role = block.role || 'user';
                         const messages = [{ role, content }];
                         return { block, content, tokens: TokenCounter.estimateTokens(content), messages };
                     }

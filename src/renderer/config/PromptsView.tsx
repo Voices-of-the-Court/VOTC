@@ -9,6 +9,13 @@ import PromptGroupSelector from './components/PromptGroupSelector';
 
 type BlockUpdater = (block: PromptBlock) => PromptBlock;
 
+type SummaryPromptSettings = {
+  rollingPrompt: string;
+  finalPrompt: string;
+  letterSummaryPrompt: string;
+  maxPastSummaries: number;
+};
+
 const PromptsView: React.FC = () => {
   const { t } = useTranslation();
   const promptSettings = useConfigStore((state) => state.promptSettings);
@@ -28,6 +35,8 @@ const PromptsView: React.FC = () => {
   const openPromptsFolder = useConfigStore((state) => state.openPromptsFolder);
   const openPromptFile = useConfigStore((state) => state.openPromptFile);
   const updateAutoSwitchPromptLocale = useConfigStore((state) => state.updateAutoSwitchPromptLocale);
+  const getSummaryPromptSettings = useConfigStore((state) => state.getSummaryPromptSettings);
+  const updateSummaryPromptSettings = useConfigStore((state) => state.updateSummaryPromptSettings);
 
   const autoSwitchPromptLocale = appSettings?.autoSwitchPromptLocale ?? true;
   const appLanguage = (i18n.language || 'en').toLowerCase().split('-')[0];
@@ -38,6 +47,12 @@ const PromptsView: React.FC = () => {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [presetName, setPresetName] = useState<string>('');
+  const [summarySettings, setSummarySettings] = useState<SummaryPromptSettings>({
+    rollingPrompt: '',
+    finalPrompt: '',
+    letterSummaryPrompt: '',
+    maxPastSummaries: 5,
+  });
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
     const activeConfig = useMemo(() => {
@@ -62,6 +77,17 @@ const PromptsView: React.FC = () => {
     loadPromptPresets();
     // run once on mount
   }, []);
+
+  useEffect(() => {
+    getSummaryPromptSettings()
+      .then((s) => setSummarySettings({
+        rollingPrompt: s.rollingPrompt,
+        finalPrompt: s.finalPrompt,
+        letterSummaryPrompt: s.letterSummaryPrompt,
+        maxPastSummaries: s.maxPastSummaries ?? 5,
+      }))
+      .catch(() => { /* keep default */ });
+  }, [getSummaryPromptSettings]);
 
   useEffect(() => {
     if (promptSettings && mode === 'conversation') {
@@ -119,6 +145,14 @@ const PromptsView: React.FC = () => {
   const updateBlock = (id: string, updater: BlockUpdater) => {
     const blocks = localSettings.blocks.map((b) => (b.id === id ? updater(b) : b));
     persist({ ...localSettings, blocks });
+  };
+
+  const handleMaxSummariesChange = (value: number) => {
+    const next = { ...summarySettings, maxPastSummaries: value };
+    setSummarySettings(next);
+    updateSummaryPromptSettings(next)
+      .then(() => setPromptSettingsVersion((v) => v + 1)) // refresh preview
+      .catch((err) => console.error('Failed to save summary settings:', err));
   };
 
   const removeBlock = (id: string) => {
@@ -218,23 +252,40 @@ const PromptsView: React.FC = () => {
     updateBlock(blockId, (b) => ({ ...b, scriptPath, localePinned: true }));
   };
 
+  const renderRoleSelect = (block: PromptBlock, defaultRole: 'system' | 'user' | 'assistant') => (
+    <div className="field-row compact">
+      <label>{t('prompts.role')}</label>
+      <select
+        value={block.role || defaultRole}
+        onChange={(e) => updateBlock(block.id, (b) => ({ ...b, role: e.target.value as PromptBlock['role'] }))}
+      >
+        <option value="system">system</option>
+        <option value="user">user</option>
+        <option value="assistant">assistant</option>
+      </select>
+    </div>
+  );
+
   const renderBlockContent = (block: PromptBlock) => {
     switch (block.type) {
       case 'description':
         return (
-          <div className="field-row compact">
-            <PromptGroupSelector
-              files={promptFiles.descriptions}
-              currentScriptPath={block.scriptPath || ''}
-              appLanguage={appLanguage}
-              onSelect={(p) => handleScriptSelect(block.id, p)}
-              ariaLabel={block.label}
-            />
-            <div className="mini-buttons">
-              <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
-              <button onClick={() => openPromptFile('character_description')}>Folder</button>
+          <>
+            <div className="field-row compact">
+              <PromptGroupSelector
+                files={promptFiles.descriptions}
+                currentScriptPath={block.scriptPath || ''}
+                appLanguage={appLanguage}
+                onSelect={(p) => handleScriptSelect(block.id, p)}
+                ariaLabel={block.label}
+              />
+              <div className="mini-buttons">
+                <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
+                <button onClick={() => openPromptFile('character_description')}>Folder</button>
+              </div>
             </div>
-          </div>
+            {renderRoleSelect(block, 'system')}
+          </>
         );
       case 'examples':
         return (
@@ -289,6 +340,7 @@ const PromptsView: React.FC = () => {
               value={block.limit ?? 5}
               onChange={(e) => updateBlock(block.id, (b) => ({ ...b, limit: Number(e.target.value) || 1 }))}
             />
+            {renderRoleSelect(block, 'system')}
           </>
         );
       case 'rolling_summary':
@@ -300,6 +352,7 @@ const PromptsView: React.FC = () => {
               rows={3}
               onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
+            {renderRoleSelect(block, 'system')}
           </>
         );
       case 'past_summaries':
@@ -312,6 +365,15 @@ const PromptsView: React.FC = () => {
               placeholder={t('prompts.leaveEmptyDefault')}
               onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
+            <label>{t('prompts.maxSummaries')}</label>
+            <input
+              type="number"
+              min={1}
+              value={summarySettings.maxPastSummaries}
+              onChange={(e) => handleMaxSummariesChange(Number(e.target.value) || 1)}
+            />
+            <p className="help-text">{t('prompts.maxSummariesHelp')}</p>
+            {renderRoleSelect(block, 'system')}
           </>
         );
       case 'instruction':
@@ -372,9 +434,12 @@ const PromptsView: React.FC = () => {
         return <p className="muted-text">This block uses the main prompt text or conversation history.</p>;
       case 'current_state':
         return (
-          <p className="muted-text">
-            {t('prompts.currentStateBlockHelp')}
-          </p>
+          <>
+            <p className="muted-text">
+              {t('prompts.currentStateBlockHelp')}
+            </p>
+            {renderRoleSelect(block, 'user')}
+          </>
         );
       default:
         return null;
@@ -411,14 +476,19 @@ const PromptsView: React.FC = () => {
           <div className="block-title">
             {!isPinned && <span className="drag-handle">↕</span>}
             <strong>{index + 1}. {block.label}</strong>
-            <span className="badge">{block.type}</span>
-            {block.pinned && <span className="badge pinned">pinned</span>}
-            {cachingOn && PREFIX_TYPES.includes(block.type) && (
-              <span className="badge frozen" title={t('prompts.frozenBadgeHelp')}>{t('prompts.frozenBadge')}</span>
-            )}
-            {cachingOn && block.type === 'current_state' && (
-              <span className="badge live" title={t('prompts.liveBadgeHelp')}>{t('prompts.liveBadge')}</span>
-            )}
+            <div className="block-badges">
+              <span className="badge">{block.type}</span>
+              {block.pinned && <span className="badge pinned">pinned</span>}
+              {isSystemManaged && (
+                <span className="badge system-managed" title={t('prompts.systemManagedHelp')}>{t('prompts.systemManaged')}</span>
+              )}
+              {cachingOn && PREFIX_TYPES.includes(block.type) && (
+                <span className="badge frozen" title={t('prompts.frozenBadgeHelp')}>{t('prompts.frozenBadge')}</span>
+              )}
+              {cachingOn && block.type === 'current_state' && (
+                <span className="badge live" title={t('prompts.liveBadgeHelp')}>{t('prompts.liveBadge')}</span>
+              )}
+            </div>
           </div>
           <div className="block-actions">
             {!isSystemManaged && (
@@ -430,9 +500,6 @@ const PromptsView: React.FC = () => {
                 />
                 <span>{t('prompts.enabled')}</span>
               </label>
-            )}
-            {isSystemManaged && (
-              <span className="badge system-managed" title={t('prompts.systemManagedHelp')}>{t('prompts.systemManaged')}</span>
             )}
             <button onClick={() => moveBlockBy(block.id, -1)} disabled={isPinned} title={isPinned ? t('prompts.pinnedNoReorder') : undefined}>↑</button>
             <button onClick={() => moveBlockBy(block.id, 1)} disabled={isPinned} title={isPinned ? t('prompts.pinnedNoReorder') : undefined}>↓</button>

@@ -896,9 +896,9 @@ hr {
 
 .block-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 
   cursor: grab;
   user-select: none;
@@ -913,6 +913,25 @@ hr {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 0 auto;
+  max-width: 100%;
+  min-width: 0;
+
+  strong {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.block-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-left: auto;
+  flex: 0 100 auto;
+  min-width: 0;
 }
 
 .drag-handle {
@@ -997,6 +1016,8 @@ hr {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .block-body {
@@ -1033,6 +1054,8 @@ hr {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  container-type: inline-size;
+  container-name: presets-bar;
 }
 
 .presets-bar .field-row {
@@ -1062,6 +1085,13 @@ hr {
   gap: 6px;
   flex-wrap: wrap;
   margin-left: auto;
+}
+
+@container presets-bar (max-width: 480px) {
+  .presets-bar .mini-buttons {
+    flex-direction: column;
+    align-items: flex-end;
+  }
 }
 
 .field-row {
@@ -1156,12 +1186,15 @@ hr {
   color: #EFB16A;
 
   &.auto-switch-toggle {
-    white-space: nowrap;
+    white-space: normal;
+    max-width: 100%;
     font-size: 0.85em;
     margin-left: 10px;
+    align-items: flex-start;
 
     span {
-      white-space: nowrap;
+      white-space: normal;
+      min-width: 0;
     }
   }
 }

@@ -219,6 +219,8 @@
     "loadingPromptConfig": "Loading prompt configuration...",
     "mainInstruction": "Main instruction (Handlebars)",
     "mainPrompt": "Main prompt (Handlebars)",
+    "maxSummaries": "Max summaries",
+    "maxSummariesHelp": "Maximum number of past conversation summaries this block includes. Falls back to the Summaries tab setting until you change it.",
     "memoriesPretext": "Memories pretext (Handlebars)",
     "memoriesToInclude": "Memories to include",
     "noPromptFiles": "No prompt files found.",

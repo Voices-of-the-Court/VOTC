@@ -64,7 +64,8 @@ export class LetterPromptBuilder {
           const descScriptPath = promptConfigManager.resolvePath(block.scriptPath);
           const description = this.scriptLoader.executeDescription(descScriptPath, gameData, character.id);
           if (description) {
-            messages.push({ role: "system", content: description });
+            const role = (block.role || "system") as ILLMMessage["role"];
+            messages.push({ role, content: description });
           }
         } catch (error) {
           console.error("Failed to render letter description script:", error);

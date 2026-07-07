@@ -209,6 +209,8 @@
     "loadingPromptConfig": "Загрузка конфигурации промпта...",
     "mainInstruction": "Основная инструкция (Handlebars)",
     "mainPrompt": "Основной промпт (Handlebars)",
+    "maxSummaries": "Макс. саммари",
+    "maxSummariesHelp": "Максимальное количество прошлых саммари для этого блока. Пока не измените, используется значение со вкладки «Саммари».",
     "memoriesPretext": "Предтекст воспоминаний (Handlebars)",
     "memoriesToInclude": "Воспоминания для включения",
     "openPromptsFolder": "Открыть папку промптов",
