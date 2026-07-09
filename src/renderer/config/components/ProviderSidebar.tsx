@@ -14,6 +14,8 @@ interface ProviderSidebarProps {
     summaryProviderInstanceId: string | null;
     onSetActionsProvider: (instanceId: string | null) => void;
     onSetSummaryProvider: (instanceId: string | null) => void;
+    /** Disable provider/preset switching while a connection test is running. */
+    selectionDisabled?: boolean;
 }
 
 const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
@@ -26,6 +28,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
     summaryProviderInstanceId,
     onSetActionsProvider,
     onSetSummaryProvider,
+    selectionDisabled = false,
 }) => {
     const { t } = useTranslation();
     const appSettings = useAppSettings();
@@ -58,7 +61,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
     };
 
     return (
-        <div className="provider-sidebar">
+        <div className={`provider-sidebar${selectionDisabled ? ' selection-disabled' : ''}`}>
             <div className="providers-presets-container">
                 <h4>{t('connection.providers')}</h4>
                 <ul className="provider-list">
@@ -66,7 +69,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                         return (
                             <li
                                 key={type}
-                                onClick={() => onSelectProviderType(type)}
+                                onClick={() => { if (!selectionDisabled) onSelectProviderType(type); }}
                                 className={`
                                     ${selectedProviderTypeForEditing === type && !selectedPresetIdForEditing ? 'active' : ''}
                                     ${getAssignmentClass(type)}
@@ -89,7 +92,7 @@ const ProviderSidebar: React.FC<ProviderSidebarProps> = ({
                                         ${selectedPresetIdForEditing === preset.instanceId ? 'active' : ''}
                                         ${getAssignmentClass(preset.instanceId)}
                                     `.trim()}
-                                    onClick={() => onSelectPreset(preset.instanceId)}
+                                    onClick={() => { if (!selectionDisabled) onSelectPreset(preset.instanceId); }}
                                 >
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden', width: '100%' }}>
                                         <span className="preset-name" title={preset.customName || t('config.unnamedPreset')}>

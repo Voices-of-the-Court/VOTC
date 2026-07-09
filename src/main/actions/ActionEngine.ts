@@ -9,6 +9,7 @@ import { ActionArgumentValues, ActionInvocation, StructuredActionResponse, Actio
 import { ActionPromptBuilder } from "./ActionPromptBuilder";
 import { healJsonResponseWithLogging } from "./responseHealing";
 import type { SchemaBuildInput } from "./jsonSchema";
+import type { ILLMCompletionResponse, ILLMMessage, ConnectionTestSubResult, LLMProviderConfig } from "../llmProviders/types";
 import { settingsRepository } from "../SettingsRepository";
 import { resolveI18nString } from "./i18nUtils";
 import { ActionSandbox } from "./ActionSandbox";
@@ -381,6 +382,130 @@ export class ActionEngine {
         actionId: inv.actionId,
         success: false,
         error: err instanceof Error ? err.message : String(err)
+      };
+    }
+  }
+
+  // Structured-output self-test
+  private static readonly STRUCTURED_TEST_ACTIONS: SchemaBuildInput = {
+    availableActions: [
+      {
+        signature: 'changeOpinionOf',
+        requiresTarget: true,
+        validTargetCharacterIds: [1001, 1002, 1003],
+        description: "Change the source character's opinion of the target by a delta.",
+        args: [
+          { name: 'delta', type: 'number', required: true, min: -100, max: 100, step: 1, description: 'Opinion change amount (can be negative).' },
+        ],
+      },
+      {
+        signature: 'setRelation',
+        requiresTarget: true,
+        validTargetCharacterIds: [1001, 1002, 1003],
+        description: 'Set a relationship type with the target character.',
+        args: [
+          { name: 'relationType', type: 'enum', required: true, options: ['friend', 'rival', 'lover', 'nemesis'], description: 'The relation to set.' },
+          { name: 'note', type: 'string', required: true, maxLength: 200, description: 'A short note about the relation.' },
+        ],
+      },
+      {
+        signature: 'becomeFriendsWith',
+        requiresTarget: true,
+        validTargetCharacterIds: [1001, 1002, 1003],
+        description: 'Establish a friendship with the target character.',
+        args: [],
+      },
+      {
+        signature: 'formAlliance',
+        requiresTarget: true,
+        validTargetCharacterIds: [1001, 1002, 1003],
+        description: 'Form an alliance with the target character.',
+        args: [
+          { name: 'isPermanent', type: 'boolean', required: true, description: 'Whether the alliance is permanent.' },
+        ],
+      },
+    ],
+  };
+
+  private static readonly STRUCTURED_ADVANCED = { name: 'Advanced schema', useMinimized: false } as const;
+  private static readonly STRUCTURED_MINIMIZED = { name: 'Minimized schema', useMinimized: true } as const;
+
+  private static validateStructuredResponse(content: string): { ok: boolean; detail: string } {
+    const trimmed = content.trim();
+    let parsed: any;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      return { ok: false, detail: `Model did not return valid JSON. Response: "${trimmed.slice(0, 120)}"` };
+    }
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.actions)) {
+      return { ok: false, detail: `Response did not match the schema (expected { actions: [...] }). Got: "${trimmed.slice(0, 120)}"` };
+    }
+    for (const item of parsed.actions) {
+      if (!item || typeof item !== 'object' || typeof item.actionId !== 'string') {
+        return { ok: false, detail: `An action entry is missing its actionId. Got: "${JSON.stringify(item).slice(0, 120)}"` };
+      }
+    }
+    return { ok: true, detail: `${parsed.actions.length} action(s) returned.` };
+  }
+
+  /**
+   * Probe a SINGLE structured-output schema variant by sending a real Actions
+   * request via llmManager.sendActionsRequest.
+   *
+   * @param config   The provider config to test (usually the active provider).
+   * @param useMinimized  true -> flat schema; false -> deep anyOf schema.
+   * @param signal   Optional abort signal (cancel).
+   */
+  static async testStructuredVariant(
+    config: LLMProviderConfig,
+    useMinimized: boolean,
+    signal?: AbortSignal
+  ): Promise<ConnectionTestSubResult> {
+    const variant = useMinimized
+      ? ActionEngine.STRUCTURED_MINIMIZED
+      : ActionEngine.STRUCTURED_ADVANCED;
+
+    const messages: ILLMMessage[] = [
+      {
+        role: 'system',
+        content:
+          'You select game actions. Respond with ONLY a JSON object matching the required schema: ' +
+          '{"actions": [{"actionId": "<one of the available actions>", "targetCharacterId": <id>, "args": {...}}]}. ' +
+          'Pick exactly one available action and fill its required args. No prose, no code fences.',
+      },
+      { role: 'user', content: 'Choose one action now and return the JSON object.' },
+    ];
+
+    try {
+      const schemaObject = buildStructuredResponseJsonSchema(
+        ActionEngine.STRUCTURED_TEST_ACTIONS,
+        useMinimized
+      );
+
+      // Same pipeline as ActionEngine.evaluateForCharacter → llmManager.sendActionsRequest.
+      const response = await (llmManager.sendActionsRequest(
+        messages,
+        'votc_actions_test',
+        schemaObject,
+        signal,
+        config
+      ) as Promise<ILLMCompletionResponse>);
+
+      const content = (response.content ?? '').trim();
+      if (!content) {
+        return { success: false, name: variant.name, error: 'Model returned an empty response.' };
+      }
+
+      const validation = ActionEngine.validateStructuredResponse(content);
+      return validation.ok
+        ? { success: true, name: variant.name, message: `Supported — ${validation.detail}` }
+        : { success: false, name: variant.name, error: validation.detail };
+    } catch (e: any) {
+      return {
+        success: false,
+        name: variant.name,
+        error: e?.message || 'This schema variant is not supported by the provider/model.',
       };
     }
   }

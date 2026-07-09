@@ -6,9 +6,11 @@ import {
   ILLMStreamChunk,
   DeepseekConfig,
   LLMProviderConfig,
-  ILLMOutput
+  ILLMOutput,
+  ConnectionTestResult
 } from './types';
 import { BaseProvider } from './BaseProvider';
+import { runConnectionTests } from './connectionTest';
 import OpenAI from 'openai';
 
 /**
@@ -365,23 +367,12 @@ export class DeepseekProvider extends BaseProvider {
     }
   }
 
-  async testConnection(config: DeepseekConfig): Promise<{success: boolean, error?: string, message?: string}> {
+  async testConnection(config: DeepseekConfig): Promise<ConnectionTestResult> {
     try {
-      const testRequest: ILLMCompletionRequest = {
-        model: config.defaultModel || 'deepseek-chat',
-        messages: [{ role: 'user', content: 'Test' }],
-        max_tokens: 1,
-        stream: false,
-      };
-      
-      const response = await (this.chatCompletion(testRequest, config) as Promise<ILLMCompletionResponse>);
-      if (response && (response.content || response.id)) {
-        return { success: true, message: `Successfully connected to Deepseek. Received response ID: ${response.id}` };
-      }
-      return { success: false, error: 'Test connection to Deepseek failed to get a valid response.' };
+      return await runConnectionTests(this, config, { model: config.defaultModel || 'deepseek-chat' });
     } catch (e: any) {
       console.error('Deepseek testConnection error:', e);
-      return { success: false, error: e.message || 'Unknown error during Deepseek test connection.' };
+      return { success: false, error: e?.message || 'Unknown error during Deepseek test connection.' };
     }
   }
 }

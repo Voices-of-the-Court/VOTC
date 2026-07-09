@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset, ConversationSummary, SummaryMetadata } from '@llmTypes';
+import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset, ConversationSummary, SummaryMetadata, ConnectionTestResult } from '@llmTypes';
 import {
   PROVIDER_TYPES,
   DEFAULT_PROVIDER_CONFIGS,
@@ -9,6 +9,22 @@ import {
 } from '@llmTypes';
 import i18n from '../../i18n';
 import { reconcileSettingsLocales, type PromptLocaleSwitch } from '../utils/promptLocaleReconcile';
+
+export type TestStepId = 'text' | 'advanced' | 'minimized';
+export type TestStepStatus = 'pending' | 'running' | 'done' | 'error';
+export interface TestStepState {
+  id: TestStepId;
+  status: TestStepStatus;
+  message?: string;
+}
+
+const initialTestSteps = (): TestStepState[] => [
+  { id: 'text', status: 'pending' },
+  { id: 'advanced', status: 'pending' },
+  { id: 'minimized', status: 'pending' },
+];
+
+let testElapsedTimer: ReturnType<typeof setInterval> | null = null;
 
 interface ConfigStore {
   // Settings state
@@ -29,7 +45,10 @@ interface ConfigStore {
   summaryProviderInstanceId: string | null;
   
   // UI state
-  testResult: { success: boolean; message?: string; error?: string } | null;
+  testStatus: 'idle' | 'running';
+  testSteps: TestStepState[];
+  testElapsedMs: number;
+  testResult: ConnectionTestResult | null;
   player2Health: {
     status: 'idle' | 'checking' | 'healthy' | 'error';
     clientVersion?: string;
@@ -68,6 +87,7 @@ interface ConfigStore {
   saveConfigImmediate: () => Promise<void>;
   
   testConnection: () => Promise<void>;
+  cancelTestConnection: () => void;
   setTestResult: (result: ConfigStore['testResult']) => void;
   checkPlayer2Health: () => Promise<void>;
   
@@ -153,6 +173,9 @@ export const useConfigStore = create<ConfigStore>()(
       initialConfig: {},
       actionsProviderInstanceId: null,
       summaryProviderInstanceId: null,
+      testStatus: 'idle',
+      testSteps: initialTestSteps(),
+      testElapsedMs: 0,
       testResult: null,
       player2Health: null,
       autoSaveTimer: null,
@@ -264,6 +287,7 @@ export const useConfigStore = create<ConfigStore>()(
 
       // Select provider
       selectProvider: async (type) => {
+        if (get().testStatus === 'running') return; // don't switch providers mid-test
         const { appSettings } = get();
         if (!appSettings) return;
         
@@ -280,6 +304,8 @@ export const useConfigStore = create<ConfigStore>()(
           editingConfig: config,
           initialConfig: config,
           testResult: null,
+          testSteps: initialTestSteps(),
+          testElapsedMs: 0,
           player2Health: type === 'player2' ? (state.player2Health ?? { status: 'checking' }) : null,
         }));
         
@@ -303,6 +329,7 @@ export const useConfigStore = create<ConfigStore>()(
 
       // Select preset
       selectPreset: async (id) => {
+        if (get().testStatus === 'running') return; // don't switch providers mid-test
         const { appSettings } = get();
         if (!appSettings) return;
         
@@ -315,6 +342,8 @@ export const useConfigStore = create<ConfigStore>()(
           editingConfig: preset,
           initialConfig: preset,
           testResult: null,
+          testSteps: initialTestSteps(),
+          testElapsedMs: 0,
           player2Health: preset.providerType === 'player2' ? (state.player2Health ?? { status: 'checking' }) : null,
         }));
         
@@ -435,9 +464,45 @@ export const useConfigStore = create<ConfigStore>()(
 
       // Test connection
       testConnection: async () => {
-        set({ testResult: null });
-        const result = await window.llmConfigAPI.testConnection();
-        set({ testResult: result });
+        if (get().testStatus === 'running') return; // prevent overlapping runs
+
+        const unsubscribe = window.llmConfigAPI.onTestConnectionProgress((p) => {
+          set((state) => ({
+            testSteps: state.testSteps.map((s) =>
+              s.id === (p.step as TestStepId)
+                ? { ...s, status: p.status as TestStepStatus, message: p.message }
+                : s
+            ),
+          }));
+        });
+
+        const startedAt = Date.now();
+        set({
+          testStatus: 'running',
+          testResult: null,
+          testElapsedMs: 0,
+          testSteps: initialTestSteps(),
+        });
+
+        if (testElapsedTimer) clearInterval(testElapsedTimer);
+        testElapsedTimer = setInterval(() => {
+          set({ testElapsedMs: Date.now() - startedAt });
+        }, 200);
+
+        try {
+          const result = await window.llmConfigAPI.testConnection();
+          set({ testResult: result });
+        } catch (e: any) {
+          set({ testResult: { success: false, error: e?.message || 'Test failed.' } });
+        } finally {
+          if (testElapsedTimer) { clearInterval(testElapsedTimer); testElapsedTimer = null; }
+          unsubscribe();
+          set({ testStatus: 'idle' });
+        }
+      },
+
+      cancelTestConnection: () => {
+        window.llmConfigAPI.cancelTestConnection();
       },
 
       checkPlayer2Health: async () => {
@@ -907,6 +972,9 @@ export const useConfigStore = create<ConfigStore>()(
 export const useAppSettings = () => useConfigStore((state) => state.appSettings);
 export const useEditingConfig = () => useConfigStore((state) => state.editingConfig);
 export const useTestResult = () => useConfigStore((state) => state.testResult);
+export const useTestStatus = () => useConfigStore((state) => state.testStatus);
+export const useTestSteps = () => useConfigStore((state) => state.testSteps);
+export const useTestElapsedMs = () => useConfigStore((state) => state.testElapsedMs);
 
 // Custom hooks for object selectors
 export const useSelection = () => {

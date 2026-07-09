@@ -7,9 +7,11 @@ import {
   OpenRouterConfig,
   LLMProviderConfig,
   ILLMOutput,
+  ConnectionTestResult,
   isOpenRouterErrorResponse
 } from './types';
 import { BaseProvider } from './BaseProvider';
+import { runConnectionTests } from './connectionTest';
 import OpenAI from 'openai'; // Import OpenAI SDK
 
 const isAnthropicModel = (model: string): boolean => typeof model === 'string' && model.startsWith('anthropic/');
@@ -426,23 +428,12 @@ private async _nonStreamChatCompletion(
     }
   }
 
-  async testConnection(config: OpenRouterConfig): Promise<{success: boolean, error?: string, message?: string}> {
+  async testConnection(config: OpenRouterConfig): Promise<ConnectionTestResult> {
     try {
-      const testRequest: ILLMCompletionRequest = {
-        model: config.defaultModel || 'openrouter/auto', // Use a known cheap/fast model or user's default
-        messages: [{ role: 'user', content: 'Test' }],
-        max_tokens: 1,
-        stream: false,
-      };
-      
-      const response = await (this.chatCompletion(testRequest, config) as Promise<ILLMCompletionResponse>);
-      if (response && (response.content || response.id)) {
-        return { success: true, message: `Successfully connected to OpenRouter. Received response ID: ${response.id}` };
-      }
-      return { success: false, error: 'Test connection to OpenRouter failed to get a valid response.' };
+      return await runConnectionTests(this, config, { model: config.defaultModel || 'openrouter/auto' });
     } catch (e: any) {
       console.error('OpenRouter testConnection error:', e);
-      return { success: false, error: e.message || 'Unknown error during OpenRouter test connection.' };
+      return { success: false, error: e?.message || 'Unknown error during OpenRouter test connection.' };
     }
   }
 }

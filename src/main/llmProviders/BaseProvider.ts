@@ -2,8 +2,10 @@ import {
   ILLMCompletionRequest,
   ILLMModel,
   ILLMOutput,
-  LLMProviderConfig
+  LLMProviderConfig,
+  ConnectionTestResult
 } from './types';
+import { runConnectionTests } from './connectionTest';
 
 /**
  * Base implementation for LLM providers with common functionality
@@ -41,32 +43,15 @@ export abstract class BaseProvider {
    * @param config - Provider configuration
    * @returns Connection test result
    */
-  async testConnection(config: LLMProviderConfig): Promise<{success: boolean, error?: string, message?: string}> {
+  async testConnection(config: LLMProviderConfig): Promise<ConnectionTestResult> {
     try {
       this.validateConfig(config);
-
-      const testMessages = [{
-        role: 'user' as const,
-        content: 'Hi.'
-      }];
-
-      // Send a minimal completion request
-      await this.chatCompletion({
-        model: config.defaultModel!,
-        messages: testMessages,
-        max_tokens: 10,
-        stream: false
-      }, config);
-
-      return {
-        success: true,
-        message: `Successfully connected to ${this.name}`
-      };
+      return await runConnectionTests(this, config);
     } catch (error: any) {
       console.error(`[${this.providerId}] Connection test failed:`, error);
       return {
         success: false,
-        error: error.message || `Failed to connect to ${this.name}`
+        error: error.message || `Failed to connect to ${this.name}`,
       };
     }
   }

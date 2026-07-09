@@ -126,9 +126,40 @@ export interface ILLMProvider {
 
   listModels?(config: LLMProviderConfig): Promise<ILLMModel[]>;
 
-  testConnection?(config: LLMProviderConfig): Promise<{success: boolean, error?: string, message?: string}>;
+  testConnection?(config: LLMProviderConfig): Promise<ConnectionTestResult>;
 
   checkHealth?(): Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}>;
+}
+
+// --- Connection test results ---
+
+/** Outcome of a single connection probe (text generation OR a schema variant). */
+export interface ConnectionTestSubResult {
+  success: boolean;
+  /** Optional human-readable label (e.g. "Advanced schema"). */
+  name?: string;
+  message?: string;
+  error?: string;
+}
+
+/**
+ * Full connection-test result. Carries the overall outcome plus the individual
+ * probes so the UI can report each one independently.
+ *
+ *  - `success` is true only when text generation passed AND at least one
+ *    structured-output schema variant passed (i.e. structured output is usable
+ *    for Actions in some mode).
+ *  - `textGeneration`: basic chat-completion probe (can the model answer at all?).
+ *  - `structuredOutput`: one entry per JSON-schema variant (advanced = deep/anyOf,
+ *    minimized = flat). Reported as a single skipped entry when text generation
+ *    failed. Critical for Actions.
+ */
+export interface ConnectionTestResult {
+  success: boolean;
+  error?: string;
+  message?: string;
+  textGeneration?: ConnectionTestSubResult;
+  structuredOutput?: ConnectionTestSubResult[];
 }
 
 // --- Provider Configurations ---

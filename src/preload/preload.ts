@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { LLMProviderConfig, AppSettings, ILLMModel } from '@llmTypes'; // Adjusted import path
+import type { LLMProviderConfig, AppSettings, ILLMModel, ConnectionTestResult } from '@llmTypes'; // Adjusted import path
 
 contextBridge.exposeInMainWorld('electronAPI', {
   /**
@@ -55,7 +55,13 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   deletePreset: (instanceId: string): Promise<void> => ipcRenderer.invoke('llm:deletePreset', instanceId),
   setActiveProvider: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setActiveProvider', instanceId),
   listModels: (): Promise<ILLMModel[] | { error: string }> => ipcRenderer.invoke('llm:listModels'),
-  testConnection: (): Promise<{success: boolean, error?: string, message?: string}> => ipcRenderer.invoke('llm:testConnection'),
+  testConnection: (): Promise<ConnectionTestResult> => ipcRenderer.invoke('llm:testConnection'),
+  onTestConnectionProgress: (callback: (p: { step: string; status: string; message?: string }) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on('test-connection:progress', handler);
+    return () => ipcRenderer.removeListener('test-connection:progress', handler);
+  },
+  cancelTestConnection: (): Promise<boolean> => ipcRenderer.invoke('llm:cancelTestConnection'),
   checkPlayer2Health: (): Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}> => ipcRenderer.invoke('llm:checkPlayer2Health'),
   setCK3Folder: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setCK3Folder', path),
   setModLocationPath: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setModLocationPath', path),

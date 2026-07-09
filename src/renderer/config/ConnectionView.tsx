@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useConfigStore, useSelection, useTestResult, useEditingConfig, useAppSettings } from "./store/useConfigStore";
+import { useConfigStore, useSelection, useEditingConfig, useAppSettings, useTestStatus } from "./store/useConfigStore";
 
 import ProviderSidebar from './components/ProviderSidebar';
 import ProviderConfigPanel from './components/ProviderConfigPanel';
@@ -10,12 +10,11 @@ const ConnectionView: React.FC = () => {
   const appSettings = useAppSettings();
   const editingConfig = useEditingConfig();
   const { selectedProviderType, selectedPresetId } = useSelection();
-  const testResult = useTestResult();
+  const testRunning = useTestStatus() === 'running';
   
   const selectProvider = useConfigStore((state) => state.selectProvider);
   const selectPreset = useConfigStore((state) => state.selectPreset);
   const updateEditingConfig = useConfigStore((state) => state.updateEditingConfig);
-  const testConnection = useConfigStore((state) => state.testConnection);
   const createPreset = useConfigStore((state) => state.createPreset);
   const deletePreset = useConfigStore((state) => state.deletePreset);
   
@@ -86,14 +85,13 @@ const ConnectionView: React.FC = () => {
         summaryProviderInstanceId={summaryProviderInstanceId}
         onSetActionsProvider={setActionsProvider}
         onSetSummaryProvider={setSummaryProvider}
+        selectionDisabled={testRunning}
       />
       
       <ProviderConfigPanel
         config={editingConfig}
-        testResult={testResult}
         onInputChange={handleInputChange}
         onContextLengthChange={handleContextLengthChange}
-        onTestConnection={testConnection}
         onMakePreset={() => setIsPresetModalOpen(true)}
       />
       

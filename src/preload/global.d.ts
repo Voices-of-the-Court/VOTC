@@ -1,4 +1,4 @@
-import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings, ActionApprovalSettings } from '@llmTypes';
+import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings, ActionApprovalSettings, ConnectionTestResult } from '@llmTypes';
 
 // Types for summaries manager
 export interface ConversationSummary {
@@ -75,7 +75,9 @@ declare global {
       deletePreset: (instanceId: string) => Promise<void>; // Renamed
       setActiveProvider: (instanceId: string | null) => Promise<void>;
       listModels: () => Promise<ILLMModel[] | { error: string }>;
-      testConnection: () => Promise<{success: boolean, error?: string, message?: string}>;
+      testConnection: () => Promise<ConnectionTestResult>;
+      onTestConnectionProgress: (callback: (p: { step: string; status: string; message?: string }) => void) => () => void;
+      cancelTestConnection: () => Promise<boolean>;
       checkPlayer2Health: () => Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}>;
       setCK3Folder: (path: string | null) => Promise<void>;
       setModLocationPath: (path: string | null) => Promise<void>;

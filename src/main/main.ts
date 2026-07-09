@@ -4,7 +4,7 @@ import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
 import { providerRegistry } from './llmProviders/ProviderRegistry';
 import { conversationManager } from './conversation/ConversationManager';
-import { LLMProviderConfig, PromptPreset, PromptSettings } from '@llmTypes';
+import { LLMProviderConfig, PromptPreset, PromptSettings, ConnectionTestSubResult } from '@llmTypes';
 import { ClipboardListener } from './ClipboardListener';
 import { 
   initLogger, clearLog,
@@ -33,6 +33,13 @@ import './llmProviders/GeminiProvider';
 import { letterManager } from './letter/LetterManager';
 import { v4 as uuidv4 } from 'uuid';
 import { runFileManager } from './actions/RunFileManager';
+import { finalizeConnectionTestResult } from './llmProviders/connectionTest';
+
+
+type TestStepId = 'text' | 'advanced' | 'minimized';
+type TestStepStatus = 'running' | 'done' | 'error';
+
+let testConnectionAbortController: AbortController | null = null;
 
 initLogger();
 // Keep a reference to the config window, managed globally
@@ -81,10 +88,10 @@ if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   );
 }
 
-  // // Open the DevTools.
-  // chatWindow.webContents.openDevTools(
-  //   { mode: 'detach' }
-  // );
+  // Open the DevTools.
+  chatWindow.webContents.openDevTools(
+    { mode: 'detach' }
+  );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
@@ -291,9 +298,83 @@ const setupIpcHandlers = () => {
     }
   });
 
-  ipcMain.handle('llm:testConnection', async () => {
-     return await llmManager.testProviderConnection();
-     // Errors are caught within testProviderConnection and returned in the result object
+  ipcMain.handle('llm:testConnection', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const sendProgress = (step: TestStepId, status: TestStepStatus, message?: string) => {
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('test-connection:progress', { step, status, message });
+      }
+    };
+
+    testConnectionAbortController = new AbortController();
+    const signal = testConnectionAbortController.signal;
+    const abortable = <T>(p: Promise<T>): Promise<T> => {
+      if (signal.aborted) return Promise.reject(new Error('Cancelled'));
+      return new Promise<T>((resolve, reject) => {
+        const onAbort = () => reject(new Error('Cancelled'));
+        signal.addEventListener('abort', onAbort, { once: true });
+        p.then(
+          (v) => { signal.removeEventListener('abort', onAbort); resolve(v); },
+          (e) => { signal.removeEventListener('abort', onAbort); reject(e); }
+        );
+      });
+    };
+
+    // text generation
+    sendProgress('text', 'running');
+    let textResult: ConnectionTestSubResult | undefined;
+    try {
+      const partial = await abortable(llmManager.testProviderConnection());
+      textResult = partial.textGeneration;
+      sendProgress('text', textResult?.success ? 'done' : 'error',
+        textResult?.success ? textResult.message : textResult?.error);
+    } catch (e: any) {
+      textResult = { success: false, error: signal.aborted ? 'Cancelled' : (e?.message || 'Text generation failed.') };
+      sendProgress('text', 'error', textResult.error);
+    }
+
+    // structured output (only if text generation passed)
+    const structuredOutput: ConnectionTestSubResult[] = [];
+    const variants: Array<{ id: TestStepId; useMinimized: boolean; name: string }> = [
+      { id: 'advanced', useMinimized: false, name: 'Advanced schema' },
+      { id: 'minimized', useMinimized: true, name: 'Minimized schema' },
+    ];
+
+    if (textResult?.success) {
+      const config = settingsRepository.getActiveProviderConfig();
+      if (config) {
+        for (const v of variants) {
+          if (signal.aborted) {
+            structuredOutput.push({ success: false, name: v.name, error: 'Cancelled' });
+            sendProgress(v.id, 'error', 'Cancelled');
+            continue;
+          }
+          sendProgress(v.id, 'running');
+          try {
+            const res = await abortable(ActionEngine.testStructuredVariant(config, v.useMinimized, signal));
+            structuredOutput.push(res);
+            sendProgress(v.id, res.success ? 'done' : 'error', res.success ? res.message : res.error);
+          } catch (e: any) {
+            const err = signal.aborted ? 'Cancelled' : (e?.message || 'Failed.');
+            structuredOutput.push({ success: false, name: v.name, error: err });
+            sendProgress(v.id, 'error', err);
+          }
+        }
+      } else {
+        for (const v of variants) {
+          structuredOutput.push({ success: false, name: v.name, error: 'No active provider configured.' });
+          sendProgress(v.id, 'error', 'No active provider configured.');
+        }
+      }
+    }
+
+    testConnectionAbortController = null;
+    return finalizeConnectionTestResult(textResult, structuredOutput);
+  });
+
+  ipcMain.handle('llm:cancelTestConnection', () => {
+    testConnectionAbortController?.abort();
+    return true;
   });
 
   ipcMain.handle('llm:checkPlayer2Health', async () => {

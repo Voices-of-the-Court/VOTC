@@ -10,6 +10,7 @@ import FormGroupInput from './FormGroupInput';
 import Tooltip from './Tooltip';
 import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent, DeepseekConfigFieldsComponent, GeminiConfigFieldsComponent } from './ConfigFields';
 import SegmentedSwitch from './SegmentedSwitch';
+import ConnectionTestPanel from './ConnectionTestPanel';
 
 // OpenRouter anthropic/* models honor an explicit cache TTL; others use implicit caching.
 const isAnthropicModel = (model?: string): boolean =>
@@ -132,33 +133,18 @@ const DefaultParameterFieldsComponent: React.FC<CommonFieldProps & { t: any }> =
 );
 
 interface ActionButtonsComponentProps {
-  onTestConnection: () => void;
   onMakePreset: () => void;
   providerType?: string;
   t: any;
 }
 
-const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset, providerType, t }) => (
+const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onMakePreset, providerType, t }) => (
   <div className="form-actions">
-    <button type="button" onClick={onTestConnection}>{t('connection.testConnection')}</button>
     {providerType !== 'player2' && (
       <button type="button" onClick={onMakePreset}>{t('connection.makePreset')}</button>
     )}
   </div>
 );
-
-interface TestResultDisplayComponentProps {
-  testResult: { success: boolean; message?: string; error?: string } | null;
-}
-
-const TestResultDisplayComponent: React.FC<TestResultDisplayComponentProps> = ({ testResult }) => {
-  if (!testResult) return null;
-  return (
-    <p className={`test-result ${testResult.success ? 'success' : 'error'}`}>
-      {testResult.message || testResult.error}
-    </p>
-  );
-};
 
 const ProviderFieldComponents: Record<string, React.FC<CommonFieldProps>> = {
   openrouter: OpenRouterConfigFieldsComponent,
@@ -170,10 +156,8 @@ const ProviderFieldComponents: Record<string, React.FC<CommonFieldProps>> = {
 
 interface ProviderConfigPanelProps {
   config: Partial<LLMProviderConfig>;
-  testResult: { success: boolean; message?: string; error?: string } | null;
   onInputChange: ChangeHandler;
   onContextLengthChange: (contextLength: number | undefined) => void;
-  onTestConnection: () => void;
   onMakePreset: () => void;
 }
 
@@ -182,10 +166,8 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
   const appSettings = useAppSettings();
   const {
     config,
-    testResult,
     onInputChange,
     onContextLengthChange,
-    onTestConnection,
     onMakePreset,
   } = props;
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
@@ -345,9 +327,9 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
         
         <DefaultParameterFieldsComponent config={config} onInputChange={onInputChange} t={t} />
         
-        <ActionButtonsComponent onTestConnection={onTestConnection} onMakePreset={onMakePreset} providerType={config.providerType} t={t} />
+        <ActionButtonsComponent onMakePreset={onMakePreset} providerType={config.providerType} t={t} />
         
-        <TestResultDisplayComponent testResult={testResult} />
+        <ConnectionTestPanel />
       </form>
     </div>
   );

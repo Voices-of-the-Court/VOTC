@@ -4,6 +4,7 @@ import {
   ILLMCompletionRequest,
   ILLMOutput,
   ILLMModel,
+  ConnectionTestResult,
 } from '@llmTypes';
 import { settingsRepository } from './SettingsRepository';
 import { providerRegistry } from './llmProviders/ProviderRegistry';
@@ -51,7 +52,7 @@ export class LLMManager {
     }
   }
 
-   async testProviderConnection(): Promise<{success: boolean, error?: string, message?: string}> {
+   async testProviderConnection(): Promise<ConnectionTestResult> {
     const config = settingsRepository.getActiveProviderConfig();
     if (!config) {
       return { success: false, error: 'No active and enabled LLM provider configured.' };
@@ -116,14 +117,19 @@ export class LLMManager {
   /**
    * Send a structured JSON request for Actions.
    * Uses the actions provider override if set, otherwise active provider.
+   *
+   * @param configOverride When provided (e.g. by the connection test), use this
+   *   config instead of the configured Actions provider. This lets the test
+   *   exercise a specific provider through the EXACT same request pipeline.
    */
   async sendActionsRequest(
     messages: ILLMCompletionRequest['messages'],
     schemaName: string,
     jsonSchemaObject: object,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    configOverride?: LLMProviderConfig
   ): Promise<ILLMOutput> {
-    const config = settingsRepository.getActionsProviderConfig();
+    const config = configOverride ?? settingsRepository.getActionsProviderConfig();
     if (!config) {
       throw new Error('No provider configured for Actions.');
     }

@@ -4,8 +4,10 @@ import {
   ILLMCompletionResponse,
   ILLMStreamChunk,
   ILLMOutput,
+  ConnectionTestResult,
 } from './types';
 import { BaseProvider } from './BaseProvider';
+import { runConnectionTests } from './connectionTest';
 import OpenAI from 'openai'; // Import OpenAI SDK
 
 export class Player2Provider extends BaseProvider {
@@ -247,23 +249,13 @@ private async _nonStreamChatCompletion(
     }
   }
 
-  async testConnection(): Promise<{success: boolean, error?: string, message?: string}> {
+  async testConnection(): Promise<ConnectionTestResult> {
     try {
-      const testRequest: ILLMCompletionRequest = {
-        model: 'gpt-oss-120b', // Use a known cheap/fast model or user's default
-        messages: [{ role: 'user', content: 'Test' }],
-        max_tokens: 1,
-        stream: false,
-      };
-      
-      const response = await (this.chatCompletion(testRequest) as Promise<ILLMCompletionResponse>);
-      if (response && (response.content || response.id)) {
-        return { success: true, message: `Successfully connected to Player2. Received response ID: ${response.id}` };
-      }
-      return { success: false, error: 'Test connection to Player2 failed to get a valid response.' };
+      const stubConfig = { providerType: 'player2' as const, instanceId: 'player2', defaultModel: 'gpt-oss-120b' };
+      return await runConnectionTests(this, stubConfig, { model: 'gpt-oss-120b' });
     } catch (e: any) {
       console.error('Player2 testConnection error:', e);
-      return { success: false, error: e.message || 'Unknown error during Player2 test connection.' };
+      return { success: false, error: e?.message || 'Unknown error during Player2 test connection.' };
     }
   }
 
