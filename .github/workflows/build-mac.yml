@@ -1,0 +1,101 @@
+name: Build macOS (manual test)
+
+# Manual-only workflow that produces an UNSIGNED macOS test build (dmg + zip)
+# you can download and run locally. It does NOT trigger on PRs or pushes.
+#
+# Note: workflow_dispatch workflows only appear in the Actions tab for the
+# branch they live on. If this file is on `main`, it shows by default;
+# otherwise pick the branch in the Actions UI dropdown.
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: "Target architecture"
+        required: true
+        type: choice
+        default: arm64
+        options:
+          - arm64      # Apple Silicon (M1/M2/M3/M4) — macos-latest is arm64
+          - x64        # Intel Macs (cross-compiled from the arm64 runner)
+          - universal  # Fat binary, runs on both (slower, ~2x larger)
+
+jobs:
+  build-mac:
+    name: macOS ${{ inputs.arch }}
+    runs-on: macos-latest
+    env:
+      # GitHub-hosted macOS runners have no Apple Developer identity. Disabling
+      # auto-discovery makes electron-builder produce a clean, deterministic
+      # UNSIGNED build (for local testing only). Real signed/notarized releases
+      # would set CSC_LINK / CSC_KEY_PASSWORD / APPLE_ID instead.
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      # electron-builder enables hard links on non-Windows in CI (see
+      # builder-util fs.js: `_isUseHardLink`). Its hard-link copy path only
+      # recovers from EXDEV, NOT EEXIST — so when the asar packer's concurrent
+      # file copier hits a duplicate destination, `link()` throws EEXIST and
+      # the build dies (the default_userdata EEXIST failures). Disabling hard
+      # links makes macOS package exactly like Windows (plain copy, which
+      # overwrites cleanly). Cost: marginally slower packaging — fine for a
+      # test build.
+      USE_HARD_LINKS: false
+      # Never attempt notarization in this test workflow.
+      APPLE_ID: ''
+      APPLE_APP_SPECIFIC_PASSWORD: ''
+      APPLE_TEAM_ID: ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project (typedefs + typecheck + vite)
+        run: npm run build
+
+      # electron-builder takes arch as a boolean flag (--arm64 / --x64 /
+      # --universal), not --arch=. The three input values map 1:1 onto flags.
+      # --publish never: electron-builder.yml has a `publish:` (github) block,
+      # and CI is auto-detected here, so without this it tries to upload to a
+      # GitHub Release during cleanup — failing with "GH_TOKEN is not set" and
+      # aborting BEFORE the upload-artifact step runs. `never` keeps the
+      # publish config intact for real tagged releases while disabling it for
+      # this local-test build.
+      - name: Package macOS app (${{ inputs.arch }})
+        run: ./node_modules/.bin/electron-builder --mac --${{ inputs.arch }} --publish never
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-${{ inputs.arch }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Write run instructions to job summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## macOS test build — `${{ inputs.arch }}` (unsigned)
+
+          The artifact is **unsigned** — no Apple Developer certificate is
+          available on the GitHub runner, so macOS Gatekeeper will block it.
+
+          To run it on your Mac:
+
+          1. Download the `.dmg` artifact, open it, drag **VOTC** to Applications.
+          2. Strip the quarantine attribute (Terminal):
+             ```
+             xattr -cr /Applications/VOTC.app
+             ```
+          3. Launch VOTC.
+
+          > If `xattr -cr` is not enough, also try right-click → **Open** the
+          > first time, or *System Settings → Privacy & Security → Open Anyway*.
+          EOF

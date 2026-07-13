@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell, nativeImage } from 'electron';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
@@ -22,7 +22,9 @@ import { appUpdater } from './AutoUpdater';
 import { focusMonitor } from './FocusMonitor';
 import { resolveI18nString } from './actions/i18nUtils';
 // @ts-ignore
-import appIcon from '../../build/icon.ico?asset';
+import appIconIco from '../../build/icon.ico?asset';
+// @ts-ignore
+import appIconPng from '../../build/icon.png?asset';
 import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
@@ -45,6 +47,18 @@ initLogger();
 // Keep a reference to the config window, managed globally
 let chatWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+
+/**
+ * Build a platform-appropriate tray icon.
+ * Windows: native .ico. macOS: .ico is NOT supported by nativeImage, so use the
+ * PNG (resized to a menubar-friendly 22x22). Returns a NativeImage for the Tray.
+ */
+function getTrayIcon(): Electron.NativeImage {
+  if (process.platform === 'darwin') {
+    return nativeImage.createFromPath(appIconPng).resize({ width: 22, height: 22 });
+  }
+  return nativeImage.createFromPath(appIconIco);
+}
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -1203,11 +1217,11 @@ app.on('ready', async () => {
   console.log('App path:', app.getAppPath());
 
   try {
-    tray = new Tray(appIcon);
+    tray = new Tray(getTrayIcon());
     console.log('Tray created successfully');
   } catch (error) {
-    console.error('Error creating tray:', error);
-    return;
+    console.error('Error creating tray (continuing without tray):', error);
+    tray = null;
   }
 
   const contextMenu = Menu.buildFromTemplate([
@@ -1232,8 +1246,10 @@ app.on('ready', async () => {
     }
   ]);
 
-  tray.setToolTip('VOTC Overlay');
-  tray.setContextMenu(contextMenu);
+  if (tray) {
+    tray.setToolTip('VOTC Overlay');
+    tray.setContextMenu(contextMenu);
+  }
 
   // Create and start clipboard listener
   const clipboardListener = new ClipboardListener();
@@ -1287,10 +1303,15 @@ app.on('ready', async () => {
     }
   });
 
-  // Register global shortcut for Ctrl+H to toggle minimize
-  const ret = globalShortcut.register('Control+H', () => {
+  // Global hotkeys:
+  //   Windows/Linux: Control+H (minimize), Control+Shift+H (settings)
+  //   macOS:         Command+Shift+H (minimize), Command+Shift+S (settings)
+  const minimizeAccel = process.platform === 'darwin' ? 'Command+Shift+H' : 'Control+H';
+  const settingsAccel = process.platform === 'darwin' ? 'Command+Shift+S' : 'Control+Shift+H';
+
+  const ret = globalShortcut.register(minimizeAccel, () => {
     if (chatWindow && !chatWindow.isDestroyed() && conversationManager.hasActiveConversation()) {
-      console.log('Ctrl+H pressed - toggling minimize');
+      console.log(`${minimizeAccel} pressed - toggling minimize`);
       // Focus the window before sending the event
       chatWindow.show();
       chatWindow.focus();
@@ -1299,12 +1320,12 @@ app.on('ready', async () => {
   });
 
   if (!ret) {
-    console.log('Failed to register Ctrl+H global shortcut');
+    console.log(`Failed to register minimize global shortcut (${minimizeAccel})`);
   }
 
-  const reta = globalShortcut.register('Control+Shift+H', () => {
+  const reta = globalShortcut.register(settingsAccel, () => {
     if (chatWindow && !chatWindow.isDestroyed()) {
-      console.log('Ctrl+Shift+H pressed - toggling settings');
+      console.log(`${settingsAccel} pressed - toggling settings`);
       // Focus the window before sending the event
       chatWindow.show();
       chatWindow.focus();
@@ -1313,11 +1334,12 @@ app.on('ready', async () => {
   });
 
   if (!reta) {
-    console.log('Failed to register Ctrl+Shift+H global shortcut');
+    console.log(`Failed to register settings global shortcut (${settingsAccel})`);
   }
 
-  // Check if a shortcut is registered
-  console.log('Ctrl+H shortcut registered:', globalShortcut.isRegistered('Control+H'));
+  // Check if shortcuts are registered
+  console.log(`Minimize shortcut (${minimizeAccel}) registered:`, globalShortcut.isRegistered(minimizeAccel));
+  console.log(`Settings shortcut (${settingsAccel}) registered:`, globalShortcut.isRegistered(settingsAccel));
 });
 
 app.on('window-all-closed', () => {

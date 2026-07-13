@@ -2,10 +2,33 @@ appId: com.mrandropc.votc
 productName: VOTC
 directories:
   buildResources: build
-asar: false
+asar: true
+asarUnpack:
+  - '**/*.node'                     # unpack every native binary
+  - 'node_modules/active-win/**'    # active-win resolves its binding by path
+compression: maximum               # LZMA — smaller installer, slower build
+removePackageScripts: true
+removePackageKeywords: true
+
+electronLanguages:
+  - en-US
+  - de
+  - es
+  - es-419
+  - fr
+  - ja
+  - ko
+  - pl
+  - ru
+  - zh-CN
+  - zh-TW
+
 files:
   - 'out/**'  # Include the output directory
   - 'default_userdata/**'  # Include default_userdata directory
+  # active-win misclassifies node-gyp as a runtime dep, but it only uses
+  # prebuilt .node binaries — exclude the ~2MB build toolchain it drags in.
+  - '!**/node_modules/node-gyp/**'
   - '!**/.vscode/*'
   - '!src/*'
   - '!dist/*'
@@ -17,11 +40,13 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-asarUnpack:
-  - resources/**
+
 win:
   executableName: VOTC
   icon: build/icon.ico
+  files:
+    - '!**/node_modules/active-win/lib/binding/napi-6-darwin-*/**'
+    - '!**/node_modules/active-win/lib/binding/napi-6-linux-*/**'
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -34,6 +59,11 @@ mac:
     - dmg
     - zip
   artifactName: ${name}-${version}-${arch}.${ext}
+  files:
+    - '!**/node_modules/active-win/lib/binding/napi-6-win32-*/**'
+    - '!**/node_modules/active-win/lib/binding/napi-6-linux-*/**'
+    - '!**/node_modules/active-win/build/**'
+    - '!**/node_modules/active-win/lib/binding/napi-6-darwin-*/**'
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
