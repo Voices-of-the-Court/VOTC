@@ -2,6 +2,11 @@ import { EventEmitter } from 'events';
 import activeWin from 'active-win';
 import { app } from 'electron';
 
+const ACTIVE_WIN_OPTIONS = {
+  accessibilityPermission: false,
+  screenRecordingPermission: false
+};
+
 /**
  * Monitors the currently focused window and determines if the app should be in overlay mode.
  * Overlay mode is active when CK3 or the app itself is focused.
@@ -81,7 +86,7 @@ export class FocusMonitor extends EventEmitter {
    */
   private async checkActiveWindow(): Promise<void> {
     try {
-      const activeWindow = await activeWin();
+      const activeWindow = await activeWin(ACTIVE_WIN_OPTIONS);
       this.onSuccess();
 
       if (!activeWindow) {
@@ -135,10 +140,9 @@ export class FocusMonitor extends EventEmitter {
       }
       if (process.platform === 'darwin') {
         console.warn(
-          'FocusMonitor: active-win needs macOS Accessibility permission. Open ' +
-          'System Settings > Privacy & Security > Accessibility and enable VOTC; ' +
-          'overlay detection will recover automatically. (If you launched VOTC ' +
-          'directly from the DMG, move it to /Applications first.)'
+          'FocusMonitor: active-win is failing. If you launched VOTC directly ' +
+          'from the DMG, move it to /Applications and relaunch — App ' +
+          'Translocation breaks the native helper.'
         );
       }
     } else if (this.consecutiveErrors % 20 === 0) {
