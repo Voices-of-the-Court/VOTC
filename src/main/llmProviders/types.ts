@@ -202,7 +202,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<ProviderType, Partial<LLMProviderC
   deepseek: {
     apiKey: '',
     baseUrl: 'https://api.deepseek.com',
-    defaultModel: 'deepseek-chat',
+    defaultModel: 'deepseek-v4-flash',
     defaultParameters: { temperature: 0.7, max_tokens: 2048 },
   },
   gemini: {

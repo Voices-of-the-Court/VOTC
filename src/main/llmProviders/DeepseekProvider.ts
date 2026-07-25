@@ -20,7 +20,7 @@ import OpenAI from 'openai';
  * - Does NOT support `response_format: { type: 'json_schema', json_schema: {...} }`
  * - Only supports `response_format: { type: 'json_object' }` for JSON output
  * - For structured outputs, the JSON schema must be described in the prompt
- * - Models: 'deepseek-chat', 'deepseek-reasoner'
+ * - Models: 'deepseek-v4-flash', 'deepseek-v4-pro'
  */
 export class DeepseekProvider extends BaseProvider {
   providerId = 'deepseek';
@@ -53,8 +53,8 @@ export class DeepseekProvider extends BaseProvider {
     // Deepseek has a fixed set of models, return them directly
     // The API does have a /models endpoint but the models are known
     return [
-      { id: 'deepseek-chat', name: 'Deepseek Chat' },
-      { id: 'deepseek-reasoner', name: 'Deepseek Reasoner' },
+      { id: 'deepseek-v4-flash', name: 'Deepseek V4 Flash' },
+      { id: 'deepseek-v4-pro', name: 'Deepseek V4 Pro' },
     ];
   }
 
@@ -369,7 +369,7 @@ export class DeepseekProvider extends BaseProvider {
 
   async testConnection(config: DeepseekConfig): Promise<ConnectionTestResult> {
     try {
-      return await runConnectionTests(this, config, { model: config.defaultModel || 'deepseek-chat' });
+      return await runConnectionTests(this, config, { model: config.defaultModel || 'deepseek-v4-flash' });
     } catch (e: any) {
       console.error('Deepseek testConnection error:', e);
       return { success: false, error: e?.message || 'Unknown error during Deepseek test connection.' };
