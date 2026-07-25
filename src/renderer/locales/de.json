@@ -18,10 +18,10 @@
     "disableAllActions": "Alle deaktivieren",
     "openFile": "Datei öffnen",
     "destructiveOverridden": "Destruktiver Zustand überschrieben: {{state}}",
-    "destructive": "Zerstörerische Aktion – erfordert Genehmigung",
-    "nonDestructive": "Zerstörungsfreies Handeln",
+    "destructive": "Destruktive Aktion – erfordert Genehmigung",
+    "nonDestructive": "Nicht-destruktive Aktion",
     "failedToOpenActionsFile": "Fehler beim Öffnen der Aktionsdatei: {{error}}",
-    "openActionsFile": "Okay, I need to translate \"Open File\" from English to German. Let me start by recalling the common phrases used in software interfaces. The verb \"open\" in German is usually \"öffnen\". Then \"file\" translates to \"Datei\". So putting them together as a command or button label, it should be \"Öffnen Datei\"? Wait, no, that doesn't sound right. In German commands, the structure might be different. Maybe it's more like \"Datei öffnen\", where the verb comes second? But wait, in interface buttons or menu items, sometimes they use the infinitive form without conjugation. For example, in English it's just \"Open File\", not conjugated like \"(You) open file\". Similarly in German maybe they use the infinitive here: but how does that work?\n\nWait another thought: when you see menu items or buttons in software translated into German for actions like Open File, Save As etc., what do they typically say? From my experience with software interfaces, I think it's often phrased as a noun phrase rather than a verb-noun combination directly translated. Like instead of translating word-for-word as Öffne Datei (which would be imperative), which could be too direct and perhaps not standard.\n\nAlternatively maybe using nouns: For example 'File' becomes 'Datei', and then under that menu item there are options like 'Öffnen...', 'Speichern', etc., so each action is an infinitive verb followed by an ellipsis if needed.\n\nBut if we're talking about a button labeled specifically as two words: Open (verb) + File (noun), then perhaps combining them correctly according to German syntax.\n\nIn such cases where it's a command button labeled with both action and object (like Open File), how is this structured?\n\nI recall seeing translations where verbs come first even though normally in sentences verbs are second position. But since this is a title/button/menu item rather than a sentence structure.\n\nWait examples:\n\n- In Microsoft Word’s menu bar under “File” (German version shows “Datei”), then you have options like “Öffnen”, “Neu”, etc., each being single verbs.\n\nBut if there was an option called “Open File” specifically needing translation as two words on a button outside of menus—maybe standalone—then perhaps using something else?\n\nAlternatively maybe compound nouns are formed here; but ‘open’ isn’t an adjective here but part of the action name.\n\nAnother approach: check existing official translations for similar terms. For instance:\n\n- On macOS Finder’s toolbar has icons for actions; hovering over one might show tooltips like ‘New Folder’, which translates to ‘Neuer Ordner’. Here New is adjective modifying Ordner (folder). So similarly if we had Open File... Hmm but open here is part of the action name again.\n\nWait let me think again about actual instances:\n\nIf someone clicks on 'File' -> 'Open' would be translated as 'Öffnen'. If there were separate buttons saying e.g., [New] [Open] [Save], those would likely translate to [Neu] [Öffnen] [Speichern]. However when combined with their objects into longer labels such as buttons named after specific actions involving objects—for example some applications may have big buttons labeled things like ‘Create Project’, ‘Import Data’, etc.—how are these handled?\n\nIn such cases sometimes they use either infinitives plus noun or other structures depending on context because UI elements can vary based on design choices made during localization processes by companies following style guides specific per language/country settings set forth by OS providers or major players influencing conventions within tech industry standards globally through their products/services offered internationally across different markets worldwide including Germany among others countries speaking languages requiring localized versions thereof accordingly adjusted appropriately respecting linguistic norms prevalent therein ensuring clarity usability consistency throughout user experiences regardless native tongue users interact systems via intuitive interfaces designed optimally facilitate task completion efficiently effectively possible given constraints present at time development deployment updates ongoing maintenance cycles involved lifecycle management practices adopted organizations responsible creating maintaining said digital assets over periods spanning years decades even beyond initial release dates scheduled roadmap timelines planned ahead strategically aligned business objectives stakeholders invested outcomes achieved thereby maximizing return investments made towards achieving desired results intended purposes originally envisioned project teams working collaboratively cross-functionally departments divisions units comprising larger corporate entities operating competitive environments demanding constant innovation adaptation changing market conditions consumer preferences regulatory requirements legal frameworks applicable jurisdictions wherein operate must comply fully avoid penalties sanctions reputational damage associated non-compliance issues arising failure adhere established rules regulations governing operations respective areas activity conducted legally ethically socially responsibly sustainable manner benefiting all parties concerned equitably fairly transparently accountably upholding highest standards integrity professionalism excellence every step way forward progress advancement society whole contributing greater good humanity collectively shared future prosperity peace harmony global community interconnected interdependent world facing challenges opportunities alike requiring cooperation collaboration mutual understanding respect diversity inclusion principles guiding interactions between individuals groups nations cultures fostering environment conducive learning growth development personal professional levels enabling people"
+    "openActionsFile": "Datei öffnen"
   },
   "chat": {
     "args": "Argumente",
@@ -75,7 +75,8 @@
     "show": "Anzeigen",
     "success": "Erfolg",
     "tokens": "Token",
-    "yes": "Ja"
+    "yes": "Ja",
+    "processing": "Verarbeitung..."
   },
   "config": {
     "actions": "Aktionen",
@@ -99,7 +100,7 @@
     "unnamedPreset": "Unbenannte Voreinstellung"
   },
   "connection": {
-    "confirmDeletePreset": "Sind Sie sicher, dass Sie die Voreinstellung \"{{name}}\" löschen möchten?",
+    "confirmDeletePreset": "Sind Sie sicher, dass Sie die Voreinstellung „{{name}}“ löschen möchten?",
     "createNewPreset": "Neue Voreinstellung erstellen",
     "createPreset": "Voreinstellung erstellen",
     "defaultParameters": "Standardparameter",
@@ -122,7 +123,27 @@
     "actionsSchemaTypeHelp": "Steuert die JSON-Schema-Komplexität für Aktionsantworten. 'Auto' erkennt Gemini-Modelle und verwendet ein minimiertes Schema. 'Minimiert' kann für Modelle mit strengen Schema-Limits erforderlich sein (wie Gemini). Wenn Aktionen bei Ihrem Modell nicht erscheinen, versuchen Sie auf 'Minimiert' zu wechseln.",
     "actionsSchemaAuto": "Auto-Erkennung (Empfohlen)",
     "actionsSchemaAdvanced": "Erweitert (Vollständige Validierung)",
-    "actionsSchemaMinimized": "Minimiert (Für eingeschränkte Modelle)"
+    "actionsSchemaMinimized": "Minimiert (Für eingeschränkte Modelle)",
+    "testTextGeneration": "Textgenerierung",
+    "testStructuredOutput": "Strukturierte Ausgabe",
+    "testStructuredAdvanced": "Erweitertes Schema",
+    "testStructuredMinimized": "Minimiertes Schema",
+    "testPanelTitle": "Verbindungstest",
+    "testRunning": "Verbindung wird getestet...",
+    "testAllPassed": "Alle Prüfungen bestanden",
+    "testPartial": "Teilweise Unterstützung — Aktionen können fehlschlagen",
+    "testFailed": "Verbindungstest fehlgeschlagen",
+    "testStepRunning": "läuft...",
+    "testCancel": "Abbrechen",
+    "testReRun": "Test wiederholen",
+    "testCopyDetails": "Details kopieren",
+    "testCopied": "Kopiert!",
+    "testRecommendMinimized": "Dieses Modell unterstützt nur das minimierte Schema. Stellen Sie den „Aktions-Schema-Typ“ auf „Minimiert“ ein, damit Aktionen zuverlässig funktionieren.",
+    "promptCaching": "Prompt-Zwischenspeicherung",
+    "promptCachingHelp": "Wenn aktiviert, wird der Präfix des Gesprächs-Prompts (Persona + Verlauf) aus einem eingefrorenen Spielzustands-Snapshot gerendert, sodass er über die Züge hinweg identisch bleibt. Dadurch kann OpenRouter den zwischengespeicherten Präfix wiederverwenden, was Kosten und Latenz senkt. Ein kleiner „Live“-Block „Aktueller Zustand“ übermittelt, was sich geändert hat (Gold, Merkmale, Beziehungen, aktuelle Szene). Gilt nur für Gespräche — nicht für Briefe, Zusammenfassungen oder Aktionen. Funktioniert mit jedem OpenRouter-Modell (implizites Präfix-Zwischenspeichern).",
+    "promptCacheTtl": "Cache-TTL",
+    "promptCacheTtlHint": "Nur Anthropic-Modelle: 1h übersteht lange Pausen zwischen Antworten (höhere Schreibkosten); 5m ist pro Schreibvorgang günstiger, läuft aber schneller ab.",
+    "promptCachingImplicitHint": "Dieses Modell verwendet das implizite Zwischenspeichern von OpenRouter (die TTL wird vom Anbieter verwaltet). Der eingefrorene Präfix gilt weiterhin."
   },
   "lettersModal": {
     "completed": "Abgeschlossen",
@@ -228,10 +249,34 @@
     "selectPreset": "Voreinstellung auswählen...",
     "suffix": "Suffix",
     "template": "Vorlage (Handlebars)",
-    "updatePreset": "Voreinstellung aktualisieren"
+    "updatePreset": "Voreinstellung aktualisieren",
+    "autoSwitchPromptLocale": "Prompt-Sprache automatisch an die App-Sprache anpassen",
+    "autoSwitchPromptLocaleHelp": "Wenn aktiviert, folgen die Prompt-Skripte der App-Sprache und fallen bei fehlender Übersetzung auf Englisch zurück.",
+    "examplesAsText": "Als reinen Text rendern",
+    "examplesAsTextHelp": "Die Beispielnachrichten zu einem einzigen Textblock mit der konfigurierten Rolle zusammenfassen, anstatt sie als einzelne Nachrichten einzufügen. Verwenden Sie dies für Modelle, die eine strenge User/Assistant-Rollenreihenfolge oder doppelte Rollen ablehnen.",
+    "maxSummaries": "Max. Zusammenfassungen",
+    "maxSummariesHelp": "Maximale Anzahl vergangener Gesprächszusammenfassungen, die dieser Block einschließt. Greift auf den Wert der Zusammenfassungs-Registerkarte zurück, bis Sie ihn ändern.",
+    "noPromptFiles": "Keine Prompt-Dateien gefunden.",
+    "cachingBannerTitle": "Prompt-Zwischenspeicherung ist für diesen Anbieter AKTIV",
+    "cachingBannerBody": "Die als „eingefroren“ markierten Blöcke werden aus einem Spielzustands-Snapshot gerendert, der zu Beginn des Gesprächs erstellt wurde, sodass sie über die Züge hinweg byte-identisch bleiben und aus dem OpenRouter-Zwischenspeicher wiederverwendet werden können. Der „Live“-Block „Aktueller Zustand“ (nach dem Verlauf) enthält die aktuelle Szene sowie alles, was sich seit dem Snapshot geändert hat (Gold, Merkmale, Beziehungen). Dies senkt Kosten/Latenz, ohne den aktuellen Zustand zu verlieren.",
+    "frozenBadge": "frozen",
+    "frozenBadgeHelp": "Teil des zwischengespeicherten Präfixes — wird aus dem eingefrorenen Spielzustands-Snapshot gerendert.",
+    "liveBadge": "live",
+    "liveBadgeHelp": "Teil des nicht zwischengespeicherten Endes — wird jeden Zug neu aus dem Live-Spielzustand gerendert.",
+    "currentStateBlockHelp": "Dieser Block wird vom System verwaltet. Er rendert die Live-Szene (Ort, Teilnehmer) sowie einen kompakten Diff der Zustandsänderungen seit Beginn des Gesprächs (Gold, Merkmale, Beziehungen). Er wird nur ausgegeben, wenn die Prompt-Zwischenspeicherung aktiviert ist; andernfalls erzeugt er nichts. Er kann nicht bearbeitet oder neu angeordnet werden — er muss nach dem Verlauf bleiben, damit der zwischengespeicherte Präfix stabil bleibt.",
+    "systemManaged": "system",
+    "systemManagedHelp": "Systemverwalteter Block: wird automatisch basierend auf der Prompt-Zwischenspeicherungs-Einstellung des aktiven Anbieters aktiviert/deaktiviert. Kann nicht manuell umgeschaltet werden.",
+    "pinnedNoReorder": "Dieser Block ist angeheftet und kann nicht neu angeordnet werden.",
+    "promptLocaleSwitchedDesc": "Einige Prompt-Dateien wurden an Ihre Sprache ({{language}}) angepasst. Sie können dies rückgängig machen, wenn Sie die vorherigen Dateien bevorzugen.",
+    "promptLocaleSwitchedDismiss": "Schließen",
+    "promptLocaleSwitchedFallback": "Keine {{language}}-Version — auf Englisch zurückgegriffen.",
+    "promptLocaleSwitchedHint": "Als Fallback markierte Einträge haben keine Übersetzung für Ihre Sprache, daher wurde die englische Version verwendet.",
+    "promptLocaleSwitchedRevert": "Alle zurücksetzen",
+    "promptLocaleSwitchedTitle": "Prompt-Dateien aktualisiert",
+    "selectPromptGroup": "Prompt auswählen"
   },
   "settings": {
-    "actionApprovalHelp": "Konfigurieren Sie, wann Aktionen vor der Ausführung eine Benutzergenehmigung erfordern. Destruktive Aktionen (wie das Töten von Charakteren) erfordern unabhängig von diesen Einstellungen immer eine Genehmigung.",
+    "actionApprovalHelp": "Konfigurieren Sie, wann Aktionen vor der Ausführung eine Benutzergenehmigung erfordern. Destruktive Aktionen (wie das Töten von Charakteren) erfordern immer eine Genehmigung, wenn die entsprechende Einstellung ausgewählt ist.",
     "actionApprovalSettings": "Einstellungen zur Aktionsgenehmigung",
     "approvalMode": "Genehmigungsmodus",
     "approvalModeAll": "Alle automatisch akzeptieren (Keine Aktionen erfordern Genehmigung)",
@@ -292,7 +337,7 @@
     "openSummariesFolder": "Zusammenfassungsordner öffnen",
     "promptsActiveInfo": "Die unten stehenden Prompts zeigen die aktuell aktiven Prompts. Änderungen werden automatisch gespeichert, nachdem Sie aufhören zu tippen.",
     "providerOverride": "Anbieter-Überschreibung",
-    "providerOverrideHelp": "Wählen Sie einen bestimmten Anbieter für die Generierung von Gesprächszusammenfassungen. Belassen Sie es bei \"Aktiven Anbieter verwenden\", um Ihren aktuell ausgewählten Anbieter zu verwenden.",
+    "providerOverrideHelp": "Wählen Sie einen bestimmten Anbieter für die Generierung von Gesprächszusammenfassungen. Belassen Sie es bei „Aktiven Anbieter verwenden“, um Ihren aktuell ausgewählten Anbieter zu verwenden.",
     "resetAllDefaults": "Alle auf Standard zurücksetzen",
     "resetAllPrompts": "Alle Zusammenfassungs-Prompts auf Standard zurücksetzen? Dies ersetzt den gesamten aktuellen Text.",
     "resetFinalPrompt": "Abschließende Zusammenfassung-Prompt auf Standard zurücksetzen? Dies ersetzt den aktuellen Text.",
@@ -306,10 +351,10 @@
     "summaryGenerationSettings": "Einstellungen zur Zusammenfassungsgenerierung",
     "summaryProvider": "Zusammenfassungsanbieter",
     "useActiveProvider": "Aktiven Anbieter verwenden",
-    "maxPastSummaries": "",
+    "maxPastSummaries": "Maximale vergangene Zusammenfassungen",
     "contextSettings": "Kontexteinstellungen",
-    "contextSettingsHelp": "",
-    "maxPastSummariesHelp": ""
+    "contextSettingsHelp": "Konfigurieren Sie, wie Zusammenfassungen in Prompts einbezogen werden.",
+    "maxPastSummariesHelp": "Die maximale Anzahl vergangener Gesprächszusammenfassungen, die in Prompts einbezogen werden. Höhere Werte bieten mehr Kontext, verbrauchen aber mehr Token."
   },
   "summariesManager": {
     "characterId": "Charakter-ID",
