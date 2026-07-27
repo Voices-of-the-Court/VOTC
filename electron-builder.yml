@@ -52,6 +52,28 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+dmg:
+  title: ${productName} ${version}
+  contents:
+    # The app
+    - x: 130
+      y: 220
+    # Shortcut to /Applications for drag-to-install
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+    # Multilingual install guide
+    - x: 270
+      y: 370
+      type: file
+      path: Installation-Guide.rtf
+      name: Installation Guide.rtf
+  # Taller window so the bottom guide icon + label aren't clipped.
+  window:
+    width: 540
+    height: 460
+
 mac:
   category: public.app-category.games
   icon: build/icon.png
@@ -64,6 +86,9 @@ mac:
     - '!**/node_modules/active-win/lib/binding/napi-6-linux-*/**'
     - '!**/node_modules/active-win/build/**'
     - '!**/node_modules/active-win/lib/binding/napi-6-darwin-*/**'
+  extraDistFiles:
+    - from: build/Installation-Guide.rtf
+      to: Installation Guide.rtf
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
