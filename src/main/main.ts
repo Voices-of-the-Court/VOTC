@@ -93,6 +93,11 @@ const createWindow = (): BrowserWindow => {
 
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
 
+  if (process.platform === 'darwin') {
+    chatWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    chatWindow.setFullScreenable(false);
+  }
+
   // and load the index.html of the app.
 if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   chatWindow.loadURL(process.env['ELECTRON_RENDERER_URL']); 
@@ -102,10 +107,10 @@ if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
   );
 }
 
-  // Open the DevTools.
-  chatWindow.webContents.openDevTools(
-    { mode: 'detach' }
-  );
+  // // Open the DevTools.
+  // chatWindow.webContents.openDevTools(
+  //   { mode: 'detach' }
+  // );
 
   // Listen for messages from the renderer to toggle mouse events
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
@@ -1312,9 +1317,11 @@ app.on('ready', async () => {
   const ret = globalShortcut.register(minimizeAccel, () => {
     if (chatWindow && !chatWindow.isDestroyed() && conversationManager.hasActiveConversation()) {
       console.log(`${minimizeAccel} pressed - toggling minimize`);
-      // Focus the window before sending the event
-      chatWindow.show();
-      chatWindow.focus();
+      const stealFocus = process.platform !== 'darwin' || !focusMonitor.isGameFocused();
+      if (stealFocus) {
+        chatWindow.show();
+        chatWindow.focus();
+      }
       chatWindow.webContents.send('toggle-minimize');
     }
   });
@@ -1326,9 +1333,11 @@ app.on('ready', async () => {
   const reta = globalShortcut.register(settingsAccel, () => {
     if (chatWindow && !chatWindow.isDestroyed()) {
       console.log(`${settingsAccel} pressed - toggling settings`);
-      // Focus the window before sending the event
-      chatWindow.show();
-      chatWindow.focus();
+      const stealFocus = process.platform !== 'darwin' || !focusMonitor.isGameFocused();
+      if (stealFocus) {
+        chatWindow.show();
+        chatWindow.focus();
+      }
       chatWindow.webContents.send('toggle-settings');
     }
   });

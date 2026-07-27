@@ -40,6 +40,7 @@ export class FocusMonitor extends EventEmitter {
   private errorSessionLogged = false;
   /** True after the first successful detection (for one-time diagnostic logging). */
   private detectionConfirmed = false;
+  private lastActiveApp: ActiveApp | null = null;
 
   constructor() {
     super();
@@ -104,6 +105,7 @@ export class FocusMonitor extends EventEmitter {
         // No active window detected, maintain current state
         return;
       }
+      this.lastActiveApp = activeApp;
       this.confirmDetection(activeApp);
 
       const shouldBeOverlay = this.shouldBeInOverlayMode(activeApp);
@@ -272,15 +274,7 @@ export class FocusMonitor extends EventEmitter {
     const appPath = activeApp.path.toLowerCase();
 
     // --- CK3 (Windows + macOS) ---
-    if (
-      name.includes('ck3') ||
-      name.includes('crusader kings') ||
-      appPath.includes('ck3.exe') ||
-      appPath.includes('ck3') ||
-      appPath.includes('crusader kings iii') ||
-      bundleId.includes('ck3') ||
-      bundleId.includes('crusaderkings')
-    ) {
+    if (this.isCk3App(activeApp)) {
       return true;
     }
 
@@ -316,6 +310,38 @@ export class FocusMonitor extends EventEmitter {
   private ourMacAppBundleDir(): string {
     const match = process.execPath.match(/^(.+?\.app)\//i);
     return match ? match[1] : '';
+  }
+
+  /**
+   * Whether the given app is CK3 (Windows `ck3.exe` or the macOS `ck3.app`
+   * bundle / `Crusader Kings III` path). Shared by overlay-mode logic and
+   * {@link isGameFocused}.
+   */
+  private isCk3App(activeApp: ActiveApp): boolean {
+    const name = activeApp.name.toLowerCase();
+    const bundleId = activeApp.bundleId.toLowerCase();
+    const appPath = activeApp.path.toLowerCase();
+    return (
+      name.includes('ck3') ||
+      name.includes('crusader kings') ||
+      appPath.includes('ck3.exe') ||
+      appPath.includes('ck3') ||
+      appPath.includes('crusader kings iii') ||
+      bundleId.includes('ck3') ||
+      bundleId.includes('crusaderkings')
+    );
+  }
+
+  /**
+   * Whether CK3 (the game) is currently the frontmost app, based on the most
+   * recent poll. Callers use this to avoid stealing OS focus while the user is
+   * in a fullscreen game on macOS — focusing the overlay there switches macOS
+   * Spaces and rips the user out of the game.
+   *
+   * Returns false if detection has not yet produced a result.
+   */
+  public isGameFocused(): boolean {
+    return this.lastActiveApp !== null && this.isCk3App(this.lastActiveApp);
   }
 
   /** Human-readable label for an app, for log lines. */
