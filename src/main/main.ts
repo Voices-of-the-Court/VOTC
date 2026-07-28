@@ -64,7 +64,17 @@ function getTrayIcon(): Electron.NativeImage {
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
-Menu.setApplicationMenu(null)
+if (process.platform === 'darwin') {
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      { role: 'appMenu' },
+      { role: 'editMenu' },
+      { role: 'windowMenu' },
+    ] as Electron.MenuItemConstructorOptions[])
+  );
+} else {
+  Menu.setApplicationMenu(null);
+}
 
 const createWindow = (): BrowserWindow => {
   // Get primary display dimensions
