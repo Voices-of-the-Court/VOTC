@@ -81,6 +81,7 @@
   "config": {
     "actions": "액션",
     "collectLogs": "버그 리포트용 로그 수집",
+    "collectLogsButton": "로그 수집",
     "configuration": "구성",
     "connection": "연결",
     "default": "기본값",

@@ -81,6 +81,7 @@
   "config": {
     "actions": "操作",
     "collectLogs": "收集所有日志以便提交错误报告",
+    "collectLogsButton": "收集日志",
     "configuration": "配置",
     "connection": "连接",
     "default": "默认",

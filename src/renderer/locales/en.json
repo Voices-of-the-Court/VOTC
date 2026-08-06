@@ -81,6 +81,7 @@
   "config": {
     "actions": "Actions",
     "collectLogs": "Collect all logs for bug report",
+    "collectLogsButton": "Collect logs ",
     "configuration": "Configuration",
     "connection": "Connection",
     "default": "Default",

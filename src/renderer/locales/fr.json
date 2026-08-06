@@ -81,6 +81,7 @@
   "config": {
     "actions": "Actions",
     "collectLogs": "Collecter tous les journaux pour le rapport de bug",
+    "collectLogsButton": "Collecter les logs",
     "configuration": "Configuration",
     "connection": "Connexion",
     "default": "Par défaut",

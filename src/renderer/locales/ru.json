@@ -81,6 +81,7 @@
   "config": {
     "actions": "Экшены",
     "collectLogs": "Собрать все логи для отчёта об ошибке",
+    "collectLogsButton": "Собрать логи",
     "configuration": "Конфигурация",
     "connection": "Подключение",
     "default": "По умолчанию",

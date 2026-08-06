@@ -81,6 +81,7 @@
   "config": {
     "actions": "Acciones",
     "collectLogs": "Recopilar todos los registros para informe de errores",
+    "collectLogsButton": "Recopilar logs",
     "configuration": "Configuración",
     "connection": "Conexión",
     "default": "Predeterminado",

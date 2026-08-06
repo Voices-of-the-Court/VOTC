@@ -81,6 +81,7 @@
   "config": {
     "actions": "アクション",
     "collectLogs": "バグレポート用のログを収集",
+    "collectLogsButton": "ログを収集",
     "configuration": "設定",
     "connection": "接続",
     "default": "デフォルト",
