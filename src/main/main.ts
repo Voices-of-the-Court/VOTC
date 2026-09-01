@@ -20,6 +20,8 @@ import { focusMonitor } from './FocusMonitor';
 import { resolveI18nString } from './actions/i18nUtils';
 // @ts-ignore
 import appIcon from '../../build/icon.ico?asset';
+// @ts-ignore
+import appIconLinux from '../../build/icon.png?asset';
 import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
@@ -1126,7 +1128,7 @@ app.on('ready', () => {
   console.log('App path:', app.getAppPath());
 
   try {
-    tray = new Tray(appIcon);
+    tray = new Tray(process.platform === 'win32' ? appIcon : appIconLinux);
     console.log('Tray created successfully');
   } catch (error) {
     console.error('Error creating tray:', error);
