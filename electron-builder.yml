@@ -23,12 +23,23 @@ electronLanguages:
   - zh-CN
   - zh-TW
 
+# IMPORTANT: do NOT add per-platform `files:` sections (`win.files` /
+# `mac.files`) to exclude these. electron-builder 26.x builds a SECOND,
+# identical app file set whenever a platform-specific `files` exists, so every
+# app file is copied twice. A duplicate copy is harmless with copyFile(), but on
+# macOS CI electron-builder hard-links instead, and the second link() throws
+# `EEXIST: file already exists` (verified: 79 duplicate destinations, all of
+# out/ + default_userdata/). Keep every exclude here, at the top level.
 files:
   - 'out/**'  # Include the output directory
   - 'default_userdata/**'  # Include default_userdata directory
   # active-win misclassifies node-gyp as a runtime dep, but it only uses
   # prebuilt .node binaries — exclude the ~2MB build toolchain it drags in.
   - '!**/node_modules/node-gyp/**'
+  # Platform bindings no desktop target needs (see mac.files for the win32 one,
+  # which Windows does need and therefore cannot be excluded globally).
+  - '!**/node_modules/active-win/lib/binding/napi-6-darwin-*/**'
+  - '!**/node_modules/active-win/lib/binding/napi-6-linux-*/**'
   - '!**/.vscode/*'
   - '!src/*'
   - '!dist/*'
@@ -44,9 +55,6 @@ files:
 win:
   executableName: VOTC
   icon: build/icon.ico
-  files:
-    - '!**/node_modules/active-win/lib/binding/napi-6-darwin-*/**'
-    - '!**/node_modules/active-win/lib/binding/napi-6-linux-*/**'
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -80,11 +88,12 @@ mac:
     - dmg
     - zip
   artifactName: ${name}-${version}-${arch}.${ext}
+  # This section is the reason the mac job needs USE_HARD_LINKS=false (see
+  # .github/workflows/build.yml). Only rule that cannot move to the top-level
+  # `files`: Windows needs the win32 binding, so it cannot be excluded globally.
   files:
     - '!**/node_modules/active-win/lib/binding/napi-6-win32-*/**'
-    - '!**/node_modules/active-win/lib/binding/napi-6-linux-*/**'
     - '!**/node_modules/active-win/build/**'
-    - '!**/node_modules/active-win/lib/binding/napi-6-darwin-*/**'
   extraDistFiles:
     - build/Installation-Guide.rtf
 appImage:
