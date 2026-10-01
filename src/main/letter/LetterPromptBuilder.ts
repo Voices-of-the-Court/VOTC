@@ -4,7 +4,7 @@ import { promptConfigManager } from "../conversation/PromptConfigManager";
 import { settingsRepository } from "../SettingsRepository";
 import { GameData } from "../gameData/GameData";
 import { Character } from "../gameData/Character";
-import { PromptBlock, PromptSettings, ILLMMessage } from "../llmProviders/types";
+import { PromptBlock, PromptSettings, ILLMMessage } from "@llmTypes";
 import { LetterData } from "./types";
 
 export class LetterPromptBuilder {
@@ -64,7 +64,8 @@ export class LetterPromptBuilder {
           const descScriptPath = promptConfigManager.resolvePath(block.scriptPath);
           const description = this.scriptLoader.executeDescription(descScriptPath, gameData, character.id);
           if (description) {
-            messages.push({ role: "system", content: description });
+            const role = (block.role || "system") as ILLMMessage["role"];
+            messages.push({ role, content: description });
           }
         } catch (error) {
           console.error("Failed to render letter description script:", error);
@@ -113,7 +114,9 @@ export class LetterPromptBuilder {
     if (!char.conversationSummaries || char.conversationSummaries.length === 0) {
       return null;
     }
-    const lines = char.conversationSummaries.map((s) => `${s.date}: ${s.content}`);
+    const summarySettings = settingsRepository.getSummaryPromptSettings();
+    const maxSummaries = summarySettings.maxPastSummaries ?? 5;
+    const lines = char.conversationSummaries.slice(0, maxSummaries).map((s) => `${s.date}: ${s.content}`);
     return `Past conversations between ${char.shortName} and ${gameData.playerName}:\n${lines.join("\n")}`;
   }
 

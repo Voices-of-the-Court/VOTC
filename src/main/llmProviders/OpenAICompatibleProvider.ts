@@ -6,9 +6,11 @@ import {
   ILLMStreamChunk,
   OpenAICompatibleConfig,
   LLMProviderConfig,
-  ILLMOutput
+  ILLMOutput,
+  ConnectionTestResult
 } from './types';
 import { BaseProvider } from './BaseProvider';
+import { runConnectionTests } from './connectionTest';
 import OpenAI from 'openai';
 
 export class OpenAICompatibleProvider extends BaseProvider {
@@ -275,23 +277,12 @@ export class OpenAICompatibleProvider extends BaseProvider {
     }
   }
 
-  async testConnection(config: OpenAICompatibleConfig): Promise<{success: boolean, error?: string, message?: string}> {
+  async testConnection(config: OpenAICompatibleConfig): Promise<ConnectionTestResult> {
     try {
-      const testRequest: ILLMCompletionRequest = {
-        model: config.defaultModel || 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: 'Test' }],
-        max_tokens: 1,
-        stream: false,
-      };
-      
-      const response = await (this.chatCompletion(testRequest, config) as Promise<ILLMCompletionResponse>);
-      if (response && (response.content || response.id)) {
-        return { success: true, message: `Successfully connected to OpenAI-Compatible API. Received response ID: ${response.id}` };
-      }
-      return { success: false, error: 'Test connection to OpenAI-Compatible API failed to get a valid response.' };
+      return await runConnectionTests(this, config, { model: config.defaultModel || 'gpt-3.5-turbo' });
     } catch (e: any) {
       console.error('OpenAI-Compatible testConnection error:', e);
-      return { success: false, error: e.message || 'Unknown error during OpenAI-Compatible test connection.' };
+      return { success: false, error: e?.message || 'Unknown error during OpenAI-Compatible test connection.' };
     }
   }
 }

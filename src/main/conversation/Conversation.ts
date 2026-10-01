@@ -4,20 +4,29 @@ import { parseLog, cleanLogFile } from "../gameData/parseLog";
 import { v4 } from "uuid";
 import { llmManager } from "../LLMManager";
 import { settingsRepository } from "../SettingsRepository";
-import { ILLMStreamChunk, ILLMCompletionResponse } from "../llmProviders/types";
+import { ILLMStreamChunk, ILLMCompletionResponse } from "@llmTypes";
 import { ConversationEntry, Message, createError, createMessage, createActionFeedback, createSummaryImport, createActionApproval } from "./types";
 import { PromptBuilder } from "./PromptBuilder";
 import { ActionEngine } from "../actions/ActionEngine";
 import { EventEmitter } from "events";
 import { runFileManager } from "../actions/RunFileManager";
 import { shell } from "electron";
-import { TokenCounter } from "../utils/TokenCounter";
+import { TokenCounter, initializationService } from "../utils";
 import type { ActionInvocation } from "../actions/types";
+
 
 export class Conversation {
     id = v4();
     messages: ConversationEntry[] = [];
     gameData!: GameData;
+    /**
+     * Frozen deep-clone of gameData taken at conversation start (after summaries are
+     * loaded/imported). Used to render the STABLE cached prompt prefix when prompt
+     * caching is enabled, so action mutations (gold/traits/relations/etc.) during the
+     * conversation don't invalidate the cache. The live `gameData` keeps being mutated
+     * by actions and is used to compute the per-turn state-diff appended to the tail.
+     */
+    frozenGameData?: GameData;
     isActive: boolean = false;
     nextId: number = 0;
     private eventEmitter: EventEmitter;
@@ -66,6 +75,61 @@ export class Conversation {
     }
 
     private async initializeGameData(): Promise<void> {
+        // Ensure required files exist (votc.txt, letters.txt) and check for issues
+        const fileResult = await initializationService.ensureRequiredFiles();
+        
+        // Handle any warnings from file creation
+        for (const warning of fileResult.warnings) {
+            if (warning.type === 'permission') {
+                console.error('Conversation.initializeGameData: Permission error:', warning.message);
+                const permError = createError({
+                    id: this.nextId++,
+                    content: 'Permission Denied',
+                    details: warning.suggestion || 'Please run the application as Administrator.'
+                });
+                this.messages.push(permError);
+            } else if (warning.type === 'ironman') {
+                console.warn('Conversation.initializeGameData: Iron Man mode detected:', warning.message);
+                const ironManWarning = createError({
+                    id: this.nextId++,
+                    content: 'Iron Man Save Detected',
+                    details: warning.suggestion || 'Iron Man saves do not support action execution. You can still have conversations, but game actions will not work.'
+                });
+                this.messages.push(ironManWarning);
+            } else if (warning.type === 'debug_log_missing') {
+                console.error('Conversation.initializeGameData: debug.log missing:', warning.message);
+                const debugLogError = createError({
+                    id: this.nextId++,
+                    content: 'Debug Log Not Found',
+                    details: warning.suggestion || 'The debug.log file is missing. Make sure CK3 has been launched at least once with debug mode enabled.'
+                });
+                this.messages.push(debugLogError);
+            } else if (warning.type === 'debug_log_unreadable') {
+                console.error('Conversation.initializeGameData: debug.log unreadable:', warning.message);
+                const debugLogError = createError({
+                    id: this.nextId++,
+                    content: 'Debug Log Not Readable',
+                    details: warning.suggestion || 'Permission denied while reading debug.log. Try running the application as Administrator.'
+                });
+                this.messages.push(debugLogError);
+            } else if (warning.type === 'path_not_found' || warning.type === 'path_detection') {
+                console.error('Conversation.initializeGameData: Path error:', warning.message);
+                const pathError = createError({
+                    id: this.nextId++,
+                    content: 'CK3 Path Not Found',
+                    details: warning.suggestion || 'Please configure the CK3 user folder path in settings.'
+                });
+                this.messages.push(pathError);
+            }
+        }
+        
+        // If file creation failed completely, stop initialization
+        if (!fileResult.success && fileResult.warnings.some(w => w.type === 'permission' || w.type === 'path_not_found' || w.type === 'debug_log_missing' || w.type === 'debug_log_unreadable')) {
+            this.isActive = false;
+            this.emitUpdate();
+            return;
+        }
+        
         const ck3DebugPath = settingsRepository.getCK3DebugLogPath();
         console.log(`Conversation.initializeGameData: CK3 debug log path: ${ck3DebugPath}`);
         
@@ -99,6 +163,19 @@ export class Conversation {
             // Check for summaries from other players
             await this.checkForOtherPlayerSummaries();
             
+            // Snapshot gameData AFTER summaries are loaded/imported so they don't show
+            // up as false-positive diffs. Only snapshot when prompt caching is enabled
+            // on the ACTIVE OpenRouter provider/preset config.
+            const activeCfg = settingsRepository.getActiveProviderConfig();
+            const cachingOn = activeCfg?.providerType === 'openrouter'
+                && activeCfg?.promptCachingEnabled === true;
+            if (cachingOn) {
+                this.frozenGameData = structuredClone(this.gameData);
+                console.log('[Conversation] Frozen gameData snapshot taken for prompt caching (config promptCachingEnabled)');
+            } else {
+                this.frozenGameData = undefined;
+            }
+            
             this.isActive = true;
         } catch (error) {
             console.error('Failed to parse log file:', error);
@@ -116,14 +193,16 @@ export class Conversation {
     }
 
     private async checkAndSummarizeIfNeeded(npc: Character): Promise<void> {
-        const currentMessages = PromptBuilder.buildMessages(
+        // buildMessages already estimates total tokens, so reuse that instead of
+        // re-counting the rendered messages here.
+        const { totalTokens: estimatedTokens } = PromptBuilder.buildMessages(
             this.getHistory().slice(this.lastSummarizedMessageIndex),
             npc, 
             this.gameData,
-            this.currentSummary
+            this.currentSummary,
+            this.frozenGameData
         );
         
-        const estimatedTokens = this.estimateTokenCount(currentMessages);
         const contextLimit = await llmManager.getCurrentContextLength() || 10000;
         
         if (estimatedTokens > contextLimit * this.CONTEXT_LIMIT_PERCENTAGE) {
@@ -224,25 +303,37 @@ export class Conversation {
             // Has to be called after emitUpdate to show placeholder in UI in right time
             await this.checkAndSummarizeIfNeeded(npc);
             
-            const llmMessages = PromptBuilder.buildMessages(
+            const cacheBoundary = { lastHistoryUserMessageIndex: null as number | null };
+            const { messages: llmMessages, totalTokens } = PromptBuilder.buildMessages(
                 this.getHistory().slice(this.lastSummarizedMessageIndex), 
                 npc, 
                 this.gameData,
-                this.currentSummary
+                this.currentSummary,
+                this.frozenGameData,
+                { cacheBoundary }
             );
 
             console.log(`Message from ${npc.fullName}:`, llmMessages);
-            console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, this.estimateTokenCount(llmMessages));
+            console.log(`[TOKEN_COUNT] Message from ${npc.fullName}:`, totalTokens);
             
-            // Check if OpenRouter is the active provider
             const activeConfig = settingsRepository.getActiveProviderConfig();
             const isOpenRouter = activeConfig?.providerType === 'openrouter';
+            const cachingOn = isOpenRouter && activeConfig?.promptCachingEnabled === true;
             
             // For OpenRouter, don't pass the signal to avoid double billing on cancellation
             // For other providers, pass the signal for immediate cancellation
             const result = await llmManager.sendChatRequest(
                 llmMessages,
-                isOpenRouter ? undefined : this.currentStreamController.signal
+                isOpenRouter ? undefined : this.currentStreamController.signal,
+                undefined,
+                {
+                    cacheControl: cachingOn
+                        ? { enabled: true, ttl: activeConfig?.promptCacheTtl ?? '1h' }
+                        : undefined,
+                    sessionId: this.id,
+                    requestKind: 'chat',
+                    cacheHistoryEndIndex: cacheBoundary.lastHistoryUserMessageIndex ?? undefined,
+                }
             );
 
             if (settingsRepository.getGlobalStreamSetting() &&

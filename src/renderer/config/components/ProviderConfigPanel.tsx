@@ -1,14 +1,20 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LLMProviderConfig } from '../../../main/llmProviders/types';
+import type { LLMProviderConfig } from '@llmTypes';
 import { useConfigStore, useAppSettings } from '../store/useConfigStore';
-import { DEFAULT_PARAMETERS } from '../../../main/llmProviders/types';
+import { DEFAULT_PARAMETERS } from '@llmTypes';
 
 import ModelSelector from './ModelSelector';
 import ContextLengthField from './ContextLengthField';
 import FormGroupInput from './FormGroupInput';
 import Tooltip from './Tooltip';
 import { OpenRouterConfigFieldsComponent, OpenAICompatibleConfigFieldsComponent, OllamaConfigFieldsComponent, DeepseekConfigFieldsComponent, GeminiConfigFieldsComponent } from './ConfigFields';
+import SegmentedSwitch from './SegmentedSwitch';
+import ConnectionTestPanel from './ConnectionTestPanel';
+
+// OpenRouter anthropic/* models honor an explicit cache TTL; others use implicit caching.
+const isAnthropicModel = (model?: string): boolean =>
+  typeof model === 'string' && model.startsWith('anthropic/');
 
 const Player2OpenAppButton: React.FC = () => {
   const { t } = useTranslation();
@@ -127,33 +133,18 @@ const DefaultParameterFieldsComponent: React.FC<CommonFieldProps & { t: any }> =
 );
 
 interface ActionButtonsComponentProps {
-  onTestConnection: () => void;
   onMakePreset: () => void;
   providerType?: string;
   t: any;
 }
 
-const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onTestConnection, onMakePreset, providerType, t }) => (
+const ActionButtonsComponent: React.FC<ActionButtonsComponentProps> = ({ onMakePreset, providerType, t }) => (
   <div className="form-actions">
-    <button type="button" onClick={onTestConnection}>{t('connection.testConnection')}</button>
     {providerType !== 'player2' && (
       <button type="button" onClick={onMakePreset}>{t('connection.makePreset')}</button>
     )}
   </div>
 );
-
-interface TestResultDisplayComponentProps {
-  testResult: { success: boolean; message?: string; error?: string } | null;
-}
-
-const TestResultDisplayComponent: React.FC<TestResultDisplayComponentProps> = ({ testResult }) => {
-  if (!testResult) return null;
-  return (
-    <p className={`test-result ${testResult.success ? 'success' : 'error'}`}>
-      {testResult.message || testResult.error}
-    </p>
-  );
-};
 
 const ProviderFieldComponents: Record<string, React.FC<CommonFieldProps>> = {
   openrouter: OpenRouterConfigFieldsComponent,
@@ -165,10 +156,8 @@ const ProviderFieldComponents: Record<string, React.FC<CommonFieldProps>> = {
 
 interface ProviderConfigPanelProps {
   config: Partial<LLMProviderConfig>;
-  testResult: { success: boolean; message?: string; error?: string } | null;
   onInputChange: ChangeHandler;
   onContextLengthChange: (contextLength: number | undefined) => void;
-  onTestConnection: () => void;
   onMakePreset: () => void;
 }
 
@@ -177,10 +166,8 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
   const appSettings = useAppSettings();
   const {
     config,
-    testResult,
     onInputChange,
     onContextLengthChange,
-    onTestConnection,
     onMakePreset,
   } = props;
   const selectCK3Folder = useConfigStore((state) => state.selectCK3Folder);
@@ -296,11 +283,53 @@ const ProviderConfigPanel: React.FC<ProviderConfigPanelProps> = (props) => {
           </select>
         </div>
         
+        {/* Prompt caching — per-config (OpenRouter only). Benefits any model via
+            prefix matching + sticky session routing; explicit TTL is Anthropic-only. */}
+        {config.providerType === 'openrouter' && (
+          <div className="form-group prompt-caching-group">
+            <label htmlFor="promptCachingEnabled">
+              {t('connection.promptCaching')}
+              <Tooltip text={t('connection.promptCachingHelp')} position="top" />
+            </label>
+            <input
+              type="checkbox"
+              id="promptCachingEnabled"
+              name="promptCachingEnabled"
+              checked={config.promptCachingEnabled ?? true}
+              onChange={(e) => updateEditingConfig({ promptCachingEnabled: e.target.checked })}
+            />
+            {(config.promptCachingEnabled ?? true) && (
+              <div className="prompt-caching-meta">
+                {isAnthropicModel(config.defaultModel) ? (
+                  <>
+                    <div className="prompt-caching-ttl-row">
+                      <label className="prompt-caching-ttl-label">{t('connection.promptCacheTtl')}</label>
+                      <SegmentedSwitch
+                        size="sm"
+                        ariaLabel={t('connection.promptCacheTtl')}
+                        value={config.promptCacheTtl ?? '1h'}
+                        onChange={(ttl) => updateEditingConfig({ promptCacheTtl: ttl })}
+                        options={[
+                          { value: '5m', label: '5m', title: '5 minutes' },
+                          { value: '1h', label: '1h', title: '1 hour' },
+                        ]}
+                      />
+                    </div>
+                    <small className="prompt-caching-hint">{t('connection.promptCacheTtlHint')}</small>
+                  </>
+                ) : (
+                  <small className="prompt-caching-hint">{t('connection.promptCachingImplicitHint')}</small>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        
         <DefaultParameterFieldsComponent config={config} onInputChange={onInputChange} t={t} />
         
-        <ActionButtonsComponent onTestConnection={onTestConnection} onMakePreset={onMakePreset} providerType={config.providerType} t={t} />
+        <ActionButtonsComponent onMakePreset={onMakePreset} providerType={config.providerType} t={t} />
         
-        <TestResultDisplayComponent testResult={testResult} />
+        <ConnectionTestPanel />
       </form>
     </div>
   );

@@ -13,7 +13,18 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    
+    env:
+      # No-op on Windows: builder-util only hard-links on non-Windows platforms
+      # (fs.js: `platform !== "win32" && USE_HARD_LINKS !== "false"`).
+      # Needed on macOS CI: electron-builder hard-links when packing, and its
+      # hard-link path only recovers from EXDEV, not EEXIST. `mac.files` in
+      # electron-builder.yml makes electron-builder build a duplicate app file
+      # set, so the second copy of every file hits link() on an
+      # already-linked destination and the build dies with EEXIST on out/ +
+      # default_userdata/. Plain copy overwrites cleanly, so the resulting
+      # .app/.dmg is identical — just marginally slower to package.
+      USE_HARD_LINKS: 'false'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

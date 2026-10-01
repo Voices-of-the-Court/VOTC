@@ -8,8 +8,6 @@ import ActionsView from './ActionsView';
 import PromptsView from './PromptsView';
 import SummariesView from './SummariesView';
 import discordIcon from '../assets/discord-icon.svg';
-import tooltipIcon from '../assets/tooltip2.png';
-import logsIcon from '../assets/folder.svg';
 import { useDraggableResizable } from '../hooks/useDraggableResizable';
 import LanguageSelector from './components/LanguageSelector';
 
@@ -227,24 +225,14 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
       />
       
       <header className="config-header">
-        <div className="discord-container" style={{ zIndex: 12 }}>
-          <button className="tooltip-button" title={t('config.help')}>
-            <img src={tooltipIcon} alt="?" className="tooltip-icon" />
-          </button>
+        <div className="header-tools" style={{ zIndex: 12 }}>
           <LanguageSelector />
-          <button 
-            className="discord-button visible" 
-            onClick={handleDiscordClick} 
+          <button
+            className="discord-button"
+            onClick={handleDiscordClick}
             title={t('config.joinDiscord')}
           >
             <img src={discordIcon} alt="Discord" className="discord-icon" />
-          </button>
-          <button 
-            className="discord-button visible" 
-            onClick={handleBugReportClick} 
-            title={t('config.collectLogs')}
-          >
-            <img src={logsIcon} alt="?" className="discord-icon" />
           </button>
         </div>
         <button
@@ -283,7 +271,7 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         >
           {t('config.summaries')}
         </button>
-        <button className="config-close-button" onClick={onClose}>✕</button>
+        <button className="config-close-button" onClick={onClose}>_</button>
       </header>
       <main className="config-main-content">
         {currentTab === 'connection' && <ConnectionView />}
@@ -293,9 +281,16 @@ function ConfigPanel({ onClose }: ConfigPanelProps) {
         {currentTab === 'summaries' && <SummariesView />}
       </main>
       
-      <div className="app-version">
-        v{appVersion}
-      </div>
+      <footer className="config-footer">
+        <button
+          className="collect-logs-button"
+          onClick={handleBugReportClick}
+          title={t('config.collectLogs')}
+        >
+          {t('config.collectLogsButton')}
+        </button>
+        <span className="app-version">v{appVersion}</span>
+      </footer>
     </div>
   );
 }

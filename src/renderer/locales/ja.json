@@ -18,8 +18,10 @@
     "disableAllActions": "すべて無効にする",
     "openFile": "ファイルを開く",
     "destructiveOverridden": "破壊的な状態がオーバーライドされました: {{state}}",
-    "destructive": "破壊的な行為 - 承認が必要です",
-    "nonDestructive": "非破壊的なアクション"
+    "destructive": "破壊的なアクション - 承認が必要です",
+    "nonDestructive": "非破壊的なアクション",
+    "failedToOpenActionsFile": "アクションファイルを開けませんでした: {{error}}",
+    "openActionsFile": "ファイルを開く"
   },
   "chat": {
     "args": "引数",
@@ -73,11 +75,13 @@
     "show": "表示",
     "success": "成功",
     "tokens": "トークン",
-    "yes": "はい"
+    "yes": "はい",
+    "processing": "処理中..."
   },
   "config": {
     "actions": "アクション",
     "collectLogs": "バグレポート用のログを収集",
+    "collectLogsButton": "ログを収集",
     "configuration": "設定",
     "connection": "接続",
     "default": "デフォルト",
@@ -97,7 +101,7 @@
     "unnamedPreset": "名前のないプリセット"
   },
   "connection": {
-    "confirmDeletePreset": "プリセット \"{{name}}\" を削除してもよろしいですか？",
+    "confirmDeletePreset": "プリセット「{{name}}」を削除してもよろしいですか？",
     "createNewPreset": "新しいプリセットを作成",
     "createPreset": "プリセットを作成",
     "defaultParameters": "デフォルトパラメータ",
@@ -120,7 +124,27 @@
     "actionsSchemaTypeHelp": "アクション応答のJSONスキーマの複雑さを制御します。「自動」はGeminiモデルを検出し、最小化されたスキーマを使用します。「最小化」は、厳格なスキーマ制限を持つモデル（Geminiなど）に必要な場合があります。モデルでアクションが表示されない場合は、「最小化」に切り替えてみてください。",
     "actionsSchemaAuto": "自動検出（推奨）",
     "actionsSchemaAdvanced": "詳細（完全な検証）",
-    "actionsSchemaMinimized": "最小化（制限されたモデル用）"
+    "actionsSchemaMinimized": "最小化（制限されたモデル用）",
+    "testTextGeneration": "テキスト生成",
+    "testStructuredOutput": "構造化出力",
+    "testStructuredAdvanced": "詳細スキーマ",
+    "testStructuredMinimized": "最小化スキーマ",
+    "testPanelTitle": "接続テスト",
+    "testRunning": "接続をテスト中...",
+    "testAllPassed": "すべてのチェックが合格しました",
+    "testPartial": "部分的なサポート — アクションが失敗する可能性があります",
+    "testFailed": "接続テスト失敗",
+    "testStepRunning": "実行中...",
+    "testCancel": "キャンセル",
+    "testReRun": "テストを再実行",
+    "testCopyDetails": "詳細をコピー",
+    "testCopied": "コピーしました！",
+    "testRecommendMinimized": "このモデルは最小化スキーマのみをサポートしています。アクションが確実に機能するように、「アクションスキーマタイプ」を「最小化」に設定してください。",
+    "promptCaching": "プロンプトキャッシュ",
+    "promptCachingHelp": "有効にすると、会話プロンプトのプレフィックス（ペルソナ＋履歴）が固定されたゲーム状態のスナップショットからレンダリングされるため、ターン間で同一に保たれます。これによりOpenRouterはキャッシュされたプレフィックスを再利用でき、コストとレイテンシが下がります。小さなライブ「現在の状態」ブロックが変更された内容（ゴールド、特徴、関係、現在のシーン）を伝えます。会話のみに適用され、手紙、要約、アクションには適用されません。任意のOpenRouterモデルで機能します（暗黙的なプレフィックスキャッシュ）。",
+    "promptCacheTtl": "キャッシュTTL",
+    "promptCacheTtlHint": "Anthropicモデルのみ：1hは返信間の長い一時停止に耐えます（書き込みコストが高い）。5mは書き込みあたりのコストは安いですが、より早く期限切れになります。",
+    "promptCachingImplicitHint": "このモデルはOpenRouterの暗黙的なキャッシュを使用します（TTLはプロバイダーが管理します）。固定されたプレフィックスは引き続き適用されます。"
   },
   "lettersModal": {
     "completed": "完了",
@@ -226,10 +250,34 @@
     "selectPreset": "プリセットを選択...",
     "suffix": "サフィックス",
     "template": "テンプレート（Handlebars）",
-    "updatePreset": "プリセットを更新"
+    "updatePreset": "プリセットを更新",
+    "autoSwitchPromptLocale": "アプリの言語に合わせてプロンプトの言語を自動的に切り替える",
+    "autoSwitchPromptLocaleHelp": "有効にすると、プロンプトスクリプトはアプリの言語に従い、翻訳が存在しない場合は英語にフォールバックします。",
+    "examplesAsText": "プレーンテキストとしてレンダリング",
+    "examplesAsTextHelp": "個別のメッセージとして挿入する代わりに、設定された役割を使用して例のメッセージを単一のテキストブロックに平坦化します。厳密なユーザー/アシスタントの役割の順序や重複する役割を拒否するモデルに使用してください。",
+    "maxSummaries": "最大要約数",
+    "maxSummariesHelp": "このブロックに含まれる過去の会話要約の最大数。変更するまで、要約タブの設定値が使用されます。",
+    "noPromptFiles": "プロンプトファイルが見つかりません。",
+    "cachingBannerTitle": "このプロバイダーでプロンプトキャッシュがオンです",
+    "cachingBannerBody": "「固定」とマークされたブロックは、会話の開始時に取得されたゲーム状態のスナップショットからレンダリングされるため、ターン間でバイト単位で同一のままになり、OpenRouterキャッシュから再利用できます。ライブ「現在の状態」ブロック（履歴の後）は、現在のシーンとスナップショット以降に変更されたすべての内容（ゴールド、特徴、関係）を伝えます。これにより、現在の状態を失うことなくコストとレイテンシが下がります。",
+    "frozenBadge": "frozen",
+    "frozenBadgeHelp": "キャッシュされたプレフィックスの一部 — 固定されたゲーム状態のスナップショットからレンダリングされます。",
+    "liveBadge": "live",
+    "liveBadgeHelp": "キャッシュされていない末尾の一部 — ライブゲーム状態から毎ターン再レンダリングされます。",
+    "currentStateBlockHelp": "このブロックはシステム管理です。ライブの現在のシーン（場所、参加者）と、会話の開始以降の状態変更のコンパクトな差分（ゴールド、特徴、関係）をレンダリングします。プロンプトキャッシュが有効な場合にのみ出力され、それ以外の場合は何も生成しません。編集や並べ替えはできません — キャッシュされたプレフィックスが安定し続けるためには、履歴の後に配置される必要があります。",
+    "systemManaged": "system",
+    "systemManagedHelp": "システム管理ブロック：アクティブなプロバイダーのプロンプトキャッシュ設定に基づいて自動的に有効化/無効化されます。手動で切り替えることはできません。",
+    "pinnedNoReorder": "このブロックは固定されており、並べ替えることはできません。",
+    "promptLocaleSwitchedDesc": "一部のプロンプトファイルがあなたの言語（{{language}}）に合わせて切り替えられました。以前のファイルを希望する場合は元に戻せます。",
+    "promptLocaleSwitchedDismiss": "閉じる",
+    "promptLocaleSwitchedFallback": "{{language}}のバージョンはありません — 英語にフォールバックしました。",
+    "promptLocaleSwitchedHint": "フォールバックとしてマークされた項目はあなたの言語の翻訳がないため、英語版が使用されました。",
+    "promptLocaleSwitchedRevert": "すべて元に戻す",
+    "promptLocaleSwitchedTitle": "プロンプトファイルが更新されました",
+    "selectPromptGroup": "プロンプトを選択"
   },
   "settings": {
-    "actionApprovalHelp": "アクションが実行される前にユーザー承認が必要なタイミングを設定します。破壊的なアクション（キャラクターの殺害など）は、これらの設定に関係なく常に承認が必要です。",
+    "actionApprovalHelp": "アクションが実行される前にユーザー承認が必要なタイミングを設定します。破壊的なアクション（キャラクターの殺害など）は、対応する設定が選択されている場合は常に承認が必要です。",
     "actionApprovalSettings": "アクション承認設定",
     "approvalMode": "承認モード",
     "approvalModeAll": "すべて自動承認（承認不要）",
@@ -303,7 +351,11 @@
     "summariesView": "要約",
     "summaryGenerationSettings": "要約生成設定",
     "summaryProvider": "要約プロバイダー",
-    "useActiveProvider": "アクティブなプロバイダーを使用"
+    "useActiveProvider": "アクティブなプロバイダーを使用",
+    "contextSettings": "コンテキスト設定",
+    "contextSettingsHelp": "プロンプトに要約を含める方法を設定します。",
+    "maxPastSummaries": "過去の要約の最大数",
+    "maxPastSummariesHelp": "プロンプトに含める過去の会話要約の最大数。値が大きいほどより多くのコンテキストが提供されますが、より多くのトークンを消費します。"
   },
   "summariesManager": {
     "characterId": "キャラクターID",

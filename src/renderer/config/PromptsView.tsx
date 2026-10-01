@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { useConfigStore } from './store/useConfigStore';
 import type { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
 import PromptPreview from './components/PromptPreview';
 import HandlebarsTextarea from './components/HandlebarsTextarea';
+import PromptGroupSelector from './components/PromptGroupSelector';
 
 type BlockUpdater = (block: PromptBlock) => PromptBlock;
+
+type SummaryPromptSettings = {
+  rollingPrompt: string;
+  finalPrompt: string;
+  letterSummaryPrompt: string;
+  maxPastSummaries: number;
+};
 
 const PromptsView: React.FC = () => {
   const { t } = useTranslation();
@@ -13,6 +22,7 @@ const PromptsView: React.FC = () => {
   const letterPromptSettings = useConfigStore((state) => state.letterPromptSettings);
   const promptFiles = useConfigStore((state) => state.promptFiles);
   const promptPresets = useConfigStore((state) => state.promptPresets);
+  const appSettings = useConfigStore((state) => state.appSettings);
   const loadPromptSettings = useConfigStore((state) => state.loadPromptSettings);
   const loadLetterPromptSettings = useConfigStore((state) => state.loadLetterPromptSettings);
   const savePromptSettings = useConfigStore((state) => state.savePromptSettings);
@@ -24,6 +34,12 @@ const PromptsView: React.FC = () => {
   const exportPromptsZip = useConfigStore((state) => state.exportPromptsZip);
   const openPromptsFolder = useConfigStore((state) => state.openPromptsFolder);
   const openPromptFile = useConfigStore((state) => state.openPromptFile);
+  const updateAutoSwitchPromptLocale = useConfigStore((state) => state.updateAutoSwitchPromptLocale);
+  const getSummaryPromptSettings = useConfigStore((state) => state.getSummaryPromptSettings);
+  const updateSummaryPromptSettings = useConfigStore((state) => state.updateSummaryPromptSettings);
+
+  const autoSwitchPromptLocale = appSettings?.autoSwitchPromptLocale ?? true;
+  const appLanguage = (i18n.language || 'en').toLowerCase().split('-')[0];
 
   const [localSettings, setLocalSettings] = useState<PromptSettings | null>(null);
   const [mode, setMode] = useState<'conversation' | 'letter'>('conversation');
@@ -31,7 +47,28 @@ const PromptsView: React.FC = () => {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [presetName, setPresetName] = useState<string>('');
+  const [summarySettings, setSummarySettings] = useState<SummaryPromptSettings>({
+    rollingPrompt: '',
+    finalPrompt: '',
+    letterSummaryPrompt: '',
+    maxPastSummaries: 5,
+  });
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
+
+    const activeConfig = useMemo(() => {
+    const id = appSettings?.llmSettings?.activeProviderInstanceId;
+    if (!id) return null;
+    const ls = appSettings?.llmSettings;
+    if (!ls) return null;
+    return [...(ls.providers || []), ...(ls.presets || [])].find((p) => p.instanceId === id) || null;
+  }, [appSettings]);
+  // Prompt caching is active for this view only in conversation mode + an OpenRouter config that has it enabled.
+  const cachingOn = mode === 'conversation'
+    && activeConfig?.providerType === 'openrouter'
+    && (activeConfig?.promptCachingEnabled ?? false);
+  // Blocks rendered from the FROZEN game-state snapshot. History and rolling_summary are
+  // excuded as reasonably dynamic blocks.
+  const PREFIX_TYPES: string[] = ['main', 'description', 'examples', 'memories', 'past_summaries'];
   const [promptSettingsVersion, setPromptSettingsVersion] = useState<number>(0);
 
   useEffect(() => {
@@ -40,6 +77,17 @@ const PromptsView: React.FC = () => {
     loadPromptPresets();
     // run once on mount
   }, []);
+
+  useEffect(() => {
+    getSummaryPromptSettings()
+      .then((s) => setSummarySettings({
+        rollingPrompt: s.rollingPrompt,
+        finalPrompt: s.finalPrompt,
+        letterSummaryPrompt: s.letterSummaryPrompt,
+        maxPastSummaries: s.maxPastSummaries ?? 5,
+      }))
+      .catch(() => { /* keep default */ });
+  }, [getSummaryPromptSettings]);
 
   useEffect(() => {
     if (promptSettings && mode === 'conversation') {
@@ -97,6 +145,14 @@ const PromptsView: React.FC = () => {
   const updateBlock = (id: string, updater: BlockUpdater) => {
     const blocks = localSettings.blocks.map((b) => (b.id === id ? updater(b) : b));
     persist({ ...localSettings, blocks });
+  };
+
+  const handleMaxSummariesChange = (value: number) => {
+    const next = { ...summarySettings, maxPastSummaries: value };
+    setSummarySettings(next);
+    updateSummaryPromptSettings(next)
+      .then(() => setPromptSettingsVersion((v) => v + 1)) // refresh preview
+      .catch((err) => console.error('Failed to save summary settings:', err));
   };
 
   const removeBlock = (id: string) => {
@@ -189,44 +245,84 @@ const PromptsView: React.FC = () => {
   };
 
   const handleScriptSelect = (blockId: string, scriptPath: string) => {
-    updateBlock(blockId, (b) => ({ ...b, scriptPath }));
+    // Pin the block against same-language reconcile (startup dedupe / toggling
+    // the feature) so this explicit choice isn't overridden for the current
+    // language. A later app-language change will release the pin and let
+    // autoswitch follow the new language (with a notification to revert).
+    updateBlock(blockId, (b) => ({ ...b, scriptPath, localePinned: true }));
   };
+
+  const renderRoleSelect = (block: PromptBlock, defaultRole: 'system' | 'user' | 'assistant') => (
+    <div className="field-row compact">
+      <label>{t('prompts.role')}</label>
+      <select
+        value={block.role || defaultRole}
+        onChange={(e) => updateBlock(block.id, (b) => ({ ...b, role: e.target.value as PromptBlock['role'] }))}
+      >
+        <option value="system">system</option>
+        <option value="user">user</option>
+        <option value="assistant">assistant</option>
+      </select>
+    </div>
+  );
 
   const renderBlockContent = (block: PromptBlock) => {
     switch (block.type) {
       case 'description':
         return (
-          <div className="field-row compact">
-            <select
-              value={block.scriptPath || ''}
-              onChange={(e) => handleScriptSelect(block.id, e.target.value)}
-            >
-              {promptFiles.descriptions.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-            <div className="mini-buttons">
-              <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
-              <button onClick={() => openPromptFile('character_description')}>Folder</button>
+          <>
+            <div className="field-row compact">
+              <PromptGroupSelector
+                files={promptFiles.descriptions}
+                currentScriptPath={block.scriptPath || ''}
+                appLanguage={appLanguage}
+                onSelect={(p) => handleScriptSelect(block.id, p)}
+                ariaLabel={block.label}
+              />
+              <div className="mini-buttons">
+                <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
+                <button onClick={() => openPromptFile('character_description')}>Folder</button>
+              </div>
             </div>
-          </div>
+            {renderRoleSelect(block, 'system')}
+          </>
         );
       case 'examples':
         return (
-          <div className="field-row compact">
-            <select
-              value={block.scriptPath || ''}
-              onChange={(e) => handleScriptSelect(block.id, e.target.value)}
-            >
-              {promptFiles.examples.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-            <div className="mini-buttons">
-              <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
-              <button onClick={() => openPromptFile('example_messages')}>Folder</button>
+          <>
+            <div className="field-row compact">
+              <PromptGroupSelector
+                files={promptFiles.examples}
+                currentScriptPath={block.scriptPath || ''}
+                appLanguage={appLanguage}
+                onSelect={(p) => handleScriptSelect(block.id, p)}
+                ariaLabel={block.label}
+              />
+              <div className="mini-buttons">
+                <button onClick={() => block.scriptPath && openPromptFile(block.scriptPath)}>Open</button>
+                <button onClick={() => openPromptFile('example_messages')}>Folder</button>
+              </div>
             </div>
-          </div>
+            <div className="field-row compact">
+              <label>{t('prompts.role')}</label>
+              <select
+                value={block.role || 'system'}
+                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, role: e.target.value as any }))}
+              >
+                <option value="system">system</option>
+                <option value="user">user</option>
+                <option value="assistant">assistant</option>
+              </select>
+            </div>
+            <label className="toggle" title={t('prompts.examplesAsTextHelp')}>
+              <input
+                type="checkbox"
+                checked={!!block.examplesAsText}
+                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, examplesAsText: e.target.checked }))}
+              />
+              <span>{t('prompts.examplesAsText')}</span>
+            </label>
+          </>
         );
       case 'memories':
         return (
@@ -244,6 +340,7 @@ const PromptsView: React.FC = () => {
               value={block.limit ?? 5}
               onChange={(e) => updateBlock(block.id, (b) => ({ ...b, limit: Number(e.target.value) || 1 }))}
             />
+            {renderRoleSelect(block, 'system')}
           </>
         );
       case 'rolling_summary':
@@ -255,6 +352,7 @@ const PromptsView: React.FC = () => {
               rows={3}
               onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
+            {renderRoleSelect(block, 'system')}
           </>
         );
       case 'past_summaries':
@@ -267,6 +365,15 @@ const PromptsView: React.FC = () => {
               placeholder={t('prompts.leaveEmptyDefault')}
               onChange={(val) => updateBlock(block.id, (b) => ({ ...b, template: val }))}
             />
+            <label>{t('prompts.maxSummaries')}</label>
+            <input
+              type="number"
+              min={1}
+              value={summarySettings.maxPastSummaries}
+              onChange={(e) => handleMaxSummariesChange(Number(e.target.value) || 1)}
+            />
+            <p className="help-text">{t('prompts.maxSummariesHelp')}</p>
+            {renderRoleSelect(block, 'system')}
           </>
         );
       case 'instruction':
@@ -325,6 +432,15 @@ const PromptsView: React.FC = () => {
       case 'main':
       case 'history':
         return <p className="muted-text">This block uses the main prompt text or conversation history.</p>;
+      case 'current_state':
+        return (
+          <>
+            <p className="muted-text">
+              {t('prompts.currentStateBlockHelp')}
+            </p>
+            {renderRoleSelect(block, 'user')}
+          </>
+        );
       default:
         return null;
     }
@@ -332,13 +448,19 @@ const PromptsView: React.FC = () => {
 
   const renderBlock = (block: PromptBlock, index: number) => {
     const isExpanded = expandedId === block.id;
+    // Pinned blocks are system-managed, so cannot be reordered.
+    const isPinned = !!block.pinned;
+    const isSystemManaged = block.type === 'current_state';
+    // current_state is DISABLED when prompt caching is off (it emits nothing at runtime in that case).
+    const isVisuallyDisabled = isSystemManaged ? !cachingOn : !block.enabled;
     return (
       <div
         key={block.id}
-        className={`prompt-block ${block.enabled ? '' : 'disabled'} ${draggingId === block.id ? 'dragging' : ''}`}
+        className={`prompt-block ${isVisuallyDisabled ? 'disabled' : ''} ${draggingId === block.id ? 'dragging' : ''} ${isPinned ? 'pinned' : ''}`}
         onDragOver={(e) => {
           e.preventDefault();
-          if (draggingId && draggingId !== block.id) {
+          // Don't allow dropping onto a pinned block (would move around a fixed block).
+          if (draggingId && draggingId !== block.id && !isPinned) {
             moveBlock(draggingId, block.id);
           }
         }}
@@ -346,26 +468,41 @@ const PromptsView: React.FC = () => {
       >
         <div
           className="block-header"
-          draggable
-          onDragStart={() => setDraggingId(block.id)}
+          draggable={!isPinned}
+          onDragStart={() => {
+            if (!isPinned) setDraggingId(block.id);
+          }}
         >
           <div className="block-title">
-            <span className="drag-handle">↕</span>
+            {!isPinned && <span className="drag-handle">↕</span>}
             <strong>{index + 1}. {block.label}</strong>
-            <span className="badge">{block.type}</span>
-            {block.pinned && <span className="badge pinned">pinned</span>}
+            <div className="block-badges">
+              <span className="badge">{block.type}</span>
+              {block.pinned && <span className="badge pinned">pinned</span>}
+              {isSystemManaged && (
+                <span className="badge system-managed" title={t('prompts.systemManagedHelp')}>{t('prompts.systemManaged')}</span>
+              )}
+              {cachingOn && PREFIX_TYPES.includes(block.type) && (
+                <span className="badge frozen" title={t('prompts.frozenBadgeHelp')}>{t('prompts.frozenBadge')}</span>
+              )}
+              {cachingOn && block.type === 'current_state' && (
+                <span className="badge live" title={t('prompts.liveBadgeHelp')}>{t('prompts.liveBadge')}</span>
+              )}
+            </div>
           </div>
           <div className="block-actions">
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={block.enabled}
-                onChange={(e) => updateBlock(block.id, (b) => ({ ...b, enabled: e.target.checked }))}
-              />
-              <span>{t('prompts.enabled')}</span>
-            </label>
-            <button onClick={() => moveBlockBy(block.id, -1)}>↑</button>
-            <button onClick={() => moveBlockBy(block.id, 1)}>↓</button>
+            {!isSystemManaged && (
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={block.enabled}
+                  onChange={(e) => updateBlock(block.id, (b) => ({ ...b, enabled: e.target.checked }))}
+                />
+                <span>{t('prompts.enabled')}</span>
+              </label>
+            )}
+            <button onClick={() => moveBlockBy(block.id, -1)} disabled={isPinned} title={isPinned ? t('prompts.pinnedNoReorder') : undefined}>↑</button>
+            <button onClick={() => moveBlockBy(block.id, 1)} disabled={isPinned} title={isPinned ? t('prompts.pinnedNoReorder') : undefined}>↓</button>
             <button onClick={() => setExpandedId(isExpanded ? null : block.id)}>{isExpanded ? t('prompts.hide') : t('prompts.edit')}</button>
           </div>
         </div>
@@ -389,6 +526,14 @@ const PromptsView: React.FC = () => {
           <button onClick={openPromptsFolder}>{t('prompts.openPromptsFolder')}</button>
           <button onClick={() => refreshPromptFiles()}>{t('prompts.refreshFiles')}</button>
           <button onClick={handleExport}>{t('prompts.exportZip')}</button>
+          <label className="toggle auto-switch-toggle" title={t('prompts.autoSwitchPromptLocaleHelp')}>
+            <input
+              type="checkbox"
+              checked={autoSwitchPromptLocale}
+              onChange={(e) => updateAutoSwitchPromptLocale(e.target.checked)}
+            />
+            <span>{t('prompts.autoSwitchPromptLocale')}</span>
+          </label>
         </div>
       </div>
       <div className="field-row spaced">
@@ -464,6 +609,13 @@ const PromptsView: React.FC = () => {
             <button onClick={() => handleSavePreset('new')}>{t('prompts.saveAsNew')}</button>
             <button disabled={!selectedPresetId} onClick={handleDeletePreset}>{t('prompts.delete')}</button>
           </div>
+        </div>
+      )}
+
+      {cachingOn && (
+        <div className="prompt-cache-banner">
+          <strong>{t('prompts.cachingBannerTitle')}</strong>
+          <p>{t('prompts.cachingBannerBody')}</p>
         </div>
       )}
 

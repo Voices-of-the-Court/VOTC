@@ -8,8 +8,8 @@ import { parseLog, cleanLogFile } from "../gameData/parseLog";
 import { letterPromptBuilder } from "./LetterPromptBuilder";
 import { LetterData, StoredLetter, LetterStatusInfo, LetterResponseStatus, LetterSummaryStatus, LetterStatusSnapshot } from "./types";
 import { GameData } from "../gameData/GameData";
-import type { ILLMMessage } from "../llmProviders/types";
-import { TokenCounter } from "../utils/TokenCounter";
+import type { ILLMMessage } from "@llmTypes";
+import { TokenCounter } from "../utils";
 
 export class LetterManager {
   private currentTotalDays: number = 0;
@@ -163,8 +163,17 @@ export class LetterManager {
         const runFolder = path.join(ck3UserPath, "run");
         const letterFilePath = path.join(runFolder, "letters.txt");
         console.log(`LetterManager: Resolved letters.txt path: ${letterFilePath}`);
-        fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");
-        console.log("Created letters.txt file");
+        try {
+          fs.writeFileSync(letterFilePath, "debug_log = \"[Localize('talk_event.9999.desc')]\"", "utf-8");
+          console.log("Created letters.txt file");
+        } catch (error: any) {
+          // EBADF: bad file descriptor - file may be locked or in use
+          if (error.code === 'EBADF') {
+            console.warn('LetterManager: File descriptor is no longer valid when writing letters.txt, skipping');
+          } else {
+            console.error('LetterManager: Failed to write letters.txt:', error);
+          }
+        }
     }
 
     const context = await this.loadLatestGameDataWithLetter();
@@ -183,7 +192,13 @@ export class LetterManager {
     let responseError: string | null = null;
 
     try {
-      const result = await llmManager.sendChatRequest(messages as unknown as any[], undefined, true);
+      const result = await llmManager.sendChatRequest(
+        messages as unknown as any[],
+        undefined,
+        true,
+        // Letters never use prompt caching.
+        { requestKind: 'letter' }
+      );
       reply = await this.extractReply(result);
       
       if (!reply) {

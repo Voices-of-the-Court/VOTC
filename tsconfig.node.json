@@ -15,6 +15,11 @@
     "typeRoots": ["./node_modules/@types"],
 
     "baseUrl": ".",
-    "composite": true
+    "composite": true,
+    "paths": {
+      "@llmTypes": [
+        "src/main/llmProviders/types.ts"
+      ]
+    }
   }
 }

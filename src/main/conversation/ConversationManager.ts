@@ -1,5 +1,5 @@
 import { Conversation } from "./Conversation";
-import { ILLMStreamChunk } from "../llmProviders/types";
+import { ILLMStreamChunk } from "@llmTypes";
 import { EventEmitter } from "events";
 import { PromptBuilder } from "./PromptBuilder";
 import { createActionFeedback } from "./types";
@@ -297,11 +297,13 @@ export class ConversationManager {
         }
 
         const history = this.currentConversation.getHistory();
-        const result = PromptBuilder.buildMessagesWithTokenCount(
+        const result = PromptBuilder.buildMessages(
             history,
             character,
             this.currentConversation.gameData,
-            this.currentConversation.currentSummary
+            this.currentConversation.currentSummary,
+            this.currentConversation.frozenGameData,
+            { throwOnError: false }
         );
 
         return {

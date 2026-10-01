@@ -18,6 +18,7 @@ const SummariesView: React.FC = () => {
     rollingPrompt: '',
     finalPrompt: '',
     letterSummaryPrompt: '',
+    maxPastSummaries: 5,
   });
   
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +42,7 @@ const SummariesView: React.FC = () => {
           rollingPrompt: settings.rollingPrompt,
           finalPrompt: settings.finalPrompt,
           letterSummaryPrompt: settings.letterSummaryPrompt,
+          maxPastSummaries: settings.maxPastSummaries ?? 5,
         });
       } catch (error) {
         console.error('Failed to load summary prompt settings:', error);
@@ -97,6 +99,7 @@ const SummariesView: React.FC = () => {
       rollingPrompt: settings.rollingPrompt,
       finalPrompt: settings.finalPrompt,
       letterSummaryPrompt: settings.letterSummaryPrompt,
+      maxPastSummaries: settings.maxPastSummaries ?? 5,
     });
   };
 
@@ -114,6 +117,7 @@ const SummariesView: React.FC = () => {
       rollingPrompt: settings.rollingPrompt,
       finalPrompt: settings.finalPrompt,
       letterSummaryPrompt: settings.letterSummaryPrompt,
+      maxPastSummaries: settings.maxPastSummaries ?? 5,
     });
   };
 
@@ -131,6 +135,7 @@ const SummariesView: React.FC = () => {
       rollingPrompt: settings.rollingPrompt,
       finalPrompt: settings.finalPrompt,
       letterSummaryPrompt: settings.letterSummaryPrompt,
+      maxPastSummaries: settings.maxPastSummaries ?? 5,
     });
   };
 
@@ -139,7 +144,7 @@ const SummariesView: React.FC = () => {
     if (!confirm) return;
     
     // Save empty strings to trigger backend to return defaults
-    const resetSettings = { rollingPrompt: '', finalPrompt: '', letterSummaryPrompt: '' };
+    const resetSettings = { rollingPrompt: '', finalPrompt: '', letterSummaryPrompt: '', maxPastSummaries: 5 };
     await updateSummaryPromptSettings(resetSettings);
     
     // Reload to get the defaults from backend
@@ -148,6 +153,7 @@ const SummariesView: React.FC = () => {
       rollingPrompt: settings.rollingPrompt,
       finalPrompt: settings.finalPrompt,
       letterSummaryPrompt: settings.letterSummaryPrompt,
+      maxPastSummaries: settings.maxPastSummaries ?? 5,
     });
   };
 
@@ -252,6 +258,29 @@ const SummariesView: React.FC = () => {
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="form-group">
+        <h4>{t('summaries.contextSettings')}</h4>
+        <p className="muted-text">
+          {t('summaries.contextSettingsHelp')}
+        </p>
+        
+        <div className="field-row">
+          <label htmlFor="maxPastSummaries">{t('summaries.maxPastSummaries')}:</label>
+          <input
+            id="maxPastSummaries"
+            type="number"
+            min="1"
+            max="50"
+            value={localSettings.maxPastSummaries}
+            onChange={(e) => persist({ ...localSettings, maxPastSummaries: parseInt(e.target.value) || 5 })}
+            style={{ width: '80px' }}
+          />
+        </div>
+        <p className="help-text">
+          {t('summaries.maxPastSummariesHelp')}
+        </p>
       </div>
       <div className="info-card">
         <h4>{t('summaries.aboutSummaryGeneration')}</h4>

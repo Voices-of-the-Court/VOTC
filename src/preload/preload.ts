@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { LLMProviderConfig, AppSettings, ILLMModel } from '../main/llmProviders/types'; // Adjusted import path
+import type { LLMProviderConfig, AppSettings, ILLMModel, ConnectionTestResult } from '@llmTypes'; // Adjusted import path
 
 contextBridge.exposeInMainWorld('electronAPI', {
   /**
@@ -38,16 +38,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Return a function to remove the listener
     return () => ipcRenderer.removeListener('overlay-visibility-change', subscription);
   },
+  // Initialization warnings
+  getInitializationWarnings: (): Promise<Array<{ type: string; message: string; suggestion?: string }>> =>
+    ipcRenderer.invoke('app:getInitializationWarnings'),
+  onInitializationWarnings: (callback: (warnings: Array<{ type: string; message: string; suggestion?: string }>) => void) => {
+    const handler = (_event: any, warnings: any[]) => callback(warnings);
+    ipcRenderer.on('initialization-warnings', handler);
+    return () => ipcRenderer.removeListener('initialization-warnings', handler);
+  },
 
 });
 
 contextBridge.exposeInMainWorld('llmConfigAPI', {
   getAppSettings: (): Promise<AppSettings> => ipcRenderer.invoke('llm:getAppSettings'),
   saveProviderConfig: (config: LLMProviderConfig): Promise<LLMProviderConfig> => ipcRenderer.invoke('llm:saveProviderConfig', config),
-  deletePreset: (instanceId: string): Promise<void> => ipcRenderer.invoke('llm:deletePreset', instanceId), // Renamed
+  deletePreset: (instanceId: string): Promise<void> => ipcRenderer.invoke('llm:deletePreset', instanceId),
   setActiveProvider: (instanceId: string | null): Promise<void> => ipcRenderer.invoke('llm:setActiveProvider', instanceId),
   listModels: (): Promise<ILLMModel[] | { error: string }> => ipcRenderer.invoke('llm:listModels'),
-  testConnection: (): Promise<{success: boolean, error?: string, message?: string}> => ipcRenderer.invoke('llm:testConnection'),
+  testConnection: (): Promise<ConnectionTestResult> => ipcRenderer.invoke('llm:testConnection'),
+  onTestConnectionProgress: (callback: (p: { step: string; status: string; message?: string }) => void) => {
+    const handler = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on('test-connection:progress', handler);
+    return () => ipcRenderer.removeListener('test-connection:progress', handler);
+  },
+  cancelTestConnection: (): Promise<boolean> => ipcRenderer.invoke('llm:cancelTestConnection'),
   checkPlayer2Health: (): Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}> => ipcRenderer.invoke('llm:checkPlayer2Health'),
   setCK3Folder: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setCK3Folder', path),
   setModLocationPath: (path: string | null): Promise<void> => ipcRenderer.invoke('llm:setModLocationPath', path),
@@ -57,6 +71,7 @@ contextBridge.exposeInMainWorld('llmConfigAPI', {
   saveGenerateFollowingMessagesSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveGenerateFollowingMessagesSetting', enabled),
   saveMessageFontSize: (fontSize: number): Promise<void> => ipcRenderer.invoke('llm:saveMessageFontSize', fontSize),
   saveShowSettingsOnStartupSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveShowSettingsOnStartupSetting', enabled),
+  saveAutoSwitchPromptLocaleSetting: (enabled: boolean): Promise<void> => ipcRenderer.invoke('llm:saveAutoSwitchPromptLocaleSetting', enabled),
   getLanguage: (): Promise<string> => ipcRenderer.invoke('llm:getLanguage'),
   saveLanguage: (language: string): Promise<void> => ipcRenderer.invoke('llm:saveLanguage', language),
   getAllowPrerelease: (): Promise<boolean> => ipcRenderer.invoke('llm:getAllowPrerelease'),

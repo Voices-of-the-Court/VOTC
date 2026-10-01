@@ -1,16 +1,19 @@
-import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell } from 'electron';
-import fs from 'fs';
+import { app, BrowserWindow, screen, ipcMain, dialog, Tray, Menu, globalShortcut, shell, nativeImage } from 'electron';
 import path from 'path';
 import { llmManager } from './LLMManager';
 import { settingsRepository } from './SettingsRepository';
 import { providerRegistry } from './llmProviders/ProviderRegistry';
 import { conversationManager } from './conversation/ConversationManager';
-import { LLMProviderConfig, PromptPreset, PromptSettings } from './llmProviders/types';
+import { LLMProviderConfig, PromptPreset, PromptSettings, ConnectionTestSubResult } from '@llmTypes';
 import { ClipboardListener } from './ClipboardListener';
-import { initLogger, clearLog } from './utils/logger';
-import { importLegacySummaries } from './utils/importLegacySummaries';
+import { 
+  initLogger, clearLog,
+  importLegacySummaries,
+  exportPromptsZip,
+  SummariesManager,
+  initializationService
+} from './utils';
 import { VOTC_ACTIONS_DIR, VOTC_PROMPTS_DIR, VOTC_SUMMARIES_DIR } from './utils/paths';
-import { SummariesManager } from './utils/SummariesManager';
 import { actionRegistry } from './actions/ActionRegistry';
 import { ActionEngine } from './actions/ActionEngine';
 import { promptConfigManager } from './conversation/PromptConfigManager';
@@ -19,7 +22,9 @@ import { appUpdater } from './AutoUpdater';
 import { focusMonitor } from './FocusMonitor';
 import { resolveI18nString } from './actions/i18nUtils';
 // @ts-ignore
-import appIcon from '../../build/icon.ico?asset';
+import appIconIco from '../../build/icon.ico?asset';
+// @ts-ignore
+import appIconPng from '../../build/icon.png?asset';
 import './llmProviders/OpenRouterProvider';
 import './llmProviders/OpenAICompatibleProvider';
 import './llmProviders/OllamaProvider';
@@ -28,46 +33,48 @@ import './llmProviders/DeepseekProvider';
 import './llmProviders/GeminiProvider';
 
 import { letterManager } from './letter/LetterManager';
-import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
 import { runFileManager } from './actions/RunFileManager';
+import { finalizeConnectionTestResult } from './llmProviders/connectionTest';
+
+
+type TestStepId = 'text' | 'advanced' | 'minimized';
+type TestStepStatus = 'running' | 'done' | 'error';
+
+let testConnectionAbortController: AbortController | null = null;
 
 initLogger();
 // Keep a reference to the config window, managed globally
 let chatWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
+/**
+ * Build a platform-appropriate tray icon.
+ * Windows: native .ico. macOS: .ico is NOT supported by nativeImage, so use the
+ * PNG (resized to a menubar-friendly 22x22). Returns a NativeImage for the Tray.
+ */
+function getTrayIcon(): Electron.NativeImage {
+  if (process.platform === 'darwin') {
+    return nativeImage.createFromPath(appIconPng).resize({ width: 22, height: 22 });
+  }
+  return nativeImage.createFromPath(appIconIco);
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
-Menu.setApplicationMenu(null)
-
-const exportPromptsZip = (destination: string, settings: PromptSettings, presets: PromptPreset[]): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const output = fs.createWriteStream(destination);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      output.on('close', () => resolve());
-      output.on('error', reject);
-      archive.on('error', reject);
-
-      archive.pipe(output);
-
-      // Include prompts directory (pList, aliChat, helpers, etc.)
-      archive.directory(VOTC_PROMPTS_DIR, 'prompts');
-
-      // Include current prompt settings and presets
-      archive.append(JSON.stringify(settings, null, 2), { name: 'prompt-settings.json' });
-      archive.append(JSON.stringify(presets, null, 2), { name: 'prompt-presets.json' });
-
-      archive.finalize();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
+if (process.platform === 'darwin') {
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      { role: 'appMenu' },
+      { role: 'editMenu' },
+      { role: 'windowMenu' },
+    ] as Electron.MenuItemConstructorOptions[])
+  );
+} else {
+  Menu.setApplicationMenu(null);
+}
 
 const createWindow = (): BrowserWindow => {
   // Get primary display dimensions
@@ -81,8 +88,6 @@ const createWindow = (): BrowserWindow => {
     show: true, // Start hidden
     transparent: true, // Enable transparency
     frame: false, // Remove window frame
-    // alwaysOnTop: true, // Keep window on top
-    // skipTaskbar: true, // Don't show in taskbar
     fullscreen: true,
     thickFrame: false,
     hasShadow: false,
@@ -97,6 +102,11 @@ const createWindow = (): BrowserWindow => {
   });
 
   chatWindow.setIgnoreMouseEvents(true, { forward: true });
+
+  if (process.platform === 'darwin') {
+    chatWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    chatWindow.setFullScreenable(false);
+  }
 
   // and load the index.html of the app.
 if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
@@ -317,9 +327,83 @@ const setupIpcHandlers = () => {
     }
   });
 
-  ipcMain.handle('llm:testConnection', async () => {
-     return await llmManager.testProviderConnection();
-     // Errors are caught within testProviderConnection and returned in the result object
+  ipcMain.handle('llm:testConnection', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const sendProgress = (step: TestStepId, status: TestStepStatus, message?: string) => {
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('test-connection:progress', { step, status, message });
+      }
+    };
+
+    testConnectionAbortController = new AbortController();
+    const signal = testConnectionAbortController.signal;
+    const abortable = <T>(p: Promise<T>): Promise<T> => {
+      if (signal.aborted) return Promise.reject(new Error('Cancelled'));
+      return new Promise<T>((resolve, reject) => {
+        const onAbort = () => reject(new Error('Cancelled'));
+        signal.addEventListener('abort', onAbort, { once: true });
+        p.then(
+          (v) => { signal.removeEventListener('abort', onAbort); resolve(v); },
+          (e) => { signal.removeEventListener('abort', onAbort); reject(e); }
+        );
+      });
+    };
+
+    // text generation
+    sendProgress('text', 'running');
+    let textResult: ConnectionTestSubResult | undefined;
+    try {
+      const partial = await abortable(llmManager.testProviderConnection());
+      textResult = partial.textGeneration;
+      sendProgress('text', textResult?.success ? 'done' : 'error',
+        textResult?.success ? textResult.message : textResult?.error);
+    } catch (e: any) {
+      textResult = { success: false, error: signal.aborted ? 'Cancelled' : (e?.message || 'Text generation failed.') };
+      sendProgress('text', 'error', textResult.error);
+    }
+
+    // structured output (only if text generation passed)
+    const structuredOutput: ConnectionTestSubResult[] = [];
+    const variants: Array<{ id: TestStepId; useMinimized: boolean; name: string }> = [
+      { id: 'advanced', useMinimized: false, name: 'Advanced schema' },
+      { id: 'minimized', useMinimized: true, name: 'Minimized schema' },
+    ];
+
+    if (textResult?.success) {
+      const config = settingsRepository.getActiveProviderConfig();
+      if (config) {
+        for (const v of variants) {
+          if (signal.aborted) {
+            structuredOutput.push({ success: false, name: v.name, error: 'Cancelled' });
+            sendProgress(v.id, 'error', 'Cancelled');
+            continue;
+          }
+          sendProgress(v.id, 'running');
+          try {
+            const res = await abortable(ActionEngine.testStructuredVariant(config, v.useMinimized, signal));
+            structuredOutput.push(res);
+            sendProgress(v.id, res.success ? 'done' : 'error', res.success ? res.message : res.error);
+          } catch (e: any) {
+            const err = signal.aborted ? 'Cancelled' : (e?.message || 'Failed.');
+            structuredOutput.push({ success: false, name: v.name, error: err });
+            sendProgress(v.id, 'error', err);
+          }
+        }
+      } else {
+        for (const v of variants) {
+          structuredOutput.push({ success: false, name: v.name, error: 'No active provider configured.' });
+          sendProgress(v.id, 'error', 'No active provider configured.');
+        }
+      }
+    }
+
+    testConnectionAbortController = null;
+    return finalizeConnectionTestResult(textResult, structuredOutput);
+  });
+
+  ipcMain.handle('llm:cancelTestConnection', () => {
+    testConnectionAbortController?.abort();
+    return true;
   });
 
   ipcMain.handle('llm:checkPlayer2Health', async () => {
@@ -386,6 +470,10 @@ const setupIpcHandlers = () => {
 
   ipcMain.handle('llm:saveShowSettingsOnStartupSetting', (_, enabled: boolean) => {
     settingsRepository.saveShowSettingsOnStartupSetting(enabled);
+  });
+
+  ipcMain.handle('llm:saveAutoSwitchPromptLocaleSetting', (_, enabled: boolean) => {
+    settingsRepository.saveAutoSwitchPromptLocaleSetting(enabled);
   });
 
   ipcMain.handle('llm:getLanguage', () => {
@@ -802,6 +890,11 @@ const setupIpcHandlers = () => {
     return app.getVersion();
   });
 
+  // Initialization warnings handler
+  ipcMain.handle('app:getInitializationWarnings', () => {
+    return initializationService.getWarnings();
+  });
+
   console.log('Setting up conversation IPC handlers...');
 
   // --- Conversation Management IPC Handlers ---
@@ -1099,11 +1192,17 @@ const setupFocusMonitoring = (window: BrowserWindow) => {
   focusMonitor.start();
 };
 
-app.on('ready', () => {
+app.on('ready', async () => {
   console.log(app.getPath('userData'));
   clearLog();
+  settingsRepository.migrateApiKeysIfNeeded();
   promptConfigManager.seedDefaults();
   setupIpcHandlers(); // Setup handlers first
+  
+  // Run initialization service to detect CK3 path and create required files
+  const initResult = await initializationService.initialize();
+  console.log('Initialization result:', initResult);
+  
   chatWindow = createWindow(); // Create the main chat window and assign to global
   
   // Set up auto-updater
@@ -1112,6 +1211,13 @@ app.on('ready', () => {
   // Check for updates on startup
   if (app.isPackaged) {
     appUpdater.checkForUpdates();
+  }
+  
+  // Send initialization warnings to renderer after it's ready
+  if (initResult.warnings.length > 0 && chatWindow && !chatWindow.isDestroyed()) {
+    chatWindow.webContents.once('did-finish-load', () => {
+      chatWindow!.webContents.send('initialization-warnings', initResult.warnings);
+    });
   }
   
   // Initialize actions registry with saved settings and preload actions
@@ -1126,11 +1232,11 @@ app.on('ready', () => {
   console.log('App path:', app.getAppPath());
 
   try {
-    tray = new Tray(appIcon);
+    tray = new Tray(getTrayIcon());
     console.log('Tray created successfully');
   } catch (error) {
-    console.error('Error creating tray:', error);
-    return;
+    console.error('Error creating tray (continuing without tray):', error);
+    tray = null;
   }
 
   const contextMenu = Menu.buildFromTemplate([
@@ -1155,8 +1261,10 @@ app.on('ready', () => {
     }
   ]);
 
-  tray.setToolTip('VOTC Overlay');
-  tray.setContextMenu(contextMenu);
+  if (tray) {
+    tray.setToolTip('VOTC Overlay');
+    tray.setContextMenu(contextMenu);
+  }
 
   // Create and start clipboard listener
   const clipboardListener = new ClipboardListener();
@@ -1210,37 +1318,47 @@ app.on('ready', () => {
     }
   });
 
-  // Register global shortcut for Ctrl+H to toggle minimize
-  const ret = globalShortcut.register('Control+H', () => {
+  // Global hotkeys:
+  //   Windows/Linux: Control+H (minimize), Control+Shift+H (settings)
+  //   macOS:         Command+Shift+H (minimize), Command+Shift+S (settings)
+  const minimizeAccel = process.platform === 'darwin' ? 'Command+Shift+H' : 'Control+H';
+  const settingsAccel = process.platform === 'darwin' ? 'Command+Shift+S' : 'Control+Shift+H';
+
+  const ret = globalShortcut.register(minimizeAccel, () => {
     if (chatWindow && !chatWindow.isDestroyed() && conversationManager.hasActiveConversation()) {
-      console.log('Ctrl+H pressed - toggling minimize');
-      // Focus the window before sending the event
-      chatWindow.show();
-      chatWindow.focus();
+      console.log(`${minimizeAccel} pressed - toggling minimize`);
+      const stealFocus = process.platform !== 'darwin' || !focusMonitor.isGameFocused();
+      if (stealFocus) {
+        chatWindow.show();
+        chatWindow.focus();
+      }
       chatWindow.webContents.send('toggle-minimize');
     }
   });
 
   if (!ret) {
-    console.log('Failed to register Ctrl+H global shortcut');
+    console.log(`Failed to register minimize global shortcut (${minimizeAccel})`);
   }
 
-  const reta = globalShortcut.register('Control+Shift+H', () => {
+  const reta = globalShortcut.register(settingsAccel, () => {
     if (chatWindow && !chatWindow.isDestroyed()) {
-      console.log('Ctrl+Shift+H pressed - toggling settings');
-      // Focus the window before sending the event
-      chatWindow.show();
-      chatWindow.focus();
+      console.log(`${settingsAccel} pressed - toggling settings`);
+      const stealFocus = process.platform !== 'darwin' || !focusMonitor.isGameFocused();
+      if (stealFocus) {
+        chatWindow.show();
+        chatWindow.focus();
+      }
       chatWindow.webContents.send('toggle-settings');
     }
   });
 
   if (!reta) {
-    console.log('Failed to register Ctrl+Shift+H global shortcut');
+    console.log(`Failed to register settings global shortcut (${settingsAccel})`);
   }
 
-  // Check if a shortcut is registered
-  console.log('Ctrl+H shortcut registered:', globalShortcut.isRegistered('Control+H'));
+  // Check if shortcuts are registered
+  console.log(`Minimize shortcut (${minimizeAccel}) registered:`, globalShortcut.isRegistered(minimizeAccel));
+  console.log(`Settings shortcut (${settingsAccel}) registered:`, globalShortcut.isRegistered(settingsAccel));
 });
 
 app.on('window-all-closed', () => {

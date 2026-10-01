@@ -1,0 +1,274 @@
+.prompt-group-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.prompt-group-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 220px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(239, 177, 106, 0.35);
+  border-radius: 6px;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+
+  &:hover {
+    border-color: #EFB16A;
+    background: rgba(239, 177, 106, 0.12);
+  }
+
+  &.open {
+    border-color: #EFB16A;
+    background: rgba(239, 177, 106, 0.18);
+  }
+
+  .prompt-group-trigger-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #fff;
+  }
+
+  .prompt-group-caret {
+    color: #EFB16A;
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Language badges
+// ---------------------------------------------------------------------------
+.prompt-lang-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 4px;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+
+  background: rgba(239, 177, 106, 0.12);
+  color: #EFB16A;
+  border: 1px solid rgba(239, 177, 106, 0.25);
+
+  &.match {
+    background: rgba(76, 175, 80, 0.18);
+    color: #6FCF73;
+    border-color: rgba(76, 175, 80, 0.5);
+  }
+
+  &.fallback {
+    background: rgba(255, 165, 0, 0.18);
+    color: #FFC04A;
+    border-color: rgba(255, 165, 0, 0.55);
+  }
+
+  &.unspecified,
+  &.muted {
+    background: rgba(160, 160, 160, 0.15);
+    color: #9aa0a6;
+    border-color: rgba(160, 160, 160, 0.3);
+  }
+
+  &.neutral {
+    background: rgba(239, 177, 106, 0.1);
+    color: #cda06a;
+    border-color: rgba(239, 177, 106, 0.2);
+  }
+
+  &.mini {
+    min-width: 22px;
+    padding: 1px 4px;
+    font-size: 10px;
+    border-width: 1px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dropdown — fixed-height flex column so the list scrolls internally.
+// ---------------------------------------------------------------------------
+.prompt-group-dropdown {
+  display: flex;
+  flex-direction: column;
+  background-image: url('../../assets/background_area_light.png');
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  border: 2px solid #EFB16A;
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 9999;
+  box-sizing: border-box;
+  overflow: hidden; // children scroll, not the container
+  animation: promptDropdownFadeIn 0.15s ease;
+}
+
+@keyframes promptDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.prompt-group-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(239, 177, 106, 0.3);
+  flex-shrink: 0; // never collapse
+
+  .prompt-group-dropdown-title {
+    color: #EFB16A;
+    font-weight: bold;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.prompt-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  min-height: 0;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #EFB16A;
+    border-radius: 3px;
+    &:hover { background: #FFA500; }
+  }
+}
+
+.prompt-group-empty {
+  color: #9aa0a6;
+  font-size: 13px;
+  padding: 12px;
+  text-align: center;
+}
+
+.prompt-group-row {
+  border-radius: 6px;
+  border: 1px solid transparent;
+  overflow: hidden;
+  flex-shrink: 0; // row itself doesn"t collapse, but its content scrolls
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+
+  &.active {
+    background: rgba(239, 177, 106, 0.12);
+    border-color: rgba(239, 177, 106, 0.35);
+  }
+}
+
+.prompt-group-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #ddd;
+  font-size: 13px;
+  text-align: left;
+  box-sizing: border-box;
+
+  &:hover {
+    background: rgba(239, 177, 106, 0.1);
+  }
+
+  .prompt-group-row-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #fff;
+  }
+
+  .prompt-group-row-flags {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 140px;
+  }
+}
+
+.prompt-group-variants {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px 8px 18px;
+}
+
+.prompt-group-variant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  color: #ccc;
+  font-size: 12px;
+  text-align: left;
+  box-sizing: border-box;
+
+  &:hover {
+    background: rgba(239, 177, 106, 0.14);
+    border-color: rgba(239, 177, 106, 0.3);
+  }
+
+  &.current {
+    background: rgba(239, 177, 106, 0.2);
+    border-color: #EFB16A;
+    color: #fff;
+  }
+
+  .prompt-group-variant-path {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--mono-font, monospace);
+    font-size: 11px;
+    opacity: 0.85;
+  }
+
+  .checkmark {
+    color: #4CAF50;
+    font-weight: bold;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+}

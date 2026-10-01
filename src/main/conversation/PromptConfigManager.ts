@@ -8,7 +8,7 @@ import {
   VOTC_PROMPTS_EXAMPLES_DIR,
   VOTC_PROMPTS_HELPERS_DIR
 } from '../utils/paths';
-import { PromptBlock, PromptPreset, PromptSettings } from '../llmProviders/types';
+import { PromptBlock, PromptPreset, PromptSettings } from '@llmTypes';
 
 const DEFAULT_USERDATA_DIR = path.join(app.getAppPath(), 'default_userdata', 'prompts');
 const DEFAULT_MAIN_TEMPLATE_PATH = 'system/default.hbs';
@@ -162,6 +162,13 @@ export class PromptConfigManager {
         pinned: true,
       },
       {
+        id: 'current-state',
+        type: 'current_state',
+        label: 'Current State',
+        enabled: true,
+        pinned: true,
+      },
+      {
         id: 'instruction',
         type: 'instruction',
         label: 'Main Instruction',
@@ -246,7 +253,44 @@ export class PromptConfigManager {
       }
     });
 
+    this.enforceCacheBlockOrder(merged);
+
+    // Current State block is always enabled when prompt caching is active.
+    const curState = merged.find((b) => b.type === 'current_state');
+    if (curState) {
+      curState.enabled = true;
+      curState.pinned = true;
+    }
+
     return merged;
+  }
+
+  /**
+   * Ensure the system-managed pinned blocks (history -> current_state -> instruction)
+   * keep their canonical relative order. Moves only the current_state block so it
+   * sits right after history (or right before instruction if history is absent).
+   * All other blocks keep their existing positions.
+   */
+  private enforceCacheBlockOrder(blocks: PromptBlock[]): void {
+    const idx = blocks.findIndex((b) => b.type === 'current_state');
+    if (idx === -1) return; // not present (e.g., letter prompt) — nothing to do
+
+    const cur = blocks[idx];
+    blocks.splice(idx, 1); // remove; indices below are against the shortened array
+
+    const histIdx = blocks.findIndex((b) => b.type === 'history');
+    const instrIdx = blocks.findIndex((b) => b.type === 'instruction');
+
+    let insertAt: number;
+    if (histIdx !== -1) {
+      insertAt = histIdx + 1; // right after history (preferred)
+    } else if (instrIdx !== -1) {
+      insertAt = instrIdx; // right before instruction
+    } else {
+      insertAt = idx; // no anchor; restore original position
+    }
+    if (insertAt > blocks.length) insertAt = blocks.length;
+    blocks.splice(insertAt, 0, cur);
   }
 
   normalizeSettings(

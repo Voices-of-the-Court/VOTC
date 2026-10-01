@@ -12,8 +12,13 @@ import {
   PROVIDER_TYPES,
   DEFAULT_PROVIDER_CONFIGS,
   DEFAULT_ACTIVE_PROVIDER,
-} from './llmProviders/types';
+} from '@llmTypes';
 import { promptConfigManager } from './conversation/PromptConfigManager';
+import {
+  encryptProviderConfigs,
+  decryptProviderConfigs,
+  hasPlainKeys,
+} from './utils/ApiKeyCrypto';
 
 // Define the schema for electron-store for type safety
 // Note: We don't use enum validation here to avoid breaking existing settings during refactoring
@@ -30,6 +35,8 @@ const baseProviderConfigSchema = {
     defaultParameters: { type: 'object' as const },
     customContextLength: { type: 'number' as const },
     useMinimizedActionsSchema: { type: 'boolean' as const },
+    promptCachingEnabled: { type: 'boolean' as const },
+    promptCacheTtl: { type: 'string' as const, enum: ['5m', '1h'] },
   },
   required: ['instanceId', 'providerType']
 };
@@ -92,6 +99,10 @@ const schema: Schema<AppSettings> = {
     default: 1.1
   },
   showSettingsOnStartup: {
+    type: 'boolean',
+    default: true
+  },
+  autoSwitchPromptLocale: {
     type: 'boolean',
     default: true
   },
@@ -167,11 +178,12 @@ const schema: Schema<AppSettings> = {
   },
   summaryPromptSettings: {
     type: 'object',
-    default: { rollingPrompt: '', finalPrompt: '', letterSummaryPrompt: '' },
+    default: { rollingPrompt: '', finalPrompt: '', letterSummaryPrompt: '', maxPastSummaries: 5 },
     properties: {
       rollingPrompt: { type: 'string', default: '' },
       finalPrompt: { type: 'string', default: '' },
-      letterSummaryPrompt: { type: 'string', default: '' }
+      letterSummaryPrompt: { type: 'string', default: '' },
+      maxPastSummaries: { type: 'number', default: 5 }
     }
   },
   allowPrerelease: {
@@ -258,6 +270,9 @@ export class SettingsRepository {
     if (currentAppSettings.showSettingsOnStartup === undefined) {
         this.store.set('showSettingsOnStartup', true); // Default to showing settings on startup
     }
+    if ((currentAppSettings as any).autoSwitchPromptLocale === undefined) {
+        this.store.set('autoSwitchPromptLocale', true); // Default to auto-switching prompt locale
+    }
     if ((currentAppSettings as any).actionApprovalSettings === undefined) {
         this.store.set('actionApprovalSettings', {
             approvalMode: 'none',
@@ -268,11 +283,53 @@ export class SettingsRepository {
         this.store.set('summaryPromptSettings', {
             rollingPrompt: '',
             finalPrompt: '',
-            letterSummaryPrompt: ''
+            letterSummaryPrompt: '',
+            maxPastSummaries: 5
         });
     }
     if (currentAppSettings.allowPrerelease === undefined) {
         this.store.set('allowPrerelease', false);
+    }
+    this.migratePromptCachingToPerConfig();
+  }
+
+  /**
+   * One-time migration for existing OpenRouter base configs and presets that lack
+   * prompt caching fields, seed the prior global default (disabled, 1h TTL).
+   * Writes only when the field is missing; never overwrites an explicit value.
+   */
+  private migratePromptCachingToPerConfig(): void {
+    const settings = this.getLLMSettings();
+    let changed = false;
+    const migrate = (cfg: LLMProviderConfig) => {
+      if (cfg.promptCachingEnabled === undefined) {
+        cfg.promptCachingEnabled = false;
+        changed = true;
+      }
+      if (cfg.promptCacheTtl === undefined) {
+        cfg.promptCacheTtl = '1h';
+        changed = true;
+      }
+    };
+    settings.providers.filter(p => p.providerType === 'openrouter').forEach(migrate);
+    settings.presets.filter(p => p.providerType === 'openrouter').forEach(migrate);
+    if (changed) {
+      this.saveLLMSettings(settings);
+      console.log('[SettingsRepository] Migrated prompt caching setting to per-config (OpenRouter).');
+    }
+  }
+
+  migrateApiKeysIfNeeded(): void {
+    const rawSettings = this.store.get('llmSettings', { providers: [], presets: [], activeProviderInstanceId: null });
+    const allConfigs = [...(rawSettings.providers || []), ...(rawSettings.presets || [])];
+    if (hasPlainKeys(allConfigs)) {
+      console.log('[SettingsRepository] Migrating plain-text API keys to encrypted form...');
+      // getLLMSettings decrypts (pass-through for plaintext) → saveLLMSettings encrypts
+      const decrypted = this.getLLMSettings();
+      this.saveLLMSettings(decrypted);
+      console.log('[SettingsRepository] API key migration complete.');
+    } else {
+      console.log('[ApiKeyCrypto] safeStorage is available on this system. API keys will be encrypted.');
     }
   }
 
@@ -320,6 +377,7 @@ export class SettingsRepository {
       generateFollowingMessages: this.getGenerateFollowingMessagesSetting(),
       messageFontSize: this.getMessageFontSize(),
       showSettingsOnStartup: this.getShowSettingsOnStartup(),
+      autoSwitchPromptLocale: this.getAutoSwitchPromptLocale(),
       allowPrerelease: this.getAllowPrerelease(),
       promptSettings: this.getPromptSettings(),
       letterPromptSettings: this.getLetterPromptSettings(),
@@ -332,12 +390,23 @@ export class SettingsRepository {
 
   getLLMSettings(): LLMSettings {
     // Defaults are handled by initializeDefaultSettings and schema
-    return this.store.get('llmSettings');
+    const settings = this.store.get('llmSettings');
+    // decrypt apiKeys for in-memory use
+    decryptProviderConfigs(settings.providers);
+    decryptProviderConfigs(settings.presets);
+    return settings;
   }
 
   saveLLMSettings(settings: LLMSettings): void {
-    this.store.set('llmSettings', settings);
-    console.log('LLM Settings saved.');
+    // encrypt apiKeys before persisting (shallow-clone arrays to avoid
+    // mutating the objects the rest of the app holds references to)
+    const toSave: LLMSettings = {
+      ...settings,
+      providers: encryptProviderConfigs(settings.providers),
+      presets: encryptProviderConfigs(settings.presets),
+    };
+    this.store.set('llmSettings', toSave);
+    console.log('LLM Settings saved (apiKeys encrypted).');
   }
 
   getGlobalStreamSetting(): boolean {
@@ -411,6 +480,15 @@ export class SettingsRepository {
   saveShowSettingsOnStartupSetting(enabled: boolean): void {
     this.store.set('showSettingsOnStartup', enabled);
     console.log('Show settings on startup setting saved:', enabled);
+  }
+
+  getAutoSwitchPromptLocale(): boolean {
+    return this.store.get('autoSwitchPromptLocale', true); // Default to true
+  }
+
+  saveAutoSwitchPromptLocaleSetting(enabled: boolean): void {
+    this.store.set('autoSwitchPromptLocale', enabled);
+    console.log('Auto switch prompt locale setting saved:', enabled);
   }
 
   getLanguage(): string {
@@ -666,14 +744,16 @@ Please summarize the conversation into only a single paragraph.`;
     const stored = this.store.get('summaryPromptSettings', {
       rollingPrompt: '',
       finalPrompt: '',
-      letterSummaryPrompt: ''
+      letterSummaryPrompt: '',
+      maxPastSummaries: 5
     });
     
     // Return stored custom prompts if set, otherwise return defaults
     return {
       rollingPrompt: stored.rollingPrompt || this.getDefaultRollingSummaryPrompt(),
       finalPrompt: stored.finalPrompt || this.getDefaultFinalSummaryPrompt(),
-      letterSummaryPrompt: stored.letterSummaryPrompt || this.getDefaultLetterSummaryPrompt()
+      letterSummaryPrompt: stored.letterSummaryPrompt || this.getDefaultLetterSummaryPrompt(),
+      maxPastSummaries: stored.maxPastSummaries ?? 5
     };
   }
 

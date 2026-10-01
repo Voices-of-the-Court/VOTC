@@ -1,12 +1,16 @@
 import { useState, useCallback, useEffect } from 'react';
 import Chat from './chat/Chat';
 import ConfigPanel from './config/ConfigPanel';
+import PromptLocaleNotification from './config/components/PromptLocaleNotification';
 import { useConfigStore, useAppSettings } from './config/store/useConfigStore';
+import type { InitializationWarning } from '../preload/global.d';
+import AlertIcon from './assets/Alert.png';
 
 function App() {
   const [showChat, setShowChat] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
-  const [isOverlayVisible, setIsOverlayVisible] = useState(true); 
+  const [isOverlayVisible, setIsOverlayVisible] = useState(true);
+  const [initializationWarnings, setInitializationWarnings] = useState<InitializationWarning[]>([]);
   const loadSettings = useConfigStore((state) => state.loadSettings);
   const appSettings = useAppSettings();
 
@@ -90,6 +94,33 @@ function App() {
     return cleanup;
   }, []);
 
+  useEffect(() => {
+    // Fetch any cached warnings on mount
+    const fetchWarnings = async () => {
+      try {
+        const warnings = await window.electronAPI?.getInitializationWarnings();
+        if (warnings && warnings.length > 0) {
+          console.log('Fetched cached initialization warnings:', warnings);
+          setInitializationWarnings(warnings);
+        }
+      } catch (error) {
+        console.error('Failed to fetch initialization warnings:', error);
+      }
+    };
+    fetchWarnings();
+
+    // Listen for initialization warnings from main process
+    const cleanup = window.electronAPI?.onInitializationWarnings((warnings: InitializationWarning[]) => {
+      console.log('Received initialization warnings:', warnings);
+      setInitializationWarnings(warnings);
+    });
+    return cleanup;
+  }, []);
+
+  const dismissWarnings = useCallback(() => {
+    setInitializationWarnings([]);
+  }, []);
+
   const toggleConfig = useCallback(() => {
     setShowConfig(prev => {
       const newState = !prev;
@@ -103,7 +134,37 @@ function App() {
 
   return (
     <div className="App" style={{ display: isOverlayVisible ? 'block' : 'none' }}>
+      {/* Initialization Warnings Modal */}
+      {initializationWarnings.length > 0 && (
+        <div
+          className="initialization-warnings-overlay"
+          onMouseEnter={() => window.electronAPI?.setIgnoreMouseEvents(false)}
+          onMouseLeave={() => window.electronAPI?.setIgnoreMouseEvents(true)}
+        >
+          <div className="initialization-warnings-modal">
+            <h2>Initialization Warnings</h2>
+            <div className="initialization-warnings-list">
+              {initializationWarnings.map((warning, index) => (
+                <div key={index} className="initialization-warning-item">
+                  <div className="initialization-warning-header">
+                    <span className="initialization-warning-icon"><img src={AlertIcon} alt="Warning" /></span>
+                    <strong className="initialization-warning-title">{warning.message}</strong>
+                  </div>
+                  {warning.suggestion && (
+                    <p className="initialization-warning-suggestion">{warning.suggestion}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button className="initialization-warnings-dismiss" onClick={dismissWarnings}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       {showChat && <Chat onToggleConfig={toggleConfig} />}
+      {/* Global notification for prompt-locale auto-switches (startup / language change) */}
+      <PromptLocaleNotification />
       {showConfig && (
         <ConfigPanel
           onClose={() => {
