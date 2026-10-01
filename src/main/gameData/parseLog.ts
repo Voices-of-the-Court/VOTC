@@ -793,6 +793,7 @@ export function removeTooltip(str: string): string{
 }
 
 export async function cleanLogFile(filePath: string) {
+  try {
     const fileContent = await fs.promises.readFile(filePath, 'utf-8');
     const lines = fileContent.split('\n');
     const stringsToRemove = [
@@ -803,9 +804,18 @@ export async function cleanLogFile(filePath: string) {
         'No sound alias named \'river_node\' configured! Please check you sound alias database'
     ];
   
-  const cleaned = lines.filter(line => {
-    return !stringsToRemove.some(str => line.includes(str));
-  });
-  
-  await fs.promises.writeFile(filePath, cleaned.join('\n'), 'utf-8');
+    const cleaned = lines.filter(line => {
+      return !stringsToRemove.some(str => line.includes(str));
+    });
+    
+    await fs.promises.writeFile(filePath, cleaned.join('\n'), 'utf-8');
+  } catch (error: any) {
+    // EBADF: bad file descriptor - file may be in use by another process or closed
+    // This can happen during log tailing when the file handle is no longer valid
+    if (error.code === 'EBADF') {
+      console.warn('cleanLogFile: File descriptor is no longer valid, skipping clean');
+    } else {
+      console.error('cleanLogFile: Failed to clean log file:', error);
+    }
+  }
 }

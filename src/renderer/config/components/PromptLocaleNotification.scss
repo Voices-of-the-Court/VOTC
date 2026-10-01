@@ -1,0 +1,161 @@
+.prompt-locale-notification-overlay {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  max-width: min(560px, 92vw);
+  animation: promptLocaleFadeIn 0.2s ease;
+  pointer-events: auto;
+}
+
+.prompt-locale-notification-card {
+  background: rgba(20, 18, 22, 0.97);
+  border: 1px solid rgba(239, 177, 106, 0.55);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 1px rgba(239, 177, 106, 0.4);
+  backdrop-filter: blur(6px);
+  color: #ddd;
+  font-size: 13px;
+}
+
+.prompt-locale-notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+
+  .prompt-locale-notification-title {
+    color: #EFB16A;
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  .prompt-locale-notification-close {
+    background: transparent;
+    border: none;
+    color: #999;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+
+    &:hover {
+      color: #EFB16A;
+      background: rgba(239, 177, 106, 0.15);
+    }
+  }
+}
+
+.prompt-locale-notification-desc {
+  margin: 0 0 10px;
+  color: #bbb;
+  line-height: 1.4;
+}
+
+.prompt-locale-notification-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 180px;
+  overflow-y: auto;
+
+  .prompt-locale-notification-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    border-left: 3px solid #EFB16A;
+    flex-wrap: wrap;
+
+    &.fallback {
+      border-left-color: #c98a4a;
+    }
+
+    .prompt-locale-notification-label {
+      color: #e8d9c4;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .prompt-locale-notification-path {
+      color: #ccc;
+      font-size: 12px;
+      font-family: 'Consolas', 'Menlo', monospace;
+    }
+
+    .prompt-locale-notification-fallback-tag {
+      color: #c98a4a;
+      font-size: 11px;
+      font-style: italic;
+      margin-left: auto;
+    }
+  }
+}
+
+.prompt-locale-notification-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+
+  .prompt-locale-notification-btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    &.revert {
+      background: rgba(239, 177, 106, 0.25);
+      color: #EFB16A;
+      border: 1px solid #EFB16A;
+
+      &:hover:not(:disabled) {
+        background: rgba(239, 177, 106, 0.45);
+        box-shadow: 0 0 8px rgba(239, 177, 106, 0.5);
+      }
+    }
+
+    &.dismiss {
+      background: rgba(0, 0, 0, 0.4);
+      color: #ccc;
+      border: 1px solid #555;
+
+      &:hover:not(:disabled) {
+        border-color: #888;
+        background: rgba(0, 0, 0, 0.6);
+      }
+    }
+  }
+}
+
+.prompt-locale-notification-hint {
+  margin: 8px 0 0;
+  color: #888;
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+@keyframes promptLocaleFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

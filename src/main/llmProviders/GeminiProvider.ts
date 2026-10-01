@@ -6,9 +6,11 @@ import {
   ILLMStreamChunk,
   LLMProviderConfig,
   ILLMOutput,
-  ILLMMessage
+  ILLMMessage,
+  ConnectionTestResult
 } from './types';
 import { BaseProvider } from './BaseProvider';
+import { runConnectionTests } from './connectionTest';
 
 /**
  * Gemini Provider for Google's Gemini API
@@ -482,23 +484,12 @@ export class GeminiProvider extends BaseProvider {
     };
   }
 
-  async testConnection(config: LLMProviderConfig): Promise<{success: boolean, error?: string, message?: string}> {
+  async testConnection(config: LLMProviderConfig): Promise<ConnectionTestResult> {
     try {
-      const testRequest: ILLMCompletionRequest = {
-        model: config.defaultModel || 'gemini-2.5-flash',
-        messages: [{ role: 'user', content: 'Hi' }],
-        max_tokens: 5,
-        stream: false,
-      };
-      
-      const response = await (this.chatCompletion(testRequest, config) as Promise<ILLMCompletionResponse>);
-      if (response && (response.content !== null || response.id)) {
-        return { success: true, message: `Successfully connected to Gemini. Response: ${response.content?.substring(0, 50) || '(empty)'}` };
-      }
-      return { success: false, error: 'Test connection to Gemini failed to get a valid response.' };
+      return await runConnectionTests(this, config, { model: config.defaultModel || 'gemini-2.5-flash' });
     } catch (e: any) {
       console.error('Gemini testConnection error:', e);
-      return { success: false, error: e.message || 'Unknown error during Gemini test connection.' };
+      return { success: false, error: e?.message || 'Unknown error during Gemini test connection.' };
     }
   }
 }

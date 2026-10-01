@@ -2,25 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import languageIcon from '../../assets/language.svg';
+import { SUPPORTED_LANGUAGES } from '../supportedLanguages';
 import './LanguageSelector.scss';
 
-interface Language {
-  code: string;
-  name: string;
-  nativeName: string;
-}
-
-const languages: Language[] = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
-  { code: 'pl', name: 'Polish', nativeName: 'Polski' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文' },
-  { code: 'ko', name: 'Korean', nativeName: '한국어' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
-];
+// Single source of truth: see supportedLanguages.ts.
+const languages = SUPPORTED_LANGUAGES.map((l) => ({
+  code: l.code,
+  name: l.name,
+  nativeName: l.nativeName,
+}));
 
 function LanguageSelector() {
   const { i18n } = useTranslation();

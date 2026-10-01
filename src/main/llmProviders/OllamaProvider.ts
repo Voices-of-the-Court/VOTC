@@ -6,8 +6,10 @@ import {
   ILLMModel,
   ILLMStreamChunk,
   OllamaConfig,
-  LLMProviderConfig
+  LLMProviderConfig,
+  ConnectionTestResult
 } from './types';
+import { runConnectionTests } from './connectionTest';
 
 export class OllamaProvider implements ILLMProvider {
   readonly providerId = 'ollama';
@@ -229,15 +231,16 @@ export class OllamaProvider implements ILLMProvider {
     return aggregatedResponse; 
   }
 
-  async testConnection(config: LLMProviderConfig): Promise<{success: boolean, error?: string, message?: string}> {
-    const providerConfig = this.getConfig(config);
+  async testConnection(config: LLMProviderConfig): Promise<ConnectionTestResult> {
     try {
-      // Ollama's /api/tags is a good lightweight check
-      await this.listModels(providerConfig);
-      return { success: true, message: `Successfully connected to Ollama at ${providerConfig.baseUrl}.` };
+      const providerConfig = this.getConfig(config);
+      // Runs text-generation + structured-output probes. Note: the Ollama
+      // provider does not currently pass `response_format` through, so the
+      // structured-output probe is expected to report "not supported".
+      return await runConnectionTests(this, providerConfig);
     } catch (e: any) {
-      console.error(`Ollama testConnection error for ${providerConfig.baseUrl}:`, e);
-      return { success: false, error: e.message || `Unknown error during Ollama test connection to ${providerConfig.baseUrl}.` };
+      console.error('Ollama testConnection error:', e);
+      return { success: false, error: e?.message || 'Unknown error during Ollama test connection.' };
     }
   }
 }

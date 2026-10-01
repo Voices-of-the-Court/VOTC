@@ -6,9 +6,11 @@ import {
   ILLMStreamChunk,
   DeepseekConfig,
   LLMProviderConfig,
-  ILLMOutput
+  ILLMOutput,
+  ConnectionTestResult
 } from './types';
 import { BaseProvider } from './BaseProvider';
+import { runConnectionTests } from './connectionTest';
 import OpenAI from 'openai';
 
 /**
@@ -18,7 +20,7 @@ import OpenAI from 'openai';
  * - Does NOT support `response_format: { type: 'json_schema', json_schema: {...} }`
  * - Only supports `response_format: { type: 'json_object' }` for JSON output
  * - For structured outputs, the JSON schema must be described in the prompt
- * - Models: 'deepseek-chat', 'deepseek-reasoner'
+ * - Models: 'deepseek-v4-flash', 'deepseek-v4-pro'
  */
 export class DeepseekProvider extends BaseProvider {
   providerId = 'deepseek';
@@ -51,8 +53,8 @@ export class DeepseekProvider extends BaseProvider {
     // Deepseek has a fixed set of models, return them directly
     // The API does have a /models endpoint but the models are known
     return [
-      { id: 'deepseek-chat', name: 'Deepseek Chat' },
-      { id: 'deepseek-reasoner', name: 'Deepseek Reasoner' },
+      { id: 'deepseek-v4-flash', name: 'Deepseek V4 Flash' },
+      { id: 'deepseek-v4-pro', name: 'Deepseek V4 Pro' },
     ];
   }
 
@@ -365,23 +367,12 @@ export class DeepseekProvider extends BaseProvider {
     }
   }
 
-  async testConnection(config: DeepseekConfig): Promise<{success: boolean, error?: string, message?: string}> {
+  async testConnection(config: DeepseekConfig): Promise<ConnectionTestResult> {
     try {
-      const testRequest: ILLMCompletionRequest = {
-        model: config.defaultModel || 'deepseek-chat',
-        messages: [{ role: 'user', content: 'Test' }],
-        max_tokens: 1,
-        stream: false,
-      };
-      
-      const response = await (this.chatCompletion(testRequest, config) as Promise<ILLMCompletionResponse>);
-      if (response && (response.content || response.id)) {
-        return { success: true, message: `Successfully connected to Deepseek. Received response ID: ${response.id}` };
-      }
-      return { success: false, error: 'Test connection to Deepseek failed to get a valid response.' };
+      return await runConnectionTests(this, config, { model: config.defaultModel || 'deepseek-v4-flash' });
     } catch (e: any) {
       console.error('Deepseek testConnection error:', e);
-      return { success: false, error: e.message || 'Unknown error during Deepseek test connection.' };
+      return { success: false, error: e?.message || 'Unknown error during Deepseek test connection.' };
     }
   }
 }

@@ -1,6 +1,6 @@
 import { Conversation } from "../conversation/Conversation";
 import { Character } from "../gameData/Character";
-import { ILLMMessage } from "../llmProviders/types";
+import { ILLMMessage } from "@llmTypes";
 import type { SchemaBuildInput } from "./jsonSchema";
 
 /**

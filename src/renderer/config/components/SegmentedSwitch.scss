@@ -1,0 +1,79 @@
+.segmented-switch {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid rgba(239, 177, 106, 0.4);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+  vertical-align: middle;
+
+  // Sizes
+  &--sm {
+    .segmented-switch__option {
+      padding: 3px 14px;
+      font-size: 12px;
+      min-width: 48px;
+    }
+  }
+
+  &--md {
+    .segmented-switch__option {
+      padding: 6px 16px;
+      font-size: 13px;
+      min-width: 60px;
+    }
+  }
+
+  &--full {
+    display: flex;
+    width: 100%;
+
+    .segmented-switch__option {
+      flex: 1;
+    }
+  }
+
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // Option button
+  &__option {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    line-height: 1.4;
+    border-radius: 0px;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+    box-sizing: border-box;
+
+    // Divider between segments (skip the first).
+    &:not(:first-child) {
+      border-left: 1px solid rgba(239, 177, 106, 0.3);
+    }
+
+    &:hover:not(&--disabled):not(&--active) {
+      background: rgba(239, 177, 106, 0.14);
+      color: #fff;
+    }
+
+    &--active {
+      background: #EFB16A;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+
+    &:hover:is(&--active) {
+      background: #EFB16A;
+    }
+
+    &--disabled {
+      cursor: not-allowed;
+    }
+  }
+}

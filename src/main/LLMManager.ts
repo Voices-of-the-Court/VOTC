@@ -4,10 +4,11 @@ import {
   ILLMCompletionRequest,
   ILLMOutput,
   ILLMModel,
-} from './llmProviders/types';
+  ConnectionTestResult,
+} from '@llmTypes';
 import { settingsRepository } from './SettingsRepository';
 import { providerRegistry } from './llmProviders/ProviderRegistry';
-import { TokenCounter } from './utils/TokenCounter';
+import { TokenCounter } from './utils';
 
 export class LLMManager {
   private providers: Map<string, ILLMProvider>; // Cache instantiated providers
@@ -51,7 +52,7 @@ export class LLMManager {
     }
   }
 
-   async testProviderConnection(): Promise<{success: boolean, error?: string, message?: string}> {
+   async testProviderConnection(): Promise<ConnectionTestResult> {
     const config = settingsRepository.getActiveProviderConfig();
     if (!config) {
       return { success: false, error: 'No active and enabled LLM provider configured.' };
@@ -73,7 +74,13 @@ export class LLMManager {
   async sendChatRequest(
     messages: ILLMCompletionRequest['messages'],
     signal?: AbortSignal,
-    noStream?: boolean
+    noStream?: boolean,
+    options?: {
+      cacheControl?: { enabled: boolean; ttl?: '5m' | '1h' };
+      sessionId?: string;
+      requestKind?: 'chat' | 'letter' | 'summary' | 'action';
+      cacheHistoryEndIndex?: number;
+    }
   ): Promise<ILLMOutput> {
     const activeConfig = settingsRepository.getActiveProviderConfig();
     if (!activeConfig) {
@@ -95,6 +102,10 @@ export class LLMManager {
       // Merge default parameters from config with specific request params
       ...activeConfig.defaultParameters,
       signal,
+      cacheControl: options?.cacheControl,
+      sessionId: options?.sessionId,
+      requestKind: options?.requestKind,
+      cacheHistoryEndIndex: options?.cacheHistoryEndIndex,
       // ...params,
     };
     const providerData = JSON.stringify(activeConfig).replace(/"apiKey":\s*"[^"]*"/g, 'HIDDEN'); // apiKey excluded
@@ -106,14 +117,19 @@ export class LLMManager {
   /**
    * Send a structured JSON request for Actions.
    * Uses the actions provider override if set, otherwise active provider.
+   *
+   * @param configOverride When provided (e.g. by the connection test), use this
+   *   config instead of the configured Actions provider. This lets the test
+   *   exercise a specific provider through the EXACT same request pipeline.
    */
   async sendActionsRequest(
     messages: ILLMCompletionRequest['messages'],
     schemaName: string,
     jsonSchemaObject: object,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    configOverride?: LLMProviderConfig
   ): Promise<ILLMOutput> {
-    const config = settingsRepository.getActionsProviderConfig();
+    const config = configOverride ?? settingsRepository.getActionsProviderConfig();
     if (!config) {
       throw new Error('No provider configured for Actions.');
     }

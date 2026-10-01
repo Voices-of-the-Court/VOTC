@@ -1,4 +1,4 @@
-import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings, ActionApprovalSettings } from '../main/llmProviders/types';
+import type { LLMProviderConfig, AppSettings, ILLMModel, PromptSettings, ActionApprovalSettings, ConnectionTestResult } from '@llmTypes';
 
 // Types for summaries manager
 export interface ConversationSummary {
@@ -15,6 +15,13 @@ export interface SummaryMetadata {
   characterName: string; // From file or fallback to ID
   summaries: ConversationSummary[];
   filePath: string;
+}
+
+// Types for initialization warnings
+export interface InitializationWarning {
+  type: 'ironman' | 'permission' | 'path_not_found' | 'path_detection' | 'debug_log_missing' | 'debug_log_unreadable';
+  message: string;
+  suggestion?: string;
 }
 
 declare global {
@@ -59,6 +66,8 @@ declare global {
       collectAndOpenLogs: () => Promise<{ success: boolean; path?: string; error?: string }>;
       getAppVersion: () => Promise<string>;
       onOverlayVisibilityChange: (callback: (isVisible: boolean) => void) => () => void;
+      getInitializationWarnings: () => Promise<InitializationWarning[]>;
+      onInitializationWarnings: (callback: (warnings: InitializationWarning[]) => void) => () => void;
     };
     llmConfigAPI: {
       getAppSettings: () => Promise<AppSettings>;
@@ -66,7 +75,9 @@ declare global {
       deletePreset: (instanceId: string) => Promise<void>; // Renamed
       setActiveProvider: (instanceId: string | null) => Promise<void>;
       listModels: () => Promise<ILLMModel[] | { error: string }>;
-      testConnection: () => Promise<{success: boolean, error?: string, message?: string}>;
+      testConnection: () => Promise<ConnectionTestResult>;
+      onTestConnectionProgress: (callback: (p: { step: string; status: string; message?: string }) => void) => () => void;
+      cancelTestConnection: () => Promise<boolean>;
       checkPlayer2Health: () => Promise<{success: boolean, client_version?: string, error?: string, message?: string, code?: number}>;
       setCK3Folder: (path: string | null) => Promise<void>;
       setModLocationPath: (path: string | null) => Promise<void>;
@@ -76,6 +87,7 @@ declare global {
       saveGenerateFollowingMessagesSetting: (enabled: boolean) => Promise<void>;
       saveMessageFontSize: (fontSize: number) => Promise<void>;
       saveShowSettingsOnStartupSetting: (enabled: boolean) => Promise<void>;
+      saveAutoSwitchPromptLocaleSetting: (enabled: boolean) => Promise<void>;
       getLanguage: () => Promise<string>;
       saveLanguage: (language: string) => Promise<void>;
       getAllowPrerelease: () => Promise<boolean>;

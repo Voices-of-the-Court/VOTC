@@ -2,10 +2,44 @@ appId: com.mrandropc.votc
 productName: VOTC
 directories:
   buildResources: build
-asar: false
+asar: true
+asarUnpack:
+  - '**/*.node'                     # unpack every native binary
+  - 'node_modules/active-win/**'    # active-win resolves its binding by path
+compression: maximum               # LZMA — smaller installer, slower build
+removePackageScripts: true
+removePackageKeywords: true
+
+electronLanguages:
+  - en-US
+  - de
+  - es
+  - es-419
+  - fr
+  - ja
+  - ko
+  - pl
+  - ru
+  - zh-CN
+  - zh-TW
+
+# IMPORTANT: do NOT add per-platform `files:` sections (`win.files` /
+# `mac.files`) to exclude these. electron-builder 26.x builds a SECOND,
+# identical app file set whenever a platform-specific `files` exists, so every
+# app file is copied twice. A duplicate copy is harmless with copyFile(), but on
+# macOS CI electron-builder hard-links instead, and the second link() throws
+# `EEXIST: file already exists` (verified: 79 duplicate destinations, all of
+# out/ + default_userdata/). Keep every exclude here, at the top level.
 files:
   - 'out/**'  # Include the output directory
   - 'default_userdata/**'  # Include default_userdata directory
+  # active-win misclassifies node-gyp as a runtime dep, but it only uses
+  # prebuilt .node binaries — exclude the ~2MB build toolchain it drags in.
+  - '!**/node_modules/node-gyp/**'
+  # Platform bindings no desktop target needs (see mac.files for the win32 one,
+  # which Windows does need and therefore cannot be excluded globally).
+  - '!**/node_modules/active-win/lib/binding/napi-6-darwin-*/**'
+  - '!**/node_modules/active-win/lib/binding/napi-6-linux-*/**'
   - '!**/.vscode/*'
   - '!src/*'
   - '!dist/*'
@@ -17,8 +51,7 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-asarUnpack:
-  - resources/**
+
 win:
   executableName: VOTC
   icon: build/icon.ico
@@ -27,6 +60,27 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+dmg:
+  title: ${productName} ${version}
+  contents:
+    # The app
+    - x: 130
+      y: 220
+    # Shortcut to /Applications for drag-to-install
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+    # Multilingual install guide
+    - x: 270
+      y: 370
+      type: file
+      path: Installation-Guide.rtf
+  # Taller window so the bottom guide icon + label aren't clipped.
+  window:
+    width: 540
+    height: 460
+
 mac:
   category: public.app-category.games
   icon: build/icon.png
@@ -34,6 +88,14 @@ mac:
     - dmg
     - zip
   artifactName: ${name}-${version}-${arch}.${ext}
+  # This section is the reason the mac job needs USE_HARD_LINKS=false (see
+  # .github/workflows/build.yml). Only rule that cannot move to the top-level
+  # `files`: Windows needs the win32 binding, so it cannot be excluded globally.
+  files:
+    - '!**/node_modules/active-win/lib/binding/napi-6-win32-*/**'
+    - '!**/node_modules/active-win/build/**'
+  extraDistFiles:
+    - build/Installation-Guide.rtf
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

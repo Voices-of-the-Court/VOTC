@@ -4,12 +4,22 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   main: {
+    resolve: {
+      alias: {
+        '@llmTypes': resolve('src/main/llmProviders/types.ts')
+      }
+    },
     plugins: [externalizeDepsPlugin()],
     build: {
       outDir: 'out/main'
     }
   },
   preload: {
+    resolve: {
+      alias: {
+        '@llmTypes': resolve('src/main/llmProviders/types.ts')
+      }
+    },
     plugins: [externalizeDepsPlugin()],
     build: {
       outDir: 'out/preload'
@@ -18,7 +28,8 @@ export default defineConfig({
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': resolve('src/renderer/src'),
+        '@llmTypes': resolve('src/main/llmProviders/types.ts')
       }
     },
     build: {

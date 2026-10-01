@@ -1,12 +1,30 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset, ConversationSummary, SummaryMetadata } from '../../../main/llmProviders/types';
+import type { AppSettings, LLMProviderConfig, ProviderType, ILLMModel, PromptSettings, PromptPreset, ConversationSummary, SummaryMetadata, ConnectionTestResult } from '@llmTypes';
 import {
   PROVIDER_TYPES,
   DEFAULT_PROVIDER_CONFIGS,
   DEFAULT_ACTIVE_PROVIDER,
   DEFAULT_PARAMETERS,
-} from '../../../main/llmProviders/types';
+} from '@llmTypes';
+import i18n from '../../i18n';
+import { reconcileSettingsLocales, type PromptLocaleSwitch } from '../utils/promptLocaleReconcile';
+
+export type TestStepId = 'text' | 'advanced' | 'minimized';
+export type TestStepStatus = 'pending' | 'running' | 'done' | 'error';
+export interface TestStepState {
+  id: TestStepId;
+  status: TestStepStatus;
+  message?: string;
+}
+
+const initialTestSteps = (): TestStepState[] => [
+  { id: 'text', status: 'pending' },
+  { id: 'advanced', status: 'pending' },
+  { id: 'minimized', status: 'pending' },
+];
+
+let testElapsedTimer: ReturnType<typeof setInterval> | null = null;
 
 interface ConfigStore {
   // Settings state
@@ -27,7 +45,10 @@ interface ConfigStore {
   summaryProviderInstanceId: string | null;
   
   // UI state
-  testResult: { success: boolean; message?: string; error?: string } | null;
+  testStatus: 'idle' | 'running';
+  testSteps: TestStepState[];
+  testElapsedMs: number;
+  testResult: ConnectionTestResult | null;
   player2Health: {
     status: 'idle' | 'checking' | 'healthy' | 'error';
     clientVersion?: string;
@@ -48,6 +69,8 @@ interface ConfigStore {
     examples: string[];
   };
   promptPresets: PromptPreset[];
+  /** Switches produced by the last auto-switch reconcile, for the global notification. */
+  promptLocaleSwitches: PromptLocaleSwitch[];
   
   // Actions
   loadSettings: () => Promise<void>;
@@ -64,6 +87,7 @@ interface ConfigStore {
   saveConfigImmediate: () => Promise<void>;
   
   testConnection: () => Promise<void>;
+  cancelTestConnection: () => void;
   setTestResult: (result: ConfigStore['testResult']) => void;
   checkPlayer2Health: () => Promise<void>;
   
@@ -80,6 +104,13 @@ interface ConfigStore {
   updateGenerateFollowingMessages: (enabled: boolean) => Promise<void>;
   updateMessageFontSize: (fontSize: number) => Promise<void>;
   updateShowSettingsOnStartup: (enabled: boolean) => Promise<void>;
+  updateAutoSwitchPromptLocale: (enabled: boolean) => Promise<void>;
+  /** Reconcile prompt script files to `targetLang` (startup / language change). */
+  reconcilePromptLocales: (targetLang: string, opts?: { force?: boolean }) => Promise<void>;
+  /** Clear the pending switch notification without changing files. */
+  dismissPromptLocaleSwitches: () => void;
+  /** Restore the previous script paths for all pending switches and pin them. */
+  revertPromptLocaleSwitches: () => Promise<void>;
   updateAllowPrerelease: (enabled: boolean) => Promise<void>;
   updateCK3Folder: (path: string) => Promise<void>;
   selectCK3Folder: () => Promise<void>;
@@ -101,8 +132,8 @@ interface ConfigStore {
   saveActionApprovalSettings: (settings: any) => Promise<void>;
   
   // Summary prompt settings
-  getSummaryPromptSettings: () => Promise<{ rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string }>;
-  updateSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string }) => Promise<void>;
+  getSummaryPromptSettings: () => Promise<{ rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string; maxPastSummaries: number }>;
+  updateSummaryPromptSettings: (settings: { rollingPrompt: string; finalPrompt: string; letterSummaryPrompt: string; maxPastSummaries: number }) => Promise<void>;
 
   // Prompt actions
   loadPromptSettings: () => Promise<void>;
@@ -142,6 +173,9 @@ export const useConfigStore = create<ConfigStore>()(
       initialConfig: {},
       actionsProviderInstanceId: null,
       summaryProviderInstanceId: null,
+      testStatus: 'idle',
+      testSteps: initialTestSteps(),
+      testElapsedMs: 0,
       testResult: null,
       player2Health: null,
       autoSaveTimer: null,
@@ -149,6 +183,7 @@ export const useConfigStore = create<ConfigStore>()(
       letterPromptSettings: null,
       promptFiles: { system: [], descriptions: [], examples: [] },
       promptPresets: [],
+      promptLocaleSwitches: [],
 
       // Load settings from backend
       loadSettings: async () => {
@@ -189,6 +224,15 @@ export const useConfigStore = create<ConfigStore>()(
         } else {
           // Default to the default active provider
           get().selectProvider(DEFAULT_ACTIVE_PROVIDER);
+        }
+
+        // Startup locale migration: switch prompt scripts to match the
+        // persisted app language. Uses `settings.language` (source of truth)
+        // rather than i18n, which may not have settled yet. Guarded by the
+        // autoSwitchPromptLocale setting and a per-language dedupe.
+        if (settings.autoSwitchPromptLocale !== false) {
+          const lang = (settings.language || 'en').toLowerCase().split('-')[0];
+          await get().reconcilePromptLocales(lang);
         }
       },
 
@@ -243,6 +287,7 @@ export const useConfigStore = create<ConfigStore>()(
 
       // Select provider
       selectProvider: async (type) => {
+        if (get().testStatus === 'running') return; // don't switch providers mid-test
         const { appSettings } = get();
         if (!appSettings) return;
         
@@ -259,6 +304,8 @@ export const useConfigStore = create<ConfigStore>()(
           editingConfig: config,
           initialConfig: config,
           testResult: null,
+          testSteps: initialTestSteps(),
+          testElapsedMs: 0,
           player2Health: type === 'player2' ? (state.player2Health ?? { status: 'checking' }) : null,
         }));
         
@@ -282,6 +329,7 @@ export const useConfigStore = create<ConfigStore>()(
 
       // Select preset
       selectPreset: async (id) => {
+        if (get().testStatus === 'running') return; // don't switch providers mid-test
         const { appSettings } = get();
         if (!appSettings) return;
         
@@ -294,6 +342,8 @@ export const useConfigStore = create<ConfigStore>()(
           editingConfig: preset,
           initialConfig: preset,
           testResult: null,
+          testSteps: initialTestSteps(),
+          testElapsedMs: 0,
           player2Health: preset.providerType === 'player2' ? (state.player2Health ?? { status: 'checking' }) : null,
         }));
         
@@ -364,6 +414,8 @@ export const useConfigStore = create<ConfigStore>()(
           defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
           customContextLength: editingConfig.customContextLength,
           useMinimizedActionsSchema: editingConfig.useMinimizedActionsSchema,
+          promptCachingEnabled: editingConfig.promptCachingEnabled,
+          promptCacheTtl: editingConfig.promptCacheTtl,
         };
         
         try {
@@ -412,9 +464,45 @@ export const useConfigStore = create<ConfigStore>()(
 
       // Test connection
       testConnection: async () => {
-        set({ testResult: null });
-        const result = await window.llmConfigAPI.testConnection();
-        set({ testResult: result });
+        if (get().testStatus === 'running') return; // prevent overlapping runs
+
+        const unsubscribe = window.llmConfigAPI.onTestConnectionProgress((p) => {
+          set((state) => ({
+            testSteps: state.testSteps.map((s) =>
+              s.id === (p.step as TestStepId)
+                ? { ...s, status: p.status as TestStepStatus, message: p.message }
+                : s
+            ),
+          }));
+        });
+
+        const startedAt = Date.now();
+        set({
+          testStatus: 'running',
+          testResult: null,
+          testElapsedMs: 0,
+          testSteps: initialTestSteps(),
+        });
+
+        if (testElapsedTimer) clearInterval(testElapsedTimer);
+        testElapsedTimer = setInterval(() => {
+          set({ testElapsedMs: Date.now() - startedAt });
+        }, 200);
+
+        try {
+          const result = await window.llmConfigAPI.testConnection();
+          set({ testResult: result });
+        } catch (e: any) {
+          set({ testResult: { success: false, error: e?.message || 'Test failed.' } });
+        } finally {
+          if (testElapsedTimer) { clearInterval(testElapsedTimer); testElapsedTimer = null; }
+          unsubscribe();
+          set({ testStatus: 'idle' });
+        }
+      },
+
+      cancelTestConnection: () => {
+        window.llmConfigAPI.cancelTestConnection();
       },
 
       checkPlayer2Health: async () => {
@@ -450,6 +538,8 @@ export const useConfigStore = create<ConfigStore>()(
           defaultParameters: editingConfig.defaultParameters || { ...DEFAULT_PARAMETERS },
           customContextLength: editingConfig.customContextLength,
           useMinimizedActionsSchema: editingConfig.useMinimizedActionsSchema,
+          promptCachingEnabled: editingConfig.promptCachingEnabled,
+          promptCacheTtl: editingConfig.promptCacheTtl,
         };
         
         try {
@@ -640,7 +730,89 @@ export const useConfigStore = create<ConfigStore>()(
             : null,
         }));
       },
-      
+
+      updateAutoSwitchPromptLocale: async (enabled) => {
+        await window.llmConfigAPI.saveAutoSwitchPromptLocaleSetting(enabled);
+        set((state) => ({
+          appSettings: state.appSettings
+            ? { ...state.appSettings, autoSwitchPromptLocale: enabled }
+            : null,
+        }));
+        // Turning it on should reconcile immediately so the user sees the effect.
+        if (enabled) {
+          const lang = (i18n.language || 'en').toLowerCase().split('-')[0];
+          await get().reconcilePromptLocales(lang, { force: true });
+        } else {
+          // Clear any pending notification when disabled.
+          set({ promptLocaleSwitches: [] });
+        }
+      },
+
+      reconcilePromptLocales: async (targetLang, opts) => {
+        const state = get();
+        const { appSettings, promptSettings, letterPromptSettings, promptFiles } = state;
+        if (!appSettings || !promptSettings || !letterPromptSettings) return;
+        if (appSettings.autoSwitchPromptLocale === false) return;
+
+        const lang = targetLang.toLowerCase().split('-')[0];
+        // A genuine app-language change (not the first run, not a same-language
+        // force re-run like toggling the feature).
+        const isLanguageChange =
+          lastReconciledLang !== null && lastReconciledLang !== lang;
+        // Dedupe by language (NOT by scriptPath) so editing a block never
+        // re-triggers a switch, and switching to the same language twice is a no-op.
+        if (!opts?.force && lastReconciledLang === lang) return;
+        lastReconciledLang = lang;
+
+        const convBase = isLanguageChange ? clearLocalePins(promptSettings) : promptSettings;
+        const letterBase = isLanguageChange ? clearLocalePins(letterPromptSettings) : letterPromptSettings;
+
+        const conv = reconcileSettingsLocales(
+          convBase, promptFiles.descriptions, promptFiles.examples, lang, 'conversation',
+        );
+        const letter = reconcileSettingsLocales(
+          letterBase, promptFiles.descriptions, promptFiles.examples, lang, 'letter',
+        );
+
+        const pinsClearedConv = isLanguageChange && convBase !== promptSettings;
+        const pinsClearedLetter = isLanguageChange && letterBase !== letterPromptSettings;
+        if (conv.changed || pinsClearedConv) await state.savePromptSettings(conv.settings);
+        if (letter.changed || pinsClearedLetter) await state.saveLetterPromptSettings(letter.settings);
+
+        set({ promptLocaleSwitches: [...conv.switches, ...letter.switches] });
+      },
+
+      dismissPromptLocaleSwitches: () => {
+        set({ promptLocaleSwitches: [] });
+      },
+
+      revertPromptLocaleSwitches: async () => {
+        const { promptLocaleSwitches, promptSettings, letterPromptSettings } = get();
+        if (promptLocaleSwitches.length === 0) return;
+
+        const restore = (settings: PromptSettings | null, mode: 'conversation' | 'letter') => {
+          if (!settings) return settings;
+          const byBlock = new Map(
+            promptLocaleSwitches.filter((s) => s.mode === mode).map((s) => [s.blockId, s]),
+          );
+          if (byBlock.size === 0) return settings;
+          return {
+            ...settings,
+            blocks: settings.blocks.map((b) => {
+              const sw = byBlock.get(b.id);
+              if (!sw) return b;
+              return { ...b, scriptPath: sw.fromPath, localePinned: true };
+            }),
+          } as PromptSettings;
+        };
+
+        const newConv = restore(promptSettings, 'conversation');
+        const newLetter = restore(letterPromptSettings, 'letter');
+        if (newConv !== promptSettings) await get().savePromptSettings(newConv!);
+        if (newLetter !== letterPromptSettings) await get().saveLetterPromptSettings(newLetter!);
+        set({ promptLocaleSwitches: [] });
+      },
+
       updateAllowPrerelease: async (enabled) => {
         await window.llmConfigAPI.saveAllowPrerelease(enabled);
         set((state) => ({
@@ -800,6 +972,9 @@ export const useConfigStore = create<ConfigStore>()(
 export const useAppSettings = () => useConfigStore((state) => state.appSettings);
 export const useEditingConfig = () => useConfigStore((state) => state.editingConfig);
 export const useTestResult = () => useConfigStore((state) => state.testResult);
+export const useTestStatus = () => useConfigStore((state) => state.testStatus);
+export const useTestSteps = () => useConfigStore((state) => state.testSteps);
+export const useTestElapsedMs = () => useConfigStore((state) => state.testElapsedMs);
 
 // Custom hooks for object selectors
 export const useSelection = () => {
@@ -818,3 +993,24 @@ export const useModelState = () => {
 
 export const usePromptSettings = () => useConfigStore((state) => state.promptSettings);
 export const usePromptFiles = () => useConfigStore((state) => state.promptFiles);
+
+let lastReconciledLang: string | null = null;
+
+function clearLocalePins(settings: PromptSettings): PromptSettings {
+  let touched = false;
+  const blocks = settings.blocks.map((b) => {
+    if (b.localePinned) {
+      touched = true;
+      const next = { ...b };
+      delete next.localePinned;
+      return next;
+    }
+    return b;
+  });
+  return touched ? { ...settings, blocks } : settings;
+}
+
+i18n.on('languageChanged', (lng: string) => {
+  const lang = (lng || 'en').toLowerCase().split('-')[0];
+  void useConfigStore.getState().reconcilePromptLocales(lang);
+});
