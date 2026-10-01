@@ -1,11 +1,46 @@
 name: Create or update prerelease
 
+# Manual-only workflow that builds Windows + macOS and publishes them to a
+# GitHub *prerelease* (draft=false, prerelease=true) named after the version in
+# package.json. Re-running it for the same version re-uploads assets in place.
+#
+# macOS ships two separate builds (arm64 + x64) so Intel and Apple Silicon
+# testers each get a native-speed binary instead of a 2x larger universal one.
+# electron-builder merges both zips into a single `latest-mac.yml`, and
+# electron-updater picks the matching one by looking for "arm64" in the file
+# name (MacUpdater.isArm64), so the metadata stays correct per machine.
+#
+# macOS builds are UNSIGNED (no Apple Developer identity on GitHub runners), so:
+#   - Gatekeeper blocks first launch; testers need
+#     `xattr -cr /Applications/VOTC.app` or right-click > Open
+#   - in-app auto-update does NOT work on macOS (electron-updater refuses
+#     unsigned updates); mac testers must download the new build manually
+# Windows builds are unaffected by either limitation.
 on:
-  workflow_dispatch:      # allows manual trigger
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            artifact: |
+              dist/*.exe
+              dist/latest.yml
+              dist/*.blockmap
+          - os: macos-latest
+            name: macos
+            # Files only — no mac/ or mac-arm64/ directories. The release job
+            # globs `dist/*` when uploading, so a stray directory would break
+            # `gh release upload`.
+            artifact: |
+              dist/*.dmg
+              dist/*.zip
+              dist/latest-mac.yml
+              dist/*.blockmap
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -24,20 +59,49 @@ jobs:
         run: npm ci
 
       - name: Build Windows executable
+        if: matrix.name == 'windows'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:win
 
-      - name: Upload Windows build artifacts
+      # Same as build-mac.yml: the electron binary is invoked directly instead
+      # of via `npm run build:mac` so both arch flags can be passed and so
+      # `--publish never` is explicit. electron-builder.yml has a `publish:
+      # github` block and CI is auto-detected here, so without `--publish never`
+      # electron-builder would try to create/upload a release from this job —
+      # the `release` job below is the single publishing authority.
+      # NOTE: `--publish never` suppresses only the upload; `latest-mac.yml` is
+      # still written, which is exactly what we want to ship to the release.
+      - name: Build macOS executables (arm64 + x64)
+        if: matrix.name == 'macos'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No Apple Developer identity on GitHub runners. Disabling
+          # auto-discovery makes electron-builder produce a clean, deterministic
+          # UNSIGNED build, exactly like build-mac.yml. A real signed+notarized
+          # release would set CSC_LINK / CSC_KEY_PASSWORD / APPLE_ID /
+          # APPLE_TEAM_ID instead.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          APPLE_ID: ''
+          APPLE_APP_SPECIFIC_PASSWORD: ''
+          APPLE_TEAM_ID: ''
+          # builder-util only hard-links on non-Windows (fs.js:
+          # `platform !== "win32" && USE_HARD_LINKS !== "false"`), so this is
+          # macOS-only in practice. It is required here: electron-builder
+          # hard-links when packing, and its hard-link path only recovers from
+          # EXDEV, not EEXIST. `mac.files` in electron-builder.yml makes
+          # electron-builder build a duplicate app file set, so the second copy
+          # of every file hits link() on an already-linked destination and the
+          # build dies with EEXIST on out/ + default_userdata/. Plain copy
+          # overwrites cleanly, so the .app/.dmg is identical — just marginally
+          # slower to package.
+          USE_HARD_LINKS: 'false'
+        run: npm run build && ./node_modules/.bin/electron-builder --mac --arm64 --x64 --publish never
+
+      - name: Upload ${{ matrix.name }} build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
-          path: |
-            dist/*.exe
-            dist/latest.yml
-            dist/*.blockmap
+          name: ${{ matrix.name }}-build
+          path: ${{ matrix.artifact }}
           retention-days: 1
           if-no-files-found: error
 
@@ -77,11 +141,18 @@ jobs:
             echo "🏷️ Tag $TAG does not exist – will create new tag & prerelease"
           fi
 
-      - name: Download Windows artifacts
+      # Both matrix jobs upload into a flat dist/ here. Windows contributes
+      # *.exe + latest.yml, macOS contributes the arm64 + x64 *.dmg/*.zip plus
+      # latest-mac.yml, and the *.blockmap files needed for differential
+      # downloads. `dist/*` below therefore ships every asset — keep the upload
+      # globs file-only (no win-unpacked/ or mac*/ directories) so this glob
+      # stays safe.
+      - name: Download Windows and macOS artifacts
         uses: actions/download-artifact@v4
         with:
-          name: windows-build
+          pattern: '*-build'
           path: dist/
+          merge-multiple: true
 
       - name: Create and push new tag (if version is new)
         if: steps.tag_check.outputs.exists == 'false'
@@ -111,3 +182,25 @@ jobs:
               --title "$TAG" \
               --prerelease
           fi
+
+      - name: Write macOS install instructions to job summary
+        if: always()
+        run: |
+          {
+            echo "## macOS testers"
+            echo
+            echo "Pick the build that matches your Mac: **arm64** (Apple Silicon"
+            echo "M1/M2/M3/M4) or **x64** (Intel)."
+            echo
+            echo "Both are **unsigned**. Run:"
+            echo
+            echo '1. Download the matching `.dmg`, open it, drag **VOTC** to Applications.'
+            echo '2. Strip the quarantine attribute (Terminal):'
+            echo '   ```'
+            echo '   xattr -cr /Applications/VOTC.app'
+            echo '   ```'
+            echo '3. Launch VOTC.'
+            echo
+            echo "> In-app auto-update does not work for unsigned macOS builds —"
+            echo "> mac testers must download each new prerelease manually."
+          } >> "$GITHUB_STEP_SUMMARY"
